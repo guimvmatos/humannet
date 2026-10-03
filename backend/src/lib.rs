@@ -1,0 +1,61 @@
+pub mod auth;
+pub mod config;
+pub mod crypto;
+pub mod error;
+pub mod routes;
+pub mod validation;
+
+use std::time::Duration;
+
+use axum::{
+    Router,
+    http::{HeaderName, StatusCode},
+    routing::{get, post},
+};
+use sqlx::PgPool;
+use tower_http::{
+    limit::RequestBodyLimitLayer,
+    request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
+    timeout::TimeoutLayer,
+    trace::TraceLayer,
+};
+
+pub use config::{Config, Policy};
+
+/// Limite de corpo para a API JSON. Upload de mídia terá rota própria.
+const MAX_BODY_BYTES: usize = 64 * 1024;
+const REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
+
+#[derive(Clone)]
+pub struct AppState {
+    pub db: PgPool,
+    pub policy: Policy,
+}
+
+pub fn app(state: AppState) -> Router {
+    let request_id = HeaderName::from_static("x-request-id");
+
+    let v1 = Router::new()
+        .route("/auth/register", post(routes::auth::register))
+        .route("/auth/login", post(routes::auth::login))
+        .route("/auth/logout", post(routes::auth::logout))
+        .route("/me", get(routes::me::get))
+        .route("/invites", post(routes::invites::create));
+
+    Router::new()
+        .route("/health", get(routes::health::health))
+        .nest("/v1", v1)
+        .with_state(state)
+        // Camadas: a última adicionada é a mais externa.
+        .layer(RequestBodyLimitLayer::new(MAX_BODY_BYTES))
+        .layer(TimeoutLayer::with_status_code(
+            StatusCode::REQUEST_TIMEOUT,
+            REQUEST_TIMEOUT,
+        ))
+        .layer(PropagateRequestIdLayer::new(request_id.clone()))
+        .layer(TraceLayer::new_for_http())
+        .layer(SetRequestIdLayer::new(request_id, MakeRequestUuid))
+}
+
+/// Migrações embutidas no binário.
+pub static MIGRATOR: sqlx::migrate::Migrator = sqlx::migrate!("./migrations");

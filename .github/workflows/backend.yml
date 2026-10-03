@@ -1,0 +1,67 @@
+name: backend
+
+on:
+  push:
+    branches: [main]
+    paths: ['backend/**', '.github/workflows/backend.yml']
+  pull_request:
+    paths: ['backend/**', '.github/workflows/backend.yml']
+  schedule:
+    - cron: '0 6 * * 1' # auditoria semanal de dependências
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: backend
+
+env:
+  CARGO_TERM_COLOR: always
+  SQLX_OFFLINE: 'true'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: humannet
+          POSTGRES_PASSWORD: humannet
+          POSTGRES_DB: humannet
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U humannet"
+          --health-interval 2s --health-timeout 5s --health-retries 15
+    env:
+      DATABASE_URL: postgres://humannet:humannet@localhost:5432/humannet
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+
+      - name: fmt
+        run: cargo fmt --check
+      - name: clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+      - name: test
+        run: cargo test --locked
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: sqlx-cli,cargo-audit
+      - name: cache do sqlx está atualizado
+        run: |
+          sqlx migrate run
+          SQLX_OFFLINE=false cargo sqlx prepare --check -- --all-targets
+      - name: auditoria de dependências (RustSec)
+        run: cargo audit

@@ -1,0 +1,66 @@
+name: app
+
+on:
+  push:
+    branches: [main]
+    paths: ['app/**', '.github/workflows/app.yml']
+  pull_request:
+    paths: ['app/**', '.github/workflows/app.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: pub get
+        run: flutter pub get
+      # TODO: reativar a checagem de formatação depois do primeiro
+      # `dart format lib test` local (o código inicial não foi formatado
+      # pelo SDK). Linha: dart format --output=none --set-exit-if-changed lib test
+      - name: analyze
+        run: flutter analyze
+      - name: test
+        run: flutter test
+
+  apk:
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # Enquanto android/ não estiver commitado, gera e ajusta aqui.
+      - name: preparar android/
+        run: ./tool/setup_android.sh
+      - name: build APK (debug)
+        # Para testar num aparelho real contra uma API pública, passe
+        # --dart-define=API_BASE_URL=https://... (ver app/README.md).
+        run: flutter build apk --debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: humannet-debug-apk
+          path: app/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 14

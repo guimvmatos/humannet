@@ -1,0 +1,30 @@
+# Ambiente de desenvolvimento local. NÃO usar estas senhas em produção.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: humannet
+      POSTGRES_PASSWORD: humannet
+      POSTGRES_DB: humannet
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U humannet"]
+      interval: 2s
+      retries: 15
+
+  api:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://humannet:humannet@db:5432/humannet
+      RUST_LOG: humannet_api=info,tower_http=info
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  pgdata:
