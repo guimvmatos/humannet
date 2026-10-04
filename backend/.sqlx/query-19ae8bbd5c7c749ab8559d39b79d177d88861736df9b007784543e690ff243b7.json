@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, username, email, created_at FROM users WHERE id = $1",
+  "query": "\n        SELECT id, username, email, display_name, bio, password_hash, created_at\n        FROM users\n        WHERE username = $1 OR email = $1\n        ",
   "describe": {
     "columns": [
       {
@@ -38,6 +38,39 @@
       },
       {
         "ordinal": 3,
+        "name": "display_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "display_name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "bio",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "bio"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "password_hash",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "password_hash"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -50,15 +83,18 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Text"
       ]
     },
     "nullable": [
       false,
       false,
       false,
+      true,
+      false,
+      false,
       false
     ]
   },
-  "hash": "d124fb052211c7ca8ab869e1fe5903bf5437b51326d2de5a2b234c610e33e556"
+  "hash": "19ae8bbd5c7c749ab8559d39b79d177d88861736df9b007784543e690ff243b7"
 }

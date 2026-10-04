@@ -4,7 +4,7 @@ Uma rede social ética, humana e autêntica, feita a partir do Brasil.
 
 > Sem algoritmos ocultos. Sem bots. Sem métricas de vaidade. Uma pessoa, uma conta.
 
-**Status:** Fase 0 (fundação). O backend tem autenticação por convite e o app Android tem login.
+**Status:** Fase 1 em andamento. Já funcionam convites, login, perfis, seguir, posts de texto e feed cronológico.
 
 ## Documentação
 
@@ -62,6 +62,15 @@ cd app && flutter test
 | POST | `/v1/auth/logout` | Bearer | Revoga a sessão atual |
 | GET | `/v1/me` | Bearer | Dados do próprio usuário |
 | POST | `/v1/invites` | Bearer | Gera um convite (até 5 ativos) |
+| PATCH | `/v1/me/profile` | Bearer | `{display_name?, bio?}` (`""` em display_name remove) |
+| GET | `/v1/users/{username}` | Bearer | Perfil; `stats` só no próprio perfil (R3) |
+| PUT / DELETE | `/v1/users/{username}/follow` | Bearer | Seguir / deixar de seguir (idempotente) |
+| GET | `/v1/users/{username}/posts` | Bearer | Posts do usuário (paginado) |
+| POST | `/v1/posts` | Bearer | `{body}` (1–5000 caracteres) |
+| GET / DELETE | `/v1/posts/{id}` | Bearer | Ler / apagar (só o autor; o texto é removido do banco) |
+| GET | `/v1/feed` | Bearer | Cronológico: quem você segue + você |
+
+Paginação: `?limit=1..50&before=<id>`. A resposta é `{items, next_cursor}`, e `next_cursor: null` marca o fim da lista (sem rolagem infinita, R6).
 
 Os erros têm o formato `{"error": "<codigo>"}`. Os códigos estão em `backend/src/error.rs` e `app/lib/src/ui/error_messages.dart`.
 

@@ -85,6 +85,12 @@ class SessionController extends ChangeNotifier {
     _set(SessionStatus.signedOut);
   }
 
+  /// Atualiza os dados locais do usuário (ex.: após editar o perfil).
+  void updateUser(User user) {
+    _user = user;
+    notifyListeners();
+  }
+
   Future<void> _signIn(AuthResult result) async {
     await _tokens.write(result.token);
     _token = result.token;

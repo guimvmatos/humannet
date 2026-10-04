@@ -15,6 +15,12 @@ String errorMessage(Object error) {
     'username_taken' => 'Esse nome de usuário já está em uso.',
     'email_taken' => 'Esse e-mail já está cadastrado.',
     'invite_limit' => 'Você atingiu o limite de convites ativos.',
+    'invalid_display_name' => 'Nome de exibição deve ter até 50 caracteres.',
+    'invalid_bio' => 'A bio deve ter até 300 caracteres.',
+    'invalid_post_body' => 'O post deve ter entre 1 e 5.000 caracteres.',
+    'cannot_follow_self' => 'Você não pode seguir a si mesmo.',
+    'not_found' => 'Não encontrado.',
+    'forbidden' => 'Você não tem permissão para isso.',
     'network_error' => 'Sem conexão com o servidor.',
     _ => 'Algo deu errado. Tente novamente.',
   };

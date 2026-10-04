@@ -109,6 +109,8 @@ pub async fn register(
                 id: user_id,
                 username,
                 email,
+                display_name: None,
+                bio: String::new(),
                 created_at,
             },
         }),
@@ -128,7 +130,7 @@ pub async fn login(
     let user = sqlx::query_as!(
         UserWithHash,
         r#"
-        SELECT id, username, email, password_hash, created_at
+        SELECT id, username, email, display_name, bio, password_hash, created_at
         FROM users
         WHERE username = $1 OR email = $1
         "#,
@@ -164,6 +166,8 @@ pub async fn login(
             id: user.id,
             username: user.username,
             email: user.email,
+            display_name: user.display_name,
+            bio: user.bio,
             created_at: user.created_at,
         },
     }))
@@ -181,6 +185,8 @@ struct UserWithHash {
     id: Uuid,
     username: String,
     email: String,
+    display_name: Option<String>,
+    bio: String,
     password_hash: String,
     created_at: OffsetDateTime,
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../auth/session_controller.dart';
-import 'home_screen.dart';
+import 'home_shell.dart';
 import 'login_screen.dart';
 
 class HumanNetApp extends StatelessWidget {
@@ -27,7 +27,7 @@ class HumanNetApp extends StatelessWidget {
             body: Center(child: CircularProgressIndicator()),
           ),
           SessionStatus.signedOut => LoginScreen(session: session),
-          SessionStatus.signedIn => HomeScreen(session: session),
+          SessionStatus.signedIn => HomeShell(session: session),
         },
       ),
     );

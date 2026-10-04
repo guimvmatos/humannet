@@ -10,7 +10,7 @@ use std::time::Duration;
 use axum::{
     Router,
     http::{HeaderName, StatusCode},
-    routing::{get, post},
+    routing::{get, patch, post, put},
 };
 use sqlx::PgPool;
 use tower_http::{
@@ -40,7 +40,20 @@ pub fn app(state: AppState) -> Router {
         .route("/auth/login", post(routes::auth::login))
         .route("/auth/logout", post(routes::auth::logout))
         .route("/me", get(routes::me::get))
-        .route("/invites", post(routes::invites::create));
+        .route("/me/profile", patch(routes::profiles::update))
+        .route("/invites", post(routes::invites::create))
+        .route("/users/{username}", get(routes::profiles::get))
+        .route(
+            "/users/{username}/follow",
+            put(routes::profiles::follow).delete(routes::profiles::unfollow),
+        )
+        .route("/users/{username}/posts", get(routes::posts::list_by_user))
+        .route("/posts", post(routes::posts::create))
+        .route(
+            "/posts/{id}",
+            get(routes::posts::get).delete(routes::posts::delete),
+        )
+        .route("/feed", get(routes::posts::feed));
 
     Router::new()
         .route("/health", get(routes::health::health))

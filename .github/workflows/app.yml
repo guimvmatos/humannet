@@ -2,9 +2,7 @@ name: app
 
 on:
   push:
-    branches: [main]
-    paths: ['app/**', '.github/workflows/app.yml']
-  pull_request:
+    branches: ['**']
     paths: ['app/**', '.github/workflows/app.yml']
 
 permissions:

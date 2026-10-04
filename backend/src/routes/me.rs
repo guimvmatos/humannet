@@ -11,6 +11,8 @@ pub struct UserDto {
     pub id: Uuid,
     pub username: String,
     pub email: String,
+    pub display_name: Option<String>,
+    pub bio: String,
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
 }
@@ -19,7 +21,7 @@ pub struct UserDto {
 pub async fn get(State(state): State<AppState>, user: AuthUser) -> AppResult<Json<UserDto>> {
     let me = sqlx::query_as!(
         UserDto,
-        "SELECT id, username, email, created_at FROM users WHERE id = $1",
+        "SELECT id, username, email, display_name, bio, created_at FROM users WHERE id = $1",
         user.user_id
     )
     .fetch_one(&state.db)

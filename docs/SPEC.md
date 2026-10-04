@@ -200,8 +200,8 @@ users(id, username, email, password_hash, invited_by → users, created_at)
 sessions(id, user_id → users, token_hash, created_at, expires_at)
 invites(id, code_hash, created_by → users?, created_at, expires_at, used_by → users?, used_at)
 
--- Fase 1
-profiles(user_id, display_name, bio, avatar_key, theme)
+-- Fase 1 (1a implementada: display_name/bio em users, follows, posts de texto)
+users += (display_name, bio)                -- avatar e tema virão depois
 testimonials(id, author_id, subject_id, body, status, created_at)
 follows(follower_id, followee_id, created_at)
 blocks(blocker_id, blocked_id, created_at)

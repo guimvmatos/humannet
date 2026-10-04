@@ -75,6 +75,89 @@ class ApiClient {
     return InviteCreated.fromJson(json!);
   }
 
+  // ------------------------------------------------------------ perfis
+
+  Future<Profile> profile(String token, String username) async {
+    final json = await _send(
+      'GET',
+      '/v1/users/${Uri.encodeComponent(username)}',
+      token: token,
+    );
+    return Profile.fromJson(json!);
+  }
+
+  /// `displayName == ''` remove o nome de exibição; `null` não altera.
+  Future<User> updateProfile(
+    String token, {
+    String? displayName,
+    String? bio,
+  }) async {
+    final json = await _send(
+      'PATCH',
+      '/v1/me/profile',
+      token: token,
+      body: {'display_name': ?displayName, 'bio': ?bio},
+    );
+    return User.fromJson(json!);
+  }
+
+  Future<void> follow(String token, String username) async {
+    await _send(
+      'PUT',
+      '/v1/users/${Uri.encodeComponent(username)}/follow',
+      token: token,
+    );
+  }
+
+  Future<void> unfollow(String token, String username) async {
+    await _send(
+      'DELETE',
+      '/v1/users/${Uri.encodeComponent(username)}/follow',
+      token: token,
+    );
+  }
+
+  // ------------------------------------------------------------ posts
+
+  Future<Post> createPost(String token, String body) async {
+    final json = await _send(
+      'POST',
+      '/v1/posts',
+      token: token,
+      body: {'body': body},
+    );
+    return Post.fromJson(json!);
+  }
+
+  Future<void> deletePost(String token, String id) async {
+    await _send('DELETE', '/v1/posts/${Uri.encodeComponent(id)}', token: token);
+  }
+
+  /// Feed cronológico: quem você segue + você.
+  Future<PostPage> feed(String token, {String? before}) async {
+    final json = await _send(
+      'GET',
+      '/v1/feed',
+      token: token,
+      query: {'before': ?before},
+    );
+    return PostPage.fromJson(json!);
+  }
+
+  Future<PostPage> userPosts(
+    String token,
+    String username, {
+    String? before,
+  }) async {
+    final json = await _send(
+      'GET',
+      '/v1/users/${Uri.encodeComponent(username)}/posts',
+      token: token,
+      query: {'before': ?before},
+    );
+    return PostPage.fromJson(json!);
+  }
+
   void close() => _http.close();
 
   Future<Map<String, dynamic>?> _send(
@@ -82,8 +165,13 @@ class ApiClient {
     String path, {
     String? token,
     Map<String, Object?>? body,
+    Map<String, String>? query,
   }) async {
-    final request = http.Request(method, _baseUri.resolve(path));
+    var uri = _baseUri.resolve(path);
+    if (query != null && query.isNotEmpty) {
+      uri = uri.replace(queryParameters: query);
+    }
+    final request = http.Request(method, uri);
     request.headers['Accept'] = 'application/json';
     if (token != null) {
       request.headers['Authorization'] = 'Bearer $token';

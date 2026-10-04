@@ -41,6 +41,47 @@ void main() {
       await expectLater(api.me('outro'), throwsA(isA<ApiException>()));
     });
 
+    test('feed envia cursor como query e devolve página', () async {
+      Uri? seen;
+      final client = ApiClient(
+        baseUrl: 'http://api.test',
+        httpClient: MockClient((req) async {
+          seen = req.url;
+          return http.Response(
+            '{"items":[{"id":"p1","author":{"id":"u1","username":"bob",'
+            '"display_name":null},"body":"oi","created_at":'
+            '"2026-10-04T12:00:00Z","edited_at":null}],"next_cursor":"p1"}',
+            200,
+          );
+        }),
+      );
+      final page = await client.feed('t', before: 'abc');
+      expect(seen?.path, '/v1/feed');
+      expect(seen?.queryParameters['before'], 'abc');
+      expect(page.items.single.author.label, '@bob');
+      expect(page.nextCursor, 'p1');
+
+      await client.feed('t');
+      expect(seen?.hasQuery, isFalse);
+    });
+
+    test('updateProfile omite campos nulos', () async {
+      String? sentBody;
+      final client = ApiClient(
+        baseUrl: 'http://api.test',
+        httpClient: MockClient((req) async {
+          sentBody = req.body;
+          return http.Response(
+            '{"id":"u1","username":"alice","email":"a@example.com",'
+            '"display_name":null,"bio":"x","created_at":"2026-10-04T12:00:00Z"}',
+            200,
+          );
+        }),
+      );
+      await client.updateProfile('t', bio: 'x');
+      expect(sentBody, '{"bio":"x"}');
+    });
+
     test('falha de rede vira network_error', () async {
       final offline = ApiClient(
         baseUrl: 'http://api.test',
