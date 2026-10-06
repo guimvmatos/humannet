@@ -57,9 +57,9 @@ jobs:
       - name: build APK (debug)
         # URL da API embutida no APK. Defina a variável de repositório
         # API_BASE_URL (Settings → Secrets and variables → Actions → Variables)
-        # para apontar para a API hospedada; sem ela, usa o emulador.
+        # para trocar; sem ela, usa a API de teste no Render.
         env:
-          API_BASE_URL: ${{ vars.API_BASE_URL || 'http://10.0.2.2:8080' }}
+          API_BASE_URL: ${{ vars.API_BASE_URL || 'https://humannet-api.onrender.com' }}
         run: flutter build apk --debug --dart-define=API_BASE_URL="$API_BASE_URL"
       - uses: actions/upload-artifact@v7
         with:
