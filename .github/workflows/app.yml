@@ -4,6 +4,7 @@ on:
   push:
     branches: ['**']
     paths: ['app/**', '.github/workflows/app.yml']
+  workflow_dispatch: # botão "Run workflow" (ex.: depois de mudar API_BASE_URL)
 
 permissions:
   contents: read
@@ -54,11 +55,40 @@ jobs:
       - name: preparar android/
         run: ./tool/setup_android.sh
       - name: build APK (debug)
-        # Para testar num aparelho real contra uma API pública, passe
-        # --dart-define=API_BASE_URL=https://... (ver app/README.md).
-        run: flutter build apk --debug
+        # URL da API embutida no APK. Defina a variável de repositório
+        # API_BASE_URL (Settings → Secrets and variables → Actions → Variables)
+        # para apontar para a API hospedada; sem ela, usa o emulador.
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL || 'http://10.0.2.2:8080' }}
+        run: flutter build apk --debug --dart-define=API_BASE_URL="$API_BASE_URL"
       - uses: actions/upload-artifact@v7
         with:
           name: humannet-debug-apk
           path: app/build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 14
+
+  # Publica o APK da main como pré-release fixa "dev-latest", para baixar
+  # direto no celular (link estável, sem login, sem zip).
+  release:
+    needs: apk
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: humannet-debug-apk
+      - name: renomear
+        working-directory: .
+        run: mv app-debug.apk humannet-dev.apk
+      - uses: softprops/action-gh-release@v3
+        with:
+          tag_name: dev-latest
+          name: HumanNet (dev)
+          prerelease: true
+          make_latest: false
+          body: |
+            Build de desenvolvimento da branch main (${{ github.sha }}).
+            Baixe `humannet-dev.apk` no celular Android e instale.
+          files: humannet-dev.apk

@@ -302,3 +302,28 @@ async fn invites_require_auth(db: PgPool) {
     let (s, _) = call(&app, Method::POST, "/v1/invites", None, None).await;
     assert_eq!(s, StatusCode::UNAUTHORIZED);
 }
+
+// ---------------------------------------------------------------- convite inicial (hospedagem)
+
+#[sqlx::test]
+async fn bootstrap_invite_only_on_empty_db(db: PgPool) {
+    use humannet_api::routes::invites::ensure_bootstrap_invite;
+    let app = test_app(db.clone());
+    let code = "codigo-inicial-bem-longo";
+
+    // Curto demais é recusado.
+    assert!(ensure_bootstrap_invite(&db, "curto", 14).await.is_err());
+
+    // Idempotente enquanto não for usado.
+    assert!(ensure_bootstrap_invite(&db, code, 14).await.unwrap());
+    assert!(ensure_bootstrap_invite(&db, code, 14).await.unwrap());
+
+    let (status, _) = register(&app, code, "fundador", "f@example.com").await;
+    assert_eq!(status, StatusCode::CREATED);
+
+    // Com usuários no banco, não recria nem reabre o convite.
+    assert!(!ensure_bootstrap_invite(&db, code, 14).await.unwrap());
+    let (status, body) = register(&app, code, "outro", "o@example.com").await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(body["error"], "invalid_invite");
+}

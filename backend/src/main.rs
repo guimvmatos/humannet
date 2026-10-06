@@ -1,5 +1,8 @@
 use anyhow::{Context, Result, bail};
-use humannet_api::{AppState, Config, MIGRATOR, Policy, app, routes::invites::create_invite};
+use humannet_api::{
+    AppState, Config, MIGRATOR, Policy, app,
+    routes::invites::{create_invite, ensure_bootstrap_invite},
+};
 use sqlx::postgres::PgPoolOptions;
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
@@ -31,6 +34,11 @@ async fn main() -> Result<()> {
     match cmd {
         "serve" => {
             MIGRATOR.run(&db).await.context("falha nas migrações")?;
+            if let Some(code) = &config.bootstrap_invite
+                && ensure_bootstrap_invite(&db, code, config.invite_ttl_days).await?
+            {
+                tracing::info!("convite inicial (BOOTSTRAP_INVITE_CODE) disponível");
+            }
             serve(config, db).await
         }
         "migrate" => {

@@ -45,6 +45,14 @@ flutter run
 
 No app, toque em **"Tenho um convite"** e use o código gerado no passo 2.
 
+## Testar só com o celular (sem PC)
+
+1. **API:** no [Render](https://render.com), entre com o GitHub, escolha **New → Blueprint** e selecione este repo. O `render.yaml` cria a API e o Postgres nos planos gratuitos. O Render pede um valor para `BOOTSTRAP_INVITE_CODE`: invente um código com 16 caracteres ou mais. Ele vira o convite do primeiro usuário.
+2. **APK apontando para a API:** defina a variável de repositório `API_BASE_URL` com a URL do Render (ex.: `https://humannet-api.onrender.com`) e rode o workflow **app** em Actions.
+3. **Instalar:** baixe `humannet-dev.apk` na release [dev-latest](../../releases/tag/dev-latest).
+
+No plano gratuito, a API dorme quando não é usada. A primeira requisição depois disso pode levar cerca de 1 minuto.
+
 ## Testes
 
 ```bash

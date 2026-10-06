@@ -1,0 +1,34 @@
+# Blueprint do Render (https://render.com/docs/blueprint-spec).
+# Ambiente de TESTE: planos gratuitos. O serviço "dorme" sem uso (a primeira
+# requisição depois disso demora ~1 min) e o Postgres gratuito expira.
+services:
+  - type: web
+    name: humannet-api
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: main
+    dockerContext: ./backend
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: humannet-db
+          property: connectionString
+      # Código do primeiro convite (16+ caracteres). O Render pede o valor
+      # na criação. Só vale enquanto o banco não tem nenhum usuário.
+      - key: BOOTSTRAP_INVITE_CODE
+        sync: false
+      - key: LOG_FORMAT
+        value: json
+      - key: RUST_LOG
+        value: humannet_api=info,tower_http=info
+
+databases:
+  - name: humannet-db
+    plan: free
+    region: virginia
+    databaseName: humannet
+    user: humannet
+    postgresMajorVersion: "16"

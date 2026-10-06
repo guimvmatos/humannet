@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO invites (id, code_hash, created_by, expires_at)\n        VALUES ($1, $2, NULL, $3)\n        ON CONFLICT (code_hash) DO UPDATE SET expires_at = EXCLUDED.expires_at\n        WHERE invites.used_at IS NULL\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bytea",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1e1d50db51b1ecad725e10c73d1ff025406ef838a835f61c39953d19aa76165f"
+}
