@@ -34,10 +34,15 @@ async fn main() -> Result<()> {
     match cmd {
         "serve" => {
             MIGRATOR.run(&db).await.context("falha nas migrações")?;
-            if let Some(code) = &config.bootstrap_invite
-                && ensure_bootstrap_invite(&db, code, config.invite_ttl_days).await?
-            {
-                tracing::info!("convite inicial (BOOTSTRAP_INVITE_CODE) disponível");
+            // Um BOOTSTRAP_INVITE_CODE inválido não pode derrubar a API.
+            if let Some(code) = &config.bootstrap_invite {
+                match ensure_bootstrap_invite(&db, code, config.invite_ttl_days).await {
+                    Ok(true) => {
+                        tracing::info!("convite inicial (BOOTSTRAP_INVITE_CODE) disponível")
+                    }
+                    Ok(false) => {}
+                    Err(err) => tracing::error!(error = %err, "BOOTSTRAP_INVITE_CODE ignorado"),
+                }
             }
             serve(config, db).await
         }

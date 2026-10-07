@@ -25,7 +25,9 @@ class ApiClient {
     : _baseUri = Uri.parse(baseUrl),
       _http = httpClient ?? http.Client();
 
-  static const Duration _timeout = Duration(seconds: 15);
+  /// Generoso de propósito: no plano gratuito do Render, a API "dorme" e a
+  /// primeira requisição pode levar ~1 min para ela acordar.
+  static const Duration _timeout = Duration(seconds: 75);
 
   final Uri _baseUri;
   final http.Client _http;
@@ -156,6 +158,15 @@ class ApiClient {
       query: {'before': ?before},
     );
     return PostPage.fromJson(json!);
+  }
+
+  /// Acorda a API (plano gratuito dorme sem uso). Ignora qualquer erro.
+  Future<void> warmUp() async {
+    try {
+      await _http.get(_baseUri.resolve('/health')).timeout(_timeout);
+    } catch (_) {
+      // Só um "despertador"; falhas aparecem na próxima chamada real.
+    }
   }
 
   void close() => _http.close();

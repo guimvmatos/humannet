@@ -21,7 +21,9 @@ String errorMessage(Object error) {
     'cannot_follow_self' => 'Você não pode seguir a si mesmo.',
     'not_found' => 'Não encontrado.',
     'forbidden' => 'Você não tem permissão para isso.',
-    'network_error' => 'Sem conexão com o servidor.',
+    'network_error' =>
+      'Sem conexão com o servidor. Se ele estava parado, pode levar até '
+          '1 minuto para acordar: tente de novo.',
     _ => 'Algo deu errado. Tente novamente.',
   };
 }

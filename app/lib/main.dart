@@ -8,8 +8,11 @@ import 'src/ui/app.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  final api = ApiClient(baseUrl: apiBaseUrl);
+  // Começa a acordar a API enquanto o usuário vê a tela de login.
+  api.warmUp().ignore();
   final session = SessionController(
-    api: ApiClient(baseUrl: apiBaseUrl),
+    api: api,
     tokenStore: SecureTokenStore(),
   );
   runApp(HumanNetApp(session: session));
