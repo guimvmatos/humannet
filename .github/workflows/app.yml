@@ -93,8 +93,8 @@ jobs:
             --build-number=${{ github.run_number }} \
             --dart-define=API_BASE_URL="$API_BASE_URL" \
             --dart-define=GIT_SHA="${GITHUB_SHA::7}" 2>&1 | tee -a /tmp/build.log
-      # Repositório público: o resumo do job é visível sem login, então o fim
-      # do log de build vai para lá quando algo falha.
+      # Repositório público: anotações de erro são visíveis sem login, então o
+      # trecho relevante do log de build vira uma anotação quando algo falha.
       - name: resumo do erro de build
         if: failure()
         run: |
@@ -104,6 +104,14 @@ jobs:
             tail -n 80 /tmp/build.log 2>/dev/null || echo '(sem log)'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          grep -iE "error|exception|what went wrong|failed|unresolved" /tmp/build.log 2>/dev/null \
+            | tail -n 12 | while IFS= read -r line; do
+              echo "::error title=build::${line:0:400}"
+            done
+          tail -n 25 /tmp/build.log 2>/dev/null \
+            | sed -e 's/%/%25/g' | awk 'BEGIN{ORS="%0A"} {print substr($0,1,200)}' \
+            | sed -e 's/^/::warning title=fim do log::/'
+          echo
       - uses: actions/upload-artifact@v7
         with:
           name: humannet-apk
