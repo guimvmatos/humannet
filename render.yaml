@@ -32,13 +32,3 @@ services:
         value: json
       - key: RUST_LOG
         value: humannet_api=info,tower_http=info
-
-# Postgres gratuito do Render: expira em 30 dias. Substituído pelo Neon;
-# este bloco sai do arquivo depois da migração (docs/SETUP-BETA.md, passo 2).
-databases:
-  - name: humannet-db
-    plan: free
-    region: virginia
-    databaseName: humannet
-    user: humannet
-    postgresMajorVersion: "16"
