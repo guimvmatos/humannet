@@ -1,5 +1,7 @@
 # Backlog e ideias
 
+> Decisões já tomadas saem daqui e viram ADR. Ex.: amizade mútua → [ADR-0006](adr/0006-amizade-mutua.md).
+
 Ideias registradas que ainda não estão especificadas em detalhe. Quando uma ideia for priorizada, ela vira uma seção da `SPEC.md` e, se exigir decisão técnica, um ADR.
 
 Para cada ideia: **fase prevista**, **dependências** e **riscos**.

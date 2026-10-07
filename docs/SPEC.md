@@ -33,12 +33,13 @@ Toda feature nova é validada contra estas regras:
 |---|---|
 | **R1. Uma pessoa, uma conta** | Toda conta pessoal corresponde a um humano. Bots só existem como contas declaradas da própria plataforma. |
 | **R2. Nada oculto** | Qualquer ordenação ou filtro do feed é visível, explicável ("por que estou vendo isto") e desligável. |
-| **R3. Métricas privadas** | Contagens de curtidas, visualizações e seguidores são visíveis apenas ao dono. |
+| **R3. Métricas privadas** | Contagens de curtidas, visualizações e amigos são visíveis apenas ao dono. |
 | **R4. Sem amplificação em massa** | Não existe repost nem compartilhamento. O conteúdo circula por autoria, comentários e comunidades. |
 | **R5. Dados mínimos** | Coletar só o necessário. Preferir processamento no aparelho. Não usar dado pessoal para anúncios. |
 | **R6. Sem métricas de vício** | Tempo de tela e dwell time nunca alimentam ranking. |
 | **R7. Segurança antes de alcance** | Toda feature que expõe localização ou presença física é opt-in, com padrão restritivo. |
 | **R8. IA não se passa por humano** | Nenhuma IA posta, comenta ou interage com terceiros. A IA conversa só com o próprio usuário e é rotulada como IA. |
+| **R9. Relações são mútuas** | Entre pessoas não existe "seguir". Só existe **amizade**: um pede, o outro aceita. Sem relação unilateral. Ver [ADR-0006](adr/0006-amizade-mutua.md). |
 
 ---
 
@@ -55,7 +56,7 @@ Toda feature nova é validada contra estas regras:
 | Fase | Escopo | Critério de saída |
 |---|---|---|
 | **0. Fundação** | Repo, CI, auth por convite, app com login | App instalado num Android real, logando na API |
-| **1. MVP social** | Perfis, depoimentos, posts (texto + imagem), seguir, feed (2 modos), comunidades-fórum, curtir/comentar, denúncia, bloqueio, temas visuais | Grupo de ~12+ testadores usando o app por 14 dias (teste fechado do Play) |
+| **1. MVP social** | Perfis, depoimentos, posts (texto + imagem), amizade (pedido/aceite), feed (2 modos), comunidades-fórum, curtir/comentar, denúncia, bloqueio, temas visuais | Grupo de ~12+ testadores usando o app por 14 dias (teste fechado do Play) |
 | **2. Eventos** | Contas de organização, eventos, presença (RSVP), calendário no app, exportação `.ics`/assinatura | Um local real publicando eventos |
 | **3. Presença física** | Check-in por QR rotativo, "quem está aqui" com controles de privacidade | Check-in validado num evento real |
 | **4+. Depois** | Verificação de identidade e idade, classificador de temas, assistente de bem-estar (IA), marketplace, anúncios éticos | Ver backlog |
@@ -82,7 +83,8 @@ Toda feature nova é validada contra estas regras:
 
 - Nome de exibição, bio, avatar e tema visual escolhido.
 - **Depoimentos fixos** (no estilo do Orkut): um usuário escreve sobre outro, e o dono aprova antes de aparecer.
-- Contagens (seguidores, curtidas) visíveis só para o dono (R3).
+- Contagens (amigos, curtidas) visíveis só para o dono (R3).
+- Nome, @ e bio são visíveis para qualquer usuário logado (para que seja possível pedir amizade). **Posts no perfil: só para amigos.**
 
 ### 4.3 Posts (Fase 1)
 
@@ -98,7 +100,7 @@ Toda feature nova é validada contra estas regras:
 
 | Modo | Fonte | Ordem |
 |---|---|---|
-| **Cronológico** (padrão) | Quem eu sigo + minhas comunidades | Data de publicação, decrescente |
+| **Cronológico** (padrão) | Meus amigos + eu + minhas comunidades | Data de publicação, decrescente |
 | **Por interesses** (opt-in) | A mesma fonte + feeds temáticos | Pontuação pelo perfil de interesses |
 
 - **Feeds temáticos públicos** ("tecnologia", "música", ...): sempre cronológicos.
@@ -203,7 +205,8 @@ invites(id, code_hash, created_by → users?, created_at, expires_at, used_by �
 -- Fase 1 (1a implementada: display_name/bio em users, follows, posts de texto)
 users += (display_name, bio)                -- avatar e tema virão depois
 testimonials(id, author_id, subject_id, body, status, created_at)
-follows(follower_id, followee_id, created_at)
+friend_requests(from_id, to_id, created_at)   -- pedido pendente
+friendships(user_a, user_b, created_at)       -- user_a < user_b; substitui follows (ADR-0006)
 blocks(blocker_id, blocked_id, created_at)
 topics(id, slug, name)                      -- lista controlada de temas
 posts(id, author_id, community_id?, body, created_at, edited_at, deleted_at)
