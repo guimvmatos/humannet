@@ -62,6 +62,34 @@ Para cada ideia: **fase prevista**, **dependências** e **riscos**.
   - Entrar depois: por convite de um membro, ou de novo presencialmente (decidir).
 - **Riscos:** grupos usados para assédio coordenado (moderação de grupo), confusão com Comunidades (Turma = pequeno e fechado; Comunidade = aberto e temático).
 
+## Ideias "nostálgicas" (lote 2026-10-07)
+
+Ideias inspiradas no Orkut, no MSN e no Flogão. Algumas já estão na SPEC; as outras ficam aqui.
+
+| Ideia | Situação | Fase | Observações |
+|---|---|---|---|
+| **Fóruns por tópicos** (comunidades do Orkut) | Já está na SPEC 4.5 | 1 | Tópicos com começo, meio e fim. É o modelo de Comunidades da HumanNet. |
+| **Depoimentos** | Já está na SPEC 4.2 | 1 | O dono aprova antes de aparecer. |
+| **Livro de visitas** (recados/scraps) | Novo | 1–2 | Mural informal no perfil: só **amigos** escrevem, o dono pode apagar, e ele aparece para quem visita o perfil. Diferente do depoimento: mais leve e sem aprovação prévia (o dono pode ligar a aprovação). |
+| **Selo de confiança humana** ("Bom ouvinte", "Criativo", "Engraçado") | Novo | 2 | Só **amigos** dão. **Sem números públicos** (R3): o perfil mostra os traços, não a contagem. Não pode ranking nem traço de aparência ("sexy"), por risco de assédio e de menores. |
+| **Ver quem visitou o perfil** | Novo | 2 | **Opcional e recíproco**, como no Orkut: só vê quem visitou quem também aparece nas visitas dos outros. Desligado por padrão. Guarda só os últimos 30 dias. |
+| **Status de disponibilidade** (Disponível / Ocupado / Ausente / **Invisível**) | Novo | junto com Mensagens | Padrão: nunca mostrar "online agora" (anti-cobrança). Sem "visto por último". "Invisível" de verdade. |
+| **Subnick / música do momento** | Novo | 2 | Primeiro, texto livre curto (o "subnick") com validade (ex.: 24 h). Depois, integração opcional com streaming (ex.: "ouvindo agora" via API do Spotify/Deezer, com OAuth). Mostra só nome e artista, nunca toca o áudio (direitos autorais). |
+| **Chamar atenção** (vibrar o celular do amigo) | Novo | junto com Mensagens e notificações | Só entre **amigos**. Limite: 3 por dia no total e 1 por dia por amigo. O receptor pode silenciar ou bloquear. Depende de push notification. |
+| **Uma foto por dia** (Flogão) | Novo, **decisão pendente** | 1 (com imagens) | Opções: (a) toda foto é limitada a 1 por dia; (b) "Foto do dia" é um espaço especial no perfil, e os posts de texto continuam livres. Encaixa com "sem vício" (R6). |
+| **Canais de chat de texto puro** (#cinema-sp, #programacao) | Novo | 3+ | Estilo IRC, só texto. Sobreposição com Comunidades: talvez cada comunidade tenha um canal. Moderação em tempo real é cara e precisa de moderadores voluntários. |
+
+## Mensagens diretas (fundação que falta)
+
+Várias ideias dependem de **conversa 1:1 e em grupo** (status, chamar atenção, Turmas, conversa do evento), e isso ainda **não está na SPEC**.
+
+- **Fase:** 2.
+- **Regras iniciais:**
+  - só entre **amigos** (R9);
+  - sem "visto por último" e sem confirmação de leitura por padrão;
+  - bloqueio impede tudo.
+- **Decisão técnica pendente:** criptografia de ponta a ponta (protocolo MLS ou Signal) desde o início, ou mensagens legíveis pelo servidor no começo, o que é mais simples e permite moderação. Precisa de um ADR.
+
 ## Linha do tempo pessoal e reencontros
 
 **Ideia:** no começo, a pessoa conta um pouco da própria história: cidade onde nasceu, ano de nascimento, cidades onde morou, escolas e faculdades, trabalhos, cada item com um **período** (ex.: Escola X, 1998–2005). A partir disso, a HumanNet sugere **pessoas da mesma época e do mesmo lugar**: colegas de escola, da faculdade, da cidade antiga ou da nova. É o "reencontro" do Orkut e do Facebook antigo.
@@ -96,6 +124,8 @@ Para cada ideia: **fase prevista**, **dependências** e **riscos**.
 ## Posts e feed regionais
 
 **Ideia:** quem ativa a opção publica posts que só aparecem para pessoas dentro de um raio, e passa a ver posts dessa mesma região, no estilo Tinder.
+
+**Usos (hiperlocal, ajuda mútua):** pedir uma ferramenta emprestada, organizar mutirão de limpeza de praia, achar parceiro de surf, avisar sobre falta de luz na rua. Proposta: posts da aba Local com **tipo** (Pedido de ajuda, Oferta, Mutirão, Procuro parceiro), para dar para filtrar.
 
 - **Fase:** 2, junto com eventos, porque as duas features usam a mesma infraestrutura de localização.
 - **Por que encaixa:**
