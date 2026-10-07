@@ -73,6 +73,9 @@ cd app && flutter test
 | POST | `/v1/auth/reset-password` | — | `{username, code, new_password}`: código gerado por um admin (24 h, uso único, 5 tentativas) |
 | GET | `/v1/me` | Bearer | Dados do próprio usuário |
 | DELETE | `/v1/me` | Bearer | `{password}`: **exclui a conta** de forma definitiva |
+| GET | `/v1/me/counts` | Bearer | Bolinhas: `friend_requests`, `pending_testimonials`, `community_requests` (comunidades que modero), `unread_activity` |
+| GET | `/v1/me/activity` | Bearer | Novidades (30 dias, até 50): comentários nos meus posts e respostas em tópicos em que participo. Sem curtidas (R3/R6) |
+| POST | `/v1/me/activity/seen` | Bearer | Marca as novidades como vistas |
 | PUT | `/v1/me/password` | Bearer | `{current_password, new_password}`: encerra as outras sessões |
 | POST | `/v1/invites` | Bearer | Gera um convite (até 5 ativos) |
 | PATCH | `/v1/me/profile` | Bearer | `{display_name?, bio?}` (`""` em display_name remove) |

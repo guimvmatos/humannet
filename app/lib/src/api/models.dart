@@ -574,3 +574,57 @@ class Testimonial {
 
   bool get isPending => status == 'pending';
 }
+
+/// Contadores para as bolinhas das abas.
+class Counts {
+  const Counts({
+    this.friendRequests = 0,
+    this.pendingTestimonials = 0,
+    this.communityRequests = 0,
+    this.unreadActivity = 0,
+  });
+
+  factory Counts.fromJson(Map<String, dynamic> json) => Counts(
+    friendRequests: (json['friend_requests'] as int?) ?? 0,
+    pendingTestimonials: (json['pending_testimonials'] as int?) ?? 0,
+    communityRequests: (json['community_requests'] as int?) ?? 0,
+    unreadActivity: (json['unread_activity'] as int?) ?? 0,
+  );
+
+  final int friendRequests;
+  final int pendingTestimonials;
+  final int communityRequests;
+  final int unreadActivity;
+}
+
+/// Novidade: comentário num post meu ou resposta num tópico em que participo.
+class ActivityItem {
+  const ActivityItem({
+    required this.kind,
+    required this.actor,
+    required this.targetId,
+    required this.targetTitle,
+    required this.excerpt,
+    required this.createdAt,
+    required this.unread,
+  });
+
+  factory ActivityItem.fromJson(Map<String, dynamic> json) => ActivityItem(
+    kind: json['kind'] as String,
+    actor: Author.fromJson(json['actor'] as Map<String, dynamic>),
+    targetId: json['target_id'] as String,
+    targetTitle: (json['target_title'] as String?) ?? '',
+    excerpt: (json['excerpt'] as String?) ?? '',
+    createdAt: DateTime.parse(json['created_at'] as String),
+    unread: (json['unread'] as bool?) ?? false,
+  );
+
+  /// comment | reply
+  final String kind;
+  final Author actor;
+  final String targetId;
+  final String targetTitle;
+  final String excerpt;
+  final DateTime createdAt;
+  final bool unread;
+}

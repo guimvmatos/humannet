@@ -2,19 +2,32 @@ import 'package:flutter/material.dart';
 
 import '../api/models.dart';
 import '../auth/session_controller.dart';
+import 'activity_screen.dart';
 import 'compose_screen.dart';
 import 'post_list.dart';
 import 'profile_screen.dart';
 
 /// Feed cronológico: seus amigos + você. Sem algoritmo (R2).
 class FeedScreen extends StatefulWidget {
-  const FeedScreen({super.key, required this.session});
+  const FeedScreen({
+    super.key,
+    required this.session,
+    this.counts,
+    this.onCountsChanged,
+  });
 
   final SessionController session;
+
+  /// Contadores para a bolinha de novidades.
+  final ValueListenable<Counts>? counts;
+  final Future<void> Function()? onCountsChanged;
 
   @override
   State<FeedScreen> createState() => _FeedScreenState();
 }
+
+/// Sem contadores (ex.: testes da tela isolada).
+final _noCounts = ValueNotifier<Counts>(const Counts());
 
 class _FeedScreenState extends State<FeedScreen> {
   final _listKey = GlobalKey<PagedPostListState>();
@@ -24,6 +37,18 @@ class _FeedScreenState extends State<FeedScreen> {
       MaterialPageRoute(builder: (_) => ComposeScreen(session: widget.session)),
     );
     if (post != null) _listKey.currentState?.prepend(post);
+  }
+
+  Future<void> _openActivity() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ActivityScreen(
+          session: widget.session,
+          onSeen: () => widget.onCountsChanged?.call(),
+        ),
+      ),
+    );
+    await widget.onCountsChanged?.call();
   }
 
   Future<void> _findPerson() async {
@@ -73,6 +98,19 @@ class _FeedScreenState extends State<FeedScreen> {
       appBar: AppBar(
         title: const Text('HumanNet'),
         actions: [
+          ValueListenableBuilder<Counts>(
+            valueListenable: widget.counts ?? _noCounts,
+            builder: (context, c, _) => IconButton(
+              key: const Key('activity_button'),
+              tooltip: 'Novidades',
+              onPressed: _openActivity,
+              icon: Badge(
+                isLabelVisible: c.unreadActivity > 0,
+                label: Text('${c.unreadActivity}'),
+                child: const Icon(Icons.notifications_outlined),
+              ),
+            ),
+          ),
           IconButton(
             tooltip: 'Encontrar pessoa',
             icon: const Icon(Icons.person_search),

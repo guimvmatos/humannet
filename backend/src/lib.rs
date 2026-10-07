@@ -70,6 +70,9 @@ pub fn app(state: AppState) -> Router {
             get(routes::me::get).delete(routes::account::delete_account),
         )
         .route("/me/password", put(routes::account::change_password))
+        .route("/me/counts", get(routes::activity::counts))
+        .route("/me/activity", get(routes::activity::list))
+        .route("/me/activity/seen", post(routes::activity::mark_seen))
         .route("/me/profile", patch(routes::profiles::update))
         .route("/invites", post(routes::invites::create))
         .route("/users/{username}", get(routes::profiles::get))

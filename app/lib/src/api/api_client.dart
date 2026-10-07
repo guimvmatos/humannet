@@ -627,6 +627,33 @@ class ApiClient {
     );
   }
 
+  // ------------------------------------------------------------ avisos
+
+  Future<Counts> counts(String token) async {
+    final json = await _send('GET', '/v1/me/counts', token: token);
+    return Counts.fromJson(json!);
+  }
+
+  Future<List<ActivityItem>> activity(String token) async {
+    final json = await _send('GET', '/v1/me/activity', token: token);
+    return (json!['items'] as List<dynamic>)
+        .map((e) => ActivityItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> markActivitySeen(String token) async {
+    await _send('POST', '/v1/me/activity/seen', token: token);
+  }
+
+  Future<Post> post(String token, String id) async {
+    final json = await _send(
+      'GET',
+      '/v1/posts/${Uri.encodeComponent(id)}',
+      token: token,
+    );
+    return Post.fromJson(json!);
+  }
+
   /// Acorda a API (plano gratuito dorme sem uso). Ignora qualquer erro.
   Future<void> warmUp() async {
     try {

@@ -569,4 +569,32 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Depoimentos'), findsOneWidget);
   });
+
+  testWidgets('bolinhas e novidades', (tester) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    // Pedido de carol (Amigos) e depoimento pendente (Perfil).
+    final badges = tester.widgetList<Badge>(find.byType(Badge)).toList();
+    expect(badges.where((b) => b.isLabelVisible).length, 3);
+
+    await tester.tap(find.byKey(const Key('activity_button')));
+    await tester.pumpAndSettle();
+    expect(find.text('Bob comentou no seu post'), findsOneWidget);
+    expect(backend.activitySeen, isTrue);
+
+    await tester.tap(find.byKey(const Key('activity_0')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('post_screen')), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    final after = tester.widgetList<Badge>(find.byType(Badge)).toList();
+    expect(after.where((b) => b.isLabelVisible).length, 2);
+  });
 }

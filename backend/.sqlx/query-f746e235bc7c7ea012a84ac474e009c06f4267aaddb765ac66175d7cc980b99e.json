@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH seen AS (SELECT activity_seen_at AS t FROM users WHERE id = $1)\n        SELECT\n          (SELECT count(*) FROM friend_requests WHERE to_id = $1) AS \"friend_requests!\",\n          (SELECT count(*) FROM testimonials\n            WHERE recipient_id = $1 AND status = 'pending') AS \"pending_testimonials!\",\n          (SELECT count(*) FROM community_members p\n            JOIN community_members m ON m.community_id = p.community_id\n            JOIN communities c ON c.id = p.community_id AND c.deleted_at IS NULL\n            WHERE m.user_id = $1 AND m.status = 'active' AND m.role IN ('owner', 'moderator')\n              AND p.status = 'pending') AS \"community_requests!\",\n          (SELECT count(*) FROM comments c JOIN posts p ON p.id = c.post_id\n            WHERE p.author_id = $1 AND c.author_id <> $1\n              AND c.deleted_at IS NULL AND p.deleted_at IS NULL\n              AND c.created_at > (SELECT t FROM seen)\n              AND NOT EXISTS (SELECT 1 FROM blocks b\n                WHERE (b.blocker_id = $1 AND b.blocked_id = c.author_id)\n                   OR (b.blocker_id = c.author_id AND b.blocked_id = $1)))\n          +\n          (SELECT count(*) FROM topic_replies r JOIN topics t ON t.id = r.topic_id\n            JOIN communities co ON co.id = t.community_id AND co.deleted_at IS NULL\n            WHERE r.author_id <> $1 AND r.deleted_at IS NULL AND t.deleted_at IS NULL\n              AND r.created_at > (SELECT t FROM seen)\n              AND (t.author_id = $1 OR EXISTS (\n                SELECT 1 FROM topic_replies mine\n                WHERE mine.topic_id = t.id AND mine.author_id = $1 AND mine.id < r.id))\n              AND NOT EXISTS (SELECT 1 FROM blocks b\n                WHERE (b.blocker_id = $1 AND b.blocked_id = r.author_id)\n                   OR (b.blocker_id = r.author_id AND b.blocked_id = $1)))\n          AS \"unread_activity!\"\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "friend_requests!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "pending_testimonials!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "community_requests!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "unread_activity!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "f746e235bc7c7ea012a84ac474e009c06f4267aaddb765ac66175d7cc980b99e"
+}

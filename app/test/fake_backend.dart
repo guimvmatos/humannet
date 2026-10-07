@@ -52,6 +52,7 @@ class FakeBackend {
 
   /// Depoimento de carol sobre alice: pending → approved.
   String? carolTestimonial = 'pending';
+  bool activitySeen = false;
   bool carolFriend = false;
   String? displayName;
   String bio = '';
@@ -213,6 +214,32 @@ class FakeBackend {
         final post = _post(id, text);
         posts.insert(0, post);
         return _json(201, post);
+      case 'GET /v1/me/counts':
+        return _json(200, {
+          'friend_requests': carolRequested ? 1 : 0,
+          'pending_testimonials': carolTestimonial == 'pending' ? 1 : 0,
+          'community_requests': 0,
+          'unread_activity': activitySeen ? 0 : 1,
+        });
+      case 'GET /v1/me/activity':
+        return _json(200, {
+          'items': [
+            {
+              'kind': 'comment',
+              'actor': {'id': 'u-bob', 'username': 'bob', 'display_name': 'Bob'},
+              'target_id': '01a10000-0000-7000-8000-000000000001',
+              'target_title': '',
+              'excerpt': 'Que legal!',
+              'created_at': '2026-10-08T12:00:00Z',
+              'unread': !activitySeen,
+            },
+          ],
+        });
+      case 'POST /v1/me/activity/seen':
+        activitySeen = true;
+        return http.Response('', 204);
+      case 'GET /v1/posts/01a10000-0000-7000-8000-000000000001':
+        return _json(200, posts.last);
       case 'GET /v1/users/alice/testimonials':
         return _json(200, {
           'items': [if (carolTestimonial == 'approved') _testimonial()],
