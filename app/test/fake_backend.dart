@@ -21,6 +21,24 @@ class FakeBackend {
   final List<Map<String, Object?>> comments = [];
   final List<Map<String, dynamic>> reports = [];
   bool accountDeleted = false;
+  bool isAdmin = false;
+  final List<Map<String, Object?>> openReports = [
+    {
+      'id': 'r1',
+      'kind': 'post',
+      'target_id': 'p-bob',
+      'target_username': 'bob',
+      'target_suspended': false,
+      'snapshot': 'texto ofensivo',
+      'reason': 'harassment',
+      'details': '',
+      'reporter_username': 'carol',
+      'status': 'open',
+      'created_at': '2026-10-08T12:00:00Z',
+    },
+  ];
+  final List<String> resolved = [];
+  static const resetCode = 'ABCDE23456';
   String currentPassword = password;
 
   /// Carol pediu amizade à alice.
@@ -35,6 +53,15 @@ class FakeBackend {
     calls.add(route);
     final authed = request.headers['Authorization'] == 'Bearer $validToken';
 
+    if (route == 'POST /v1/auth/reset-password') {
+      final r = jsonDecode(request.body) as Map<String, dynamic>;
+      if (r['username'] == username &&
+          (r['code'] as String).toUpperCase() == resetCode) {
+        currentPassword = r['new_password'] as String;
+        return http.Response('', 204);
+      }
+      return _json(422, {'error': 'invalid_reset_code'});
+    }
     if (route == 'POST /v1/auth/login') {
       final login = jsonDecode(request.body) as Map<String, dynamic>;
       if (login['login'] == username && login['password'] == password) {
@@ -69,6 +96,19 @@ class FakeBackend {
           'items': [
             if (bobBlocked) {'id': 'u-bob', 'username': 'bob', 'display_name': null},
           ],
+        });
+      case 'GET /v1/admin/reports':
+        if (!isAdmin) return _json(403, {'error': 'forbidden'});
+        return _json(200, {'items': openReports});
+      case 'POST /v1/admin/reports/r1/resolve':
+        final a = jsonDecode(request.body) as Map<String, dynamic>;
+        resolved.add(a['action'] as String);
+        openReports.clear();
+        return http.Response('', 204);
+      case 'POST /v1/admin/users/bob/password-reset':
+        return _json(201, {
+          'code': resetCode,
+          'expires_at': '2026-10-09T12:00:00Z',
         });
       case 'POST /v1/reports':
         reports.add(jsonDecode(request.body) as Map<String, dynamic>);
@@ -175,6 +215,7 @@ class FakeBackend {
     'email': 'alice@example.com',
     'display_name': displayName,
     'bio': bio,
+    'role': isAdmin ? 'admin' : 'user',
     'created_at': '2026-10-03T05:27:07Z',
   };
 

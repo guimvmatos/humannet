@@ -68,6 +68,7 @@ cd app && flutter test
 | POST | `/v1/auth/register` | — | `{invite_code, username, email, password}` → `{token, expires_at, user}` |
 | POST | `/v1/auth/login` | — | `{login, password}` (login = usuário ou e-mail) |
 | POST | `/v1/auth/logout` | Bearer | Revoga a sessão atual |
+| POST | `/v1/auth/reset-password` | — | `{username, code, new_password}`: código gerado por um admin (24 h, uso único, 5 tentativas) |
 | GET | `/v1/me` | Bearer | Dados do próprio usuário |
 | DELETE | `/v1/me` | Bearer | `{password}`: **exclui a conta** de forma definitiva |
 | PUT | `/v1/me/password` | Bearer | `{current_password, new_password}`: encerra as outras sessões |
@@ -88,6 +89,15 @@ cd app && flutter test
 | GET / POST | `/v1/posts/{id}/comments` | Bearer | Listar (mais antigo primeiro) / comentar `{body}` (1–2000) |
 | DELETE | `/v1/comments/{id}` | Bearer | Apagar comentário (autor do comentário ou do post) |
 | GET | `/v1/feed` | Bearer | Cronológico: amigos + você |
+
+**Administração** (papel `admin`, definido pela variável `ADMIN_USERNAMES` no servidor):
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/v1/admin/reports?status=open` | Fila de denúncias (com cópia do conteúdo) |
+| POST | `/v1/admin/reports/{id}/resolve` | `{action: dismiss \| remove_post \| suspend_user}`: fecha todas as denúncias do mesmo alvo e registra a ação |
+| POST | `/v1/admin/users/{username}/unsuspend` | Reativa uma conta suspensa |
+| POST | `/v1/admin/users/{username}/password-reset` | Gera o código de redefinição de senha |
 
 Paginação: `?limit=1..50&before=<id>`. A resposta é `{items, next_cursor}`, e `next_cursor: null` marca o fim da lista (sem rolagem infinita, R6).
 

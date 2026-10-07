@@ -111,6 +111,7 @@ pub async fn register(
                 email,
                 display_name: None,
                 bio: String::new(),
+                role: "user".to_owned(),
                 created_at,
             },
         }),
@@ -130,7 +131,7 @@ pub async fn login(
     let user = sqlx::query_as!(
         UserWithHash,
         r#"
-        SELECT id, username, email, display_name, bio, password_hash, created_at
+        SELECT id, username, email, display_name, bio, role, suspended_at, password_hash, created_at
         FROM users
         WHERE username = $1 OR email = $1
         "#,
@@ -153,6 +154,9 @@ pub async fn login(
         (true, Some(u)) => u,
         _ => return Err(AppError::InvalidCredentials),
     };
+    if user.suspended_at.is_some() {
+        return Err(AppError::Suspended);
+    }
 
     let mut tx = state.db.begin().await?;
     let (token, expires_at) =
@@ -168,6 +172,7 @@ pub async fn login(
             email: user.email,
             display_name: user.display_name,
             bio: user.bio,
+            role: user.role,
             created_at: user.created_at,
         },
     }))
@@ -187,6 +192,8 @@ struct UserWithHash {
     email: String,
     display_name: Option<String>,
     bio: String,
+    role: String,
+    suspended_at: Option<OffsetDateTime>,
     password_hash: String,
     created_at: OffsetDateTime,
 }

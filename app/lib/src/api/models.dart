@@ -7,6 +7,7 @@ class User {
     required this.createdAt,
     this.displayName,
     this.bio = '',
+    this.role = 'user',
   });
 
   factory User.fromJson(Map<String, dynamic> json) => User(
@@ -15,6 +16,7 @@ class User {
     email: json['email'] as String,
     displayName: json['display_name'] as String?,
     bio: (json['bio'] as String?) ?? '',
+    role: (json['role'] as String?) ?? 'user',
     createdAt: DateTime.parse(json['created_at'] as String),
   );
 
@@ -23,7 +25,10 @@ class User {
   final String email;
   final String? displayName;
   final String bio;
+  final String role;
   final DateTime createdAt;
+
+  bool get isAdmin => role == 'admin';
 }
 
 class AuthResult {
@@ -239,4 +244,55 @@ class FriendRequest {
 
   final Author user;
   final DateTime createdAt;
+}
+
+/// Denúncia vista pela moderação.
+class AdminReport {
+  const AdminReport({
+    required this.id,
+    required this.kind,
+    required this.reason,
+    required this.snapshot,
+    required this.details,
+    required this.createdAt,
+    required this.targetSuspended,
+    this.targetUsername,
+    this.reporterUsername,
+  });
+
+  factory AdminReport.fromJson(Map<String, dynamic> json) => AdminReport(
+    id: json['id'] as String,
+    kind: json['kind'] as String,
+    reason: json['reason'] as String,
+    snapshot: (json['snapshot'] as String?) ?? '',
+    details: (json['details'] as String?) ?? '',
+    createdAt: DateTime.parse(json['created_at'] as String),
+    targetSuspended: (json['target_suspended'] as bool?) ?? false,
+    targetUsername: json['target_username'] as String?,
+    reporterUsername: json['reporter_username'] as String?,
+  );
+
+  final String id;
+
+  /// "post" ou "user".
+  final String kind;
+  final String reason;
+  final String snapshot;
+  final String details;
+  final DateTime createdAt;
+  final bool targetSuspended;
+  final String? targetUsername;
+  final String? reporterUsername;
+}
+
+class ResetCode {
+  const ResetCode({required this.code, required this.expiresAt});
+
+  factory ResetCode.fromJson(Map<String, dynamic> json) => ResetCode(
+    code: json['code'] as String,
+    expiresAt: DateTime.parse(json['expires_at'] as String),
+  );
+
+  final String code;
+  final DateTime expiresAt;
 }

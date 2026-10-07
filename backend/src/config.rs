@@ -12,6 +12,8 @@ pub struct Config {
     pub max_active_invites: i64,
     /// Convite inicial para um banco vazio (hospedagem sem shell). Ver main.rs.
     pub bootstrap_invite: Option<String>,
+    /// Usuários com papel de administrador (ex.: "guimvmatos,outra").
+    pub admin_usernames: Vec<String>,
 }
 
 impl Config {
@@ -27,6 +29,12 @@ impl Config {
                 .ok()
                 .map(|s| s.trim().to_owned())
                 .filter(|s| !s.is_empty()),
+            admin_usernames: env::var("ADMIN_USERNAMES")
+                .unwrap_or_default()
+                .split(',')
+                .map(|s| s.trim().to_ascii_lowercase())
+                .filter(|s| !s.is_empty())
+                .collect(),
         })
     }
 }

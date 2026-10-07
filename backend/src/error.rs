@@ -21,6 +21,8 @@ pub enum AppError {
     NotFound,
     #[error("forbidden")]
     Forbidden,
+    #[error("account suspended")]
+    Suspended,
     #[error("conflict: {0}")]
     Conflict(&'static str),
     #[error("limit reached: {0}")]
@@ -43,6 +45,7 @@ impl AppError {
             Self::InvalidInvite => (StatusCode::BAD_REQUEST, "invalid_invite"),
             Self::NotFound => (StatusCode::NOT_FOUND, "not_found"),
             Self::Forbidden => (StatusCode::FORBIDDEN, "forbidden"),
+            Self::Suspended => (StatusCode::FORBIDDEN, "account_suspended"),
             Self::Conflict(code) => (StatusCode::CONFLICT, code),
             Self::LimitReached(code) => (StatusCode::TOO_MANY_REQUESTS, code),
             Self::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "internal_error"),

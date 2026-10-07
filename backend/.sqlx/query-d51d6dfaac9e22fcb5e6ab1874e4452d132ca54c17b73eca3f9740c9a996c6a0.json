@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users SET role = CASE WHEN username = ANY($1) THEN 'admin' ELSE 'user' END\n         WHERE role <> CASE WHEN username = ANY($1) THEN 'admin' ELSE 'user' END",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d51d6dfaac9e22fcb5e6ab1874e4452d132ca54c17b73eca3f9740c9a996c6a0"
+}

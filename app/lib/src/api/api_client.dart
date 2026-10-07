@@ -186,6 +186,55 @@ class ApiClient {
     );
   }
 
+  // ------------------------------------------------------------ moderação
+
+  Future<List<AdminReport>> adminReports(String token) async {
+    final json = await _send('GET', '/v1/admin/reports', token: token);
+    return (json!['items'] as List<dynamic>)
+        .map((e) => AdminReport.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// `action`: dismiss | remove_post | suspend_user
+  Future<void> resolveReport(String token, String id, String action) async {
+    await _send(
+      'POST',
+      '/v1/admin/reports/${Uri.encodeComponent(id)}/resolve',
+      token: token,
+      body: {'action': action},
+    );
+  }
+
+  Future<void> unsuspend(String token, String username) async {
+    await _send(
+      'POST',
+      '/v1/admin/users/${Uri.encodeComponent(username)}/unsuspend',
+      token: token,
+    );
+  }
+
+  Future<ResetCode> createResetCode(String token, String username) async {
+    final json = await _send(
+      'POST',
+      '/v1/admin/users/${Uri.encodeComponent(username)}/password-reset',
+      token: token,
+    );
+    return ResetCode.fromJson(json!);
+  }
+
+  /// Público: troca a senha com o código gerado por um administrador.
+  Future<void> resetPassword({
+    required String username,
+    required String code,
+    required String newPassword,
+  }) async {
+    await _send(
+      'POST',
+      '/v1/auth/reset-password',
+      body: {'username': username, 'code': code, 'new_password': newPassword},
+    );
+  }
+
   // ------------------------------------------------------------ conta
 
   Future<void> changePassword(

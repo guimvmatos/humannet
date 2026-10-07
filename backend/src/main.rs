@@ -34,6 +34,9 @@ async fn main() -> Result<()> {
     match cmd {
         "serve" => {
             MIGRATOR.run(&db).await.context("falha nas migrações")?;
+            humannet_api::routes::admin::sync_admins(&db, &config.admin_usernames)
+                .await
+                .context("falha ao sincronizar ADMIN_USERNAMES")?;
             // Um BOOTSTRAP_INVITE_CODE inválido não pode derrubar a API.
             if let Some(code) = &config.bootstrap_invite {
                 match ensure_bootstrap_invite(&db, code, config.invite_ttl_days).await {

@@ -141,7 +141,7 @@ pub async fn update(
           display_name = CASE WHEN $2 THEN $3 ELSE display_name END,
           bio          = COALESCE($4, bio)
         WHERE id = $1
-        RETURNING id, username, email, display_name, bio, created_at
+        RETURNING id, username, email, display_name, bio, role, created_at
         "#,
         user.user_id,
         display_name.is_some(),

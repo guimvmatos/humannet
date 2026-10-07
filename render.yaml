@@ -24,6 +24,9 @@ services:
       # na criação. Só vale enquanto o banco não tem nenhum usuário.
       - key: BOOTSTRAP_INVITE_CODE
         sync: false
+      # Administradores (moderação), separados por vírgula.
+      - key: ADMIN_USERNAMES
+        value: guimvmatos
       - key: LOG_FORMAT
         value: json
       - key: RUST_LOG

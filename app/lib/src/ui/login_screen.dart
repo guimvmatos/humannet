@@ -4,6 +4,7 @@ import '../auth/session_controller.dart';
 import '../config.dart';
 import 'error_messages.dart';
 import 'register_screen.dart';
+import 'reset_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, required this.session});
@@ -125,6 +126,19 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                       child: const Text('Tenho um convite'),
+                    ),
+                    TextButton(
+                      key: const Key('forgot_password_button'),
+                      onPressed: _busy
+                          ? null
+                          : () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => ResetPasswordScreen(
+                                  api: widget.session.api,
+                                ),
+                              ),
+                            ),
+                      child: const Text('Esqueci minha senha'),
                     ),
                     const SizedBox(height: 24),
                     // Diagnóstico durante o beta: qual API e qual versão.

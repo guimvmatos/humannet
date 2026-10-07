@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../api/models.dart';
 import '../auth/session_controller.dart';
 import 'error_messages.dart';
+import 'moderation_screen.dart';
 
 /// Configurações da conta: senha, bloqueados, excluir conta, sair.
 class SettingsScreen extends StatelessWidget {
@@ -18,6 +19,20 @@ class SettingsScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Configurações')),
       body: ListView(
         children: [
+          if (session.user?.isAdmin ?? false) ...[
+            ListTile(
+              key: const Key('moderation_tile'),
+              leading: const Icon(Icons.shield_outlined),
+              title: const Text('Moderação'),
+              subtitle: const Text('Denúncias e códigos de senha'),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => ModerationScreen(session: session),
+                ),
+              ),
+            ),
+            const Divider(),
+          ],
           ListTile(
             key: const Key('change_password_tile'),
             leading: const Icon(Icons.lock_outline),

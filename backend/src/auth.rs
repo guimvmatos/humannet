@@ -14,6 +14,26 @@ use crate::{AppState, crypto, error::AppError};
 pub struct AuthUser {
     pub user_id: Uuid,
     pub session_id: Uuid,
+    pub is_admin: bool,
+}
+
+/// Exige papel de administrador (moderação).
+#[derive(Clone, Debug)]
+pub struct AdminUser(pub AuthUser);
+
+impl FromRequestParts<AppState> for AdminUser {
+    type Rejection = AppError;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        let user = AuthUser::from_request_parts(parts, state).await?;
+        if !user.is_admin {
+            return Err(AppError::Forbidden);
+        }
+        Ok(Self(user))
+    }
 }
 
 impl FromRequestParts<AppState> for AuthUser {
@@ -28,9 +48,9 @@ impl FromRequestParts<AppState> for AuthUser {
 
         let row = sqlx::query!(
             r#"
-            SELECT id, user_id
-            FROM sessions
-            WHERE token_hash = $1 AND expires_at > now()
+            SELECT s.id, s.user_id, u.role, u.suspended_at
+            FROM sessions s JOIN users u ON u.id = s.user_id
+            WHERE s.token_hash = $1 AND s.expires_at > now()
             "#,
             token_hash
         )
@@ -38,9 +58,14 @@ impl FromRequestParts<AppState> for AuthUser {
         .await?
         .ok_or(AppError::Unauthorized)?;
 
+        if row.suspended_at.is_some() {
+            return Err(AppError::Suspended);
+        }
+
         Ok(Self {
             user_id: row.user_id,
             session_id: row.id,
+            is_admin: row.role == "admin",
         })
     }
 }

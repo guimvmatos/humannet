@@ -61,6 +61,27 @@ pub fn new_invite_code() -> String {
     random_secret::<16>()
 }
 
+/// Código curto para ditar/copiar (sem 0/O/1/I/L): 10 caracteres ≈ 49 bits.
+/// Usado na redefinição de senha assistida, que expira e limita tentativas.
+pub fn new_human_code() -> String {
+    const ALPHABET: &[u8] = b"ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+    // Amostragem por rejeição: descarta bytes >= 248 (31 × 8) para não
+    // favorecer as primeiras letras do alfabeto.
+    let limit = (256 / ALPHABET.len() * ALPHABET.len()) as u8;
+    let mut out = String::with_capacity(10);
+    while out.len() < 10 {
+        let mut b = [0u8; 16];
+        rand::fill(&mut b);
+        for x in b.into_iter().filter(|x| *x < limit) {
+            if out.len() == 10 {
+                break;
+            }
+            out.push(ALPHABET[usize::from(x) % ALPHABET.len()] as char);
+        }
+    }
+    out
+}
+
 /// SHA-256 de um segredo (token ou código). É o que vai para o banco.
 pub fn sha256(secret: &str) -> Vec<u8> {
     Sha256::digest(secret.as_bytes()).to_vec()
@@ -91,5 +112,11 @@ mod tests {
         assert_eq!(a.len(), 43); // 32 bytes em base64url sem padding
         assert_eq!(new_invite_code().len(), 22); // 16 bytes
         assert_eq!(sha256(&a).len(), 32);
+        let h = new_human_code();
+        assert_eq!(h.len(), 10);
+        assert!(
+            h.chars()
+                .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
+        );
     }
 }

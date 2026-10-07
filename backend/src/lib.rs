@@ -39,6 +39,20 @@ pub fn app(state: AppState) -> Router {
         .route("/auth/register", post(routes::auth::register))
         .route("/auth/login", post(routes::auth::login))
         .route("/auth/logout", post(routes::auth::logout))
+        .route("/auth/reset-password", post(routes::admin::reset_password))
+        .route("/admin/reports", get(routes::admin::list_reports))
+        .route(
+            "/admin/reports/{id}/resolve",
+            post(routes::admin::resolve_report),
+        )
+        .route(
+            "/admin/users/{username}/unsuspend",
+            post(routes::admin::unsuspend),
+        )
+        .route(
+            "/admin/users/{username}/password-reset",
+            post(routes::admin::create_reset_code),
+        )
         .route(
             "/me",
             get(routes::me::get).delete(routes::account::delete_account),

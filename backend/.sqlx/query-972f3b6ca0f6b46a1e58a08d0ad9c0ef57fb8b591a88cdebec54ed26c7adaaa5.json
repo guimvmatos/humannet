@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM sessions WHERE user_id = $1 AND EXISTS (SELECT 1 FROM users WHERE id = $1 AND suspended_at IS NOT NULL)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "972f3b6ca0f6b46a1e58a08d0ad9c0ef57fb8b591a88cdebec54ed26c7adaaa5"
+}

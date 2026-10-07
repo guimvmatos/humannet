@@ -402,4 +402,63 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Boa!'), findsNothing);
   });
+
+  testWidgets('esqueci minha senha com código do admin', (tester) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+
+    await tester.tap(find.byKey(const Key('forgot_password_button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('reset_user_field')), 'alice');
+    await tester.enterText(
+      find.byKey(const Key('reset_code_field')),
+      'abcde23456',
+    );
+    await tester.enterText(
+      find.byKey(const Key('reset_new_password_field')),
+      'senha-nova-segura-1',
+    );
+    await tester.tap(find.byKey(const Key('reset_submit_button')));
+    await tester.pumpAndSettle();
+
+    expect(backend.currentPassword, 'senha-nova-segura-1');
+    expect(find.byKey(const Key('login_button')), findsOneWidget);
+  });
+
+  testWidgets('admin vê fila de denúncias e resolve', (tester) async {
+    final backend = FakeBackend()..isAdmin = true;
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byKey(const Key('nav_profile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('moderation_tile')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('texto ofensivo'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('remove_r1')));
+    await tester.pumpAndSettle();
+    expect(backend.resolved, ['remove_post']);
+    expect(find.byKey(const Key('no_reports')), findsOneWidget);
+  });
+
+  testWidgets('quem não é admin não vê moderação', (tester) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byKey(const Key('nav_profile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings_button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('moderation_tile')), findsNothing);
+  });
 }
