@@ -4,7 +4,7 @@ Uma rede social ética, humana e autêntica, feita a partir do Brasil.
 
 > Sem algoritmos ocultos. Sem bots. Sem métricas de vaidade. Uma pessoa, uma conta.
 
-**Status:** Fase 1 em andamento. Já funcionam convites, login, perfis, amizade mútua, posts de texto, feed cronológico, bloqueio, denúncia, troca de senha e exclusão de conta.
+**Status:** Fase 1 em andamento. Já funcionam convites, login, perfis, amizade mútua, posts de texto, feed cronológico, comentários, curtidas, bloqueio, denúncia, troca de senha e exclusão de conta.
 
 ## Documentação
 
@@ -84,6 +84,9 @@ cd app && flutter test
 | GET | `/v1/users/{username}/posts` | Bearer | Posts do usuário (só para o próprio e amigos; senão 403) |
 | POST | `/v1/posts` | Bearer | `{body}` (1–5000 caracteres) |
 | GET / DELETE | `/v1/posts/{id}` | Bearer | Ler (autor e amigos; senão 404) / apagar (só o autor; o texto é removido do banco) |
+| PUT / DELETE | `/v1/posts/{id}/like` | Bearer | Curtir / descurtir. `like_count` só vem para o autor (R3) |
+| GET / POST | `/v1/posts/{id}/comments` | Bearer | Listar (mais antigo primeiro) / comentar `{body}` (1–2000) |
+| DELETE | `/v1/comments/{id}` | Bearer | Apagar comentário (autor do comentário ou do post) |
 | GET | `/v1/feed` | Bearer | Cronológico: amigos + você |
 
 Paginação: `?limit=1..50&before=<id>`. A resposta é `{items, next_cursor}`, e `next_cursor: null` marca o fim da lista (sem rolagem infinita, R6).

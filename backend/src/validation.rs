@@ -83,6 +83,19 @@ pub fn post_body(raw: &str) -> Result<String, AppError> {
     Ok(v.to_owned())
 }
 
+pub const COMMENT_MAX: usize = 2000;
+
+/// Comentário: 1–2000 caracteres; permite quebra de linha.
+pub fn comment_body(raw: &str) -> Result<String, AppError> {
+    let v = normalize_newlines(raw);
+    let v = v.trim();
+    let n = v.chars().count();
+    if n == 0 || n > COMMENT_MAX || has_forbidden_control(v) {
+        return Err(AppError::Validation("invalid_comment_body"));
+    }
+    Ok(v.to_owned())
+}
+
 /// CRLF/CR → LF, para que textos vindos de qualquer plataforma sejam aceitos.
 fn normalize_newlines(raw: &str) -> String {
     raw.replace("\r\n", "\n").replace('\r', "\n")

@@ -74,6 +74,9 @@ class Post {
     required this.body,
     required this.createdAt,
     this.editedAt,
+    this.commentCount = 0,
+    this.likedByMe = false,
+    this.likeCount,
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
@@ -84,6 +87,9 @@ class Post {
       body: json['body'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
       editedAt: edited == null ? null : DateTime.parse(edited),
+      commentCount: (json['comment_count'] as int?) ?? 0,
+      likedByMe: (json['liked_by_me'] as bool?) ?? false,
+      likeCount: json['like_count'] as int?,
     );
   }
 
@@ -92,6 +98,35 @@ class Post {
   final String body;
   final DateTime createdAt;
   final DateTime? editedAt;
+  final int commentCount;
+  final bool likedByMe;
+
+  /// Só presente para o autor (R3: curtidas são privadas).
+  final int? likeCount;
+}
+
+class Comment {
+  const Comment({
+    required this.id,
+    required this.author,
+    required this.body,
+    required this.createdAt,
+    required this.canDelete,
+  });
+
+  factory Comment.fromJson(Map<String, dynamic> json) => Comment(
+    id: json['id'] as String,
+    author: Author.fromJson(json['author'] as Map<String, dynamic>),
+    body: json['body'] as String,
+    createdAt: DateTime.parse(json['created_at'] as String),
+    canDelete: (json['can_delete'] as bool?) ?? false,
+  );
+
+  final String id;
+  final Author author;
+  final String body;
+  final DateTime createdAt;
+  final bool canDelete;
 }
 
 /// Página de posts. `nextCursor == null` = fim (sem rolagem infinita).

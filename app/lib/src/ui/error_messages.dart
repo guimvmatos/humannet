@@ -26,6 +26,7 @@ String errorMessage(Object error) {
     'invalid_report_reason' => 'Escolha um motivo para a denúncia.',
     'invalid_report_details' => 'Os detalhes devem ter até 1.000 caracteres.',
     'report_limit' => 'Você fez muitas denúncias hoje. Tente amanhã.',
+    'invalid_comment_body' => 'O comentário deve ter entre 1 e 2.000 caracteres.',
     'not_found' => 'Não encontrado.',
     'forbidden' => 'Você não tem permissão para isso.',
     'network_error' =>

@@ -355,4 +355,51 @@ void main() {
     expect(backend.currentPassword, 'nova-senha-segura-1');
     expect(find.textContaining('Senha trocada'), findsOneWidget);
   });
+
+  testWidgets('curtir no feed; autor vê o número', (tester) async {
+    const id = '01a10000-0000-7000-8000-000000000001';
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    // Post da própria alice: número de curtidas visível só para ela.
+    expect(find.byKey(const Key('like_count_$id')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('like_$id')));
+    await tester.pumpAndSettle();
+    expect(backend.liked, contains(id));
+    expect(find.byIcon(Icons.favorite), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('like_$id')));
+    await tester.pumpAndSettle();
+    expect(backend.liked, isEmpty);
+  });
+
+  testWidgets('comentar abre a tela do post e envia', (tester) async {
+    const id = '01a10000-0000-7000-8000-000000000001';
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byKey(const Key('comments_$id')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('post_screen')), findsOneWidget);
+    expect(find.byKey(const Key('no_comments')), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('comment_field')), 'Boa!');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('send_comment_button')));
+    await tester.pumpAndSettle();
+
+    expect(backend.comments.single['body'], 'Boa!');
+    expect(find.text('Boa!'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('delete_comment_c1')));
+    await tester.pumpAndSettle();
+    expect(find.text('Boa!'), findsNothing);
+  });
 }

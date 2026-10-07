@@ -222,6 +222,51 @@ class ApiClient {
     await _send('DELETE', '/v1/posts/${Uri.encodeComponent(id)}', token: token);
   }
 
+  Future<void> like(String token, String postId) async {
+    await _send(
+      'PUT',
+      '/v1/posts/${Uri.encodeComponent(postId)}/like',
+      token: token,
+    );
+  }
+
+  Future<void> unlike(String token, String postId) async {
+    await _send(
+      'DELETE',
+      '/v1/posts/${Uri.encodeComponent(postId)}/like',
+      token: token,
+    );
+  }
+
+  Future<List<Comment>> comments(String token, String postId) async {
+    final json = await _send(
+      'GET',
+      '/v1/posts/${Uri.encodeComponent(postId)}/comments',
+      token: token,
+    );
+    return (json!['items'] as List<dynamic>)
+        .map((e) => Comment.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<Comment> addComment(String token, String postId, String body) async {
+    final json = await _send(
+      'POST',
+      '/v1/posts/${Uri.encodeComponent(postId)}/comments',
+      token: token,
+      body: {'body': body},
+    );
+    return Comment.fromJson(json!);
+  }
+
+  Future<void> deleteComment(String token, String commentId) async {
+    await _send(
+      'DELETE',
+      '/v1/comments/${Uri.encodeComponent(commentId)}',
+      token: token,
+    );
+  }
+
   /// Feed cronológico: seus amigos + você.
   Future<PostPage> feed(String token, {String? before}) async {
     final json = await _send(

@@ -1,5 +1,6 @@
 pub mod account;
 pub mod auth;
+pub mod comments;
 pub mod friends;
 pub mod health;
 pub mod invites;

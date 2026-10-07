@@ -17,6 +17,8 @@ class FakeBackend {
   String bobRelation = 'none';
 
   bool bobBlocked = false;
+  final Set<String> liked = {};
+  final List<Map<String, Object?>> comments = [];
   final List<Map<String, dynamic>> reports = [];
   bool accountDeleted = false;
   String currentPassword = password;
@@ -131,6 +133,29 @@ class FakeBackend {
         if (name != null) displayName = name.isEmpty ? null : name;
         bio = (patch['bio'] as String?) ?? bio;
         return _json(200, _user());
+      case 'GET /v1/posts/01a10000-0000-7000-8000-000000000001/comments':
+        return _json(200, {'items': comments});
+      case 'POST /v1/posts/01a10000-0000-7000-8000-000000000001/comments':
+        final c = jsonDecode(request.body) as Map<String, dynamic>;
+        final comment = <String, Object?>{
+          'id': 'c${comments.length + 1}',
+          'post_id': '01a10000-0000-7000-8000-000000000001',
+          'author': {'id': 'u-alice', 'username': username, 'display_name': null},
+          'body': (c['body'] as String).trim(),
+          'created_at': '2026-10-08T12:00:00Z',
+          'can_delete': true,
+        };
+        comments.add(comment);
+        return _json(201, comment);
+      case 'PUT /v1/posts/01a10000-0000-7000-8000-000000000001/like':
+        liked.add('01a10000-0000-7000-8000-000000000001');
+        return http.Response('', 204);
+      case 'DELETE /v1/posts/01a10000-0000-7000-8000-000000000001/like':
+        liked.remove('01a10000-0000-7000-8000-000000000001');
+        return http.Response('', 204);
+      case 'DELETE /v1/comments/c1':
+        comments.removeWhere((c) => c['id'] == 'c1');
+        return http.Response('', 204);
       case 'POST /v1/posts':
         final created = jsonDecode(request.body) as Map<String, dynamic>;
         final text = (created['body'] as String).trim();
@@ -178,6 +203,9 @@ class FakeBackend {
     'body': body,
     'created_at': '2026-10-04T12:00:00Z',
     'edited_at': null,
+    'comment_count': 0,
+    'liked_by_me': false,
+    'like_count': 3,
   };
 
   static http.Response _json(int status, Object body) => http.Response.bytes(
