@@ -172,9 +172,6 @@ Várias ideias dependem de **conversa 1:1 e em grupo** (status, chamar atenção
 
 - **Fase:** 4
 
-## Marketplace com reputação
-
-- **Fase:** 5+
 
 ## Anúncios éticos
 
@@ -185,11 +182,28 @@ Várias ideias dependem de **conversa 1:1 e em grupo** (status, chamar atenção
 
 - **Fase:** 5+
 
-## Federação (ActivityPub / AT Protocol)
-
-- **Decisão pendente** antes da Fase 2. Tensão com R1: contas de outros servidores não são verificadas.
 
 ## Web pública mínima
 
 - **Fase:** 2
 - Páginas de leitura para links de convite, evento e comunidade, com botão para baixar o app.
+
+---
+
+## Em análise (Guilherme decide se entra)
+
+### Marketplace com reputação
+Compra, venda e troca entre pessoas da rede (tipo OLX/Marketplace do Facebook), com reputação baseada em quem convidou e em avaliações de negócios anteriores. Riscos: fraude, pagamentos, Código de Defesa do Consumidor. Fase 5+ se entrar.
+
+### Federação (ActivityPub / AT Protocol)
+Conversar com outras redes abertas (Mastodon, Bluesky). Tensão com R1: contas de outros servidores não passam pela nossa verificação de "uma pessoa, uma conta".
+
+## Depois (decidido que entra, sem data)
+
+- **Assistente de bem-estar (IA)** — ver seção acima. Guilherme quer; fica para depois dos eventos.
+
+## Decisão 2026-10-08: páginas de lugares e eventos
+
+- Lugares (bar, restaurante, casa de show…) têm uma **página** (perfil de lugar), administrada por uma ou mais pessoas.
+- A página cria **eventos**. Quem vê registra **interesse** ("tenho interesse / vou"), **sem venda de ingresso** e sem pagamento no app.
+- Pessoas acompanham páginas de lugares (única relação unilateral permitida, ADR-0006).
