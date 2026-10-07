@@ -20,6 +20,7 @@ class FriendsScreen extends StatefulWidget {
 class FriendsScreenState extends State<FriendsScreen> {
   List<FriendRequest> _requests = const [];
   List<Author> _friends = const [];
+  List<Suggestion> _suggestions = const [];
   bool _loading = true;
   String? _error;
   final Set<String> _busy = {};
@@ -44,11 +45,13 @@ class FriendsScreenState extends State<FriendsScreen> {
       final results = await Future.wait([
         api.friendRequests(token),
         api.friends(token),
+        api.suggestions(token).catchError((_) => <Suggestion>[]),
       ]);
       if (!mounted) return;
       setState(() {
         _requests = results[0] as List<FriendRequest>;
         _friends = results[1] as List<Author>;
+        _suggestions = results[2] as List<Suggestion>;
       });
     } catch (e) {
       if (mounted) setState(() => _error = errorMessage(e));
@@ -78,6 +81,38 @@ class FriendsScreenState extends State<FriendsScreen> {
     } finally {
       if (mounted) setState(() => _busy.remove(r.user.username));
     }
+  }
+
+  Future<void> _suggestion(Suggestion s, {required bool add}) async {
+    final token = widget.session.token;
+    if (token == null) return;
+    final name = s.user.username;
+    setState(() => _busy.add(name));
+    try {
+      final api = widget.session.api;
+      if (add) {
+        await api.requestFriend(token, name);
+        _snack('Pedido enviado para ${s.user.label}.');
+      } else {
+        await api.dismissSuggestion(token, name);
+      }
+      if (mounted) {
+        setState(
+          () => _suggestions = _suggestions
+              .where((x) => x.user.username != name)
+              .toList(),
+        );
+      }
+    } catch (e) {
+      _snack(errorMessage(e));
+    } finally {
+      if (mounted) setState(() => _busy.remove(name));
+    }
+  }
+
+  void _snack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   Future<void> _open(String username) async {
@@ -140,6 +175,40 @@ class FriendsScreenState extends State<FriendsScreen> {
                         onPressed: _busy.contains(r.user.username)
                             ? null
                             : () => _answer(r, accept: true),
+                      ),
+                    ],
+                  ),
+                ),
+              const Divider(),
+            ],
+            if (_suggestions.isNotEmpty) ...[
+              const _SectionTitle('Pessoas que você talvez conheça'),
+              for (final sg in _suggestions)
+                ListTile(
+                  key: Key('suggestion_${sg.user.username}'),
+                  title: Text(sg.user.label),
+                  subtitle: Text(
+                    '@${sg.user.username} · ${sg.reasons.join(' · ')}',
+                  ),
+                  onTap: () => _open(sg.user.username),
+                  trailing: Wrap(
+                    spacing: 4,
+                    children: [
+                      IconButton(
+                        key: Key('dismiss_${sg.user.username}'),
+                        tooltip: 'Não sugerir mais',
+                        icon: const Icon(Icons.close),
+                        onPressed: _busy.contains(sg.user.username)
+                            ? null
+                            : () => _suggestion(sg, add: false),
+                      ),
+                      IconButton.filledTonal(
+                        key: Key('suggest_add_${sg.user.username}'),
+                        tooltip: 'Adicionar',
+                        icon: const Icon(Icons.person_add_alt_1),
+                        onPressed: _busy.contains(sg.user.username)
+                            ? null
+                            : () => _suggestion(sg, add: true),
                       ),
                     ],
                   ),

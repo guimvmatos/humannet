@@ -24,6 +24,10 @@ pub struct ProfileDto {
     pub username: String,
     pub display_name: Option<String>,
     pub bio: String,
+    /// Opcionais; ajudam a sugerir amigos.
+    pub hometown: String,
+    pub city: String,
+    pub school: String,
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
     pub is_self: bool,
@@ -73,7 +77,8 @@ pub async fn get(
 
     let row = sqlx::query!(
         r#"
-        SELECT u.id, u.username, u.display_name, u.bio, u.created_at
+        SELECT u.id, u.username, u.display_name, u.bio, u.hometown, u.city, u.school,
+               u.created_at
         FROM users u
         WHERE u.id = $1
         "#,
@@ -110,6 +115,9 @@ pub async fn get(
         username: row.username,
         display_name: row.display_name,
         bio: row.bio,
+        hometown: row.hometown,
+        city: row.city,
+        school: row.school,
         created_at: row.created_at,
         is_self,
         relation,
@@ -123,6 +131,10 @@ pub struct UpdateProfile {
     pub display_name: Option<String>,
     /// Ausente = não altera.
     pub bio: Option<String>,
+    /// Ausente = não altera; "" = remove.
+    pub hometown: Option<String>,
+    pub city: Option<String>,
+    pub school: Option<String>,
 }
 
 /// PATCH /v1/me/profile
@@ -137,13 +149,19 @@ pub async fn update(
         .map(validation::display_name)
         .transpose()?;
     let bio = req.bio.as_deref().map(validation::bio).transpose()?;
+    let hometown = req.hometown.as_deref().map(validation::place).transpose()?;
+    let city = req.city.as_deref().map(validation::place).transpose()?;
+    let school = req.school.as_deref().map(validation::place).transpose()?;
 
     let me = sqlx::query_as!(
         UserDto,
         r#"
         UPDATE users SET
           display_name = CASE WHEN $2 THEN $3 ELSE display_name END,
-          bio          = COALESCE($4, bio)
+          bio          = COALESCE($4, bio),
+          hometown     = COALESCE($5, hometown),
+          city         = COALESCE($6, city),
+          school       = COALESCE($7, school)
         WHERE id = $1
         RETURNING id, username, email, display_name, bio, role, created_at
         "#,
@@ -151,6 +169,9 @@ pub async fn update(
         display_name.is_some(),
         display_name.flatten(),
         bio,
+        hometown,
+        city,
+        school,
     )
     .fetch_one(&state.db)
     .await?;

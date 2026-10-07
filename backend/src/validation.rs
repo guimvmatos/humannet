@@ -223,6 +223,15 @@ pub fn reply_body(raw: &str) -> Result<String, AppError> {
     Ok(v.to_owned())
 }
 
+/// Cidade natal, cidade atual, escola: até 80 caracteres, uma linha. "" = vazio.
+pub fn place(raw: &str) -> Result<String, AppError> {
+    let v = raw.split_whitespace().collect::<Vec<_>>().join(" ");
+    if v.chars().count() > 80 || v.chars().any(char::is_control) {
+        return Err(AppError::Validation("invalid_place"));
+    }
+    Ok(v)
+}
+
 pub const TESTIMONIAL_MAX: usize = 1000;
 
 /// Depoimento: 1–1000 caracteres, com quebras de linha.

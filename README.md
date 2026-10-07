@@ -78,7 +78,9 @@ cd app && flutter test
 | POST | `/v1/me/activity/seen` | Bearer | Marca as novidades como vistas |
 | PUT | `/v1/me/password` | Bearer | `{current_password, new_password}`: encerra as outras sessões |
 | POST | `/v1/invites` | Bearer | Gera um convite (até 5 ativos) |
-| PATCH | `/v1/me/profile` | Bearer | `{display_name?, bio?}` (`""` em display_name remove) |
+| PATCH | `/v1/me/profile` | Bearer | `{display_name?, bio?, hometown?, city?, school?}` (`""` remove; cidade/escola até 80) |
+| GET | `/v1/me/suggestions` | Bearer | Pessoas que você talvez conheça, cada uma com `reasons` (amigos em comum, mesma escola, cidade natal ou cidade atual). Sem contatos nem localização |
+| POST | `/v1/me/suggestions/{username}/dismiss` | Bearer | Não sugerir mais essa pessoa |
 | GET | `/v1/users/{username}` | Bearer | Perfil + `relation` (`self`, `none`, `friends`, `request_sent`, `request_received`); `stats` só no próprio perfil (R3) |
 | PUT | `/v1/users/{username}/friend` | Bearer | Pede amizade, ou aceita se a pessoa já pediu → `{relation}` |
 | DELETE | `/v1/users/{username}/friend` | Bearer | Desfaz amizade, cancela ou recusa o pedido (idempotente) |

@@ -53,6 +53,9 @@ class FakeBackend {
   /// Depoimento de carol sobre alice: pending → approved.
   String? carolTestimonial = 'pending';
   bool activitySeen = false;
+
+  /// Sugestão de amizade: dave (null = some da lista).
+  String? daveSuggestion = 'shown';
   bool carolFriend = false;
   String? displayName;
   String bio = '';
@@ -214,6 +217,23 @@ class FakeBackend {
         final post = _post(id, text);
         posts.insert(0, post);
         return _json(201, post);
+      case 'GET /v1/me/suggestions':
+        return _json(200, {
+          'items': [
+            if (daveSuggestion == 'shown')
+              {
+                'user': {'id': 'u-dave', 'username': 'dave', 'display_name': 'Dave'},
+                'mutual_friends': 2,
+                'reasons': ['2 amigos em comum', 'Também é de Recife'],
+              },
+          ],
+        });
+      case 'POST /v1/me/suggestions/dave/dismiss':
+        daveSuggestion = 'dismissed';
+        return http.Response('', 204);
+      case 'PUT /v1/users/dave/friend':
+        daveSuggestion = 'requested';
+        return _json(200, {'relation': 'request_sent'});
       case 'GET /v1/me/counts':
         return _json(200, {
           'friend_requests': carolRequested ? 1 : 0,

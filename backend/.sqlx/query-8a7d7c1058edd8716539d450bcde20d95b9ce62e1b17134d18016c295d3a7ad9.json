@@ -1,0 +1,117 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH me AS (\n          SELECT lower(hometown) AS hometown, lower(city) AS city, lower(school) AS school\n          FROM users WHERE id = $1\n        ),\n        mutual AS (\n          SELECT f2.friend_id AS id, count(*) AS n\n          FROM friends f1 JOIN friends f2 ON f2.user_id = f1.friend_id\n          WHERE f1.user_id = $1 AND f2.friend_id <> $1\n          GROUP BY f2.friend_id\n        ),\n        cand AS (\n          SELECT u.id, u.username, u.display_name, u.hometown, u.city, u.school,\n                 coalesce(m.n, 0) AS mutual,\n                 (u.hometown <> '' AND lower(u.hometown) = (SELECT hometown FROM me)) AS same_hometown,\n                 (u.city <> '' AND lower(u.city) = (SELECT city FROM me)) AS same_city,\n                 (u.school <> '' AND lower(u.school) = (SELECT school FROM me)) AS same_school\n          FROM users u LEFT JOIN mutual m ON m.id = u.id\n          WHERE u.id <> $1 AND u.suspended_at IS NULL\n        )\n        SELECT c.id, c.username, c.display_name, c.hometown, c.city, c.school,\n               c.mutual AS \"mutual!\", c.same_hometown AS \"same_hometown!\",\n               c.same_city AS \"same_city!\", c.same_school AS \"same_school!\"\n        FROM cand c\n        WHERE (c.mutual > 0 OR c.same_hometown OR c.same_city OR c.same_school)\n          AND NOT EXISTS (SELECT 1 FROM friends f WHERE f.user_id = $1 AND f.friend_id = c.id)\n          AND NOT EXISTS (SELECT 1 FROM friend_requests r\n                WHERE (r.from_id = $1 AND r.to_id = c.id) OR (r.from_id = c.id AND r.to_id = $1))\n          AND NOT EXISTS (SELECT 1 FROM blocks b\n                WHERE (b.blocker_id = $1 AND b.blocked_id = c.id)\n                   OR (b.blocker_id = c.id AND b.blocked_id = $1))\n          AND NOT EXISTS (SELECT 1 FROM suggestion_dismissals d\n                WHERE d.user_id = $1 AND d.dismissed_id = c.id)\n        ORDER BY (c.mutual * 3 + c.same_school::int * 2 + c.same_hometown::int * 2\n                  + c.same_city::int) DESC,\n                 c.mutual DESC, lower(c.username)\n        LIMIT $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "username",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "username"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "display_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "display_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "hometown",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "hometown"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "city",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "city"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "school",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "school"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "mutual!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "same_hometown!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "same_city!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "same_school!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "8a7d7c1058edd8716539d450bcde20d95b9ce62e1b17134d18016c295d3a7ad9"
+}

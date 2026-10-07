@@ -630,4 +630,23 @@ void main() {
     expect(again.palette.id, 'rosa');
     expect(again.mode, ThemeMode.dark);
   });
+
+  testWidgets('sugestões de amizade com motivo', (tester) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byKey(const Key('nav_friends')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('@dave · 2 amigos em comum · Também é de Recife'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('suggest_add_dave')));
+    await tester.pumpAndSettle();
+    expect(backend.daveSuggestion, 'requested');
+    expect(find.byKey(const Key('suggestion_dave')), findsNothing);
+  });
 }

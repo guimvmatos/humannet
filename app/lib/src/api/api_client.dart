@@ -88,17 +88,26 @@ class ApiClient {
     return Profile.fromJson(json!);
   }
 
-  /// `displayName == ''` remove o nome de exibição; `null` não altera.
+  /// `''` remove o campo; `null` não altera.
   Future<User> updateProfile(
     String token, {
     String? displayName,
     String? bio,
+    String? hometown,
+    String? city,
+    String? school,
   }) async {
     final json = await _send(
       'PATCH',
       '/v1/me/profile',
       token: token,
-      body: {'display_name': ?displayName, 'bio': ?bio},
+      body: {
+        'display_name': ?displayName,
+        'bio': ?bio,
+        'hometown': ?hometown,
+        'city': ?city,
+        'school': ?school,
+      },
     );
     return User.fromJson(json!);
   }
@@ -623,6 +632,23 @@ class ApiClient {
     await _send(
       'DELETE',
       '/v1/testimonials/${Uri.encodeComponent(id)}',
+      token: token,
+    );
+  }
+
+  // ------------------------------------------------------------ sugestões
+
+  Future<List<Suggestion>> suggestions(String token) async {
+    final json = await _send('GET', '/v1/me/suggestions', token: token);
+    return (json!['items'] as List<dynamic>)
+        .map((e) => Suggestion.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> dismissSuggestion(String token, String username) async {
+    await _send(
+      'POST',
+      '/v1/me/suggestions/${Uri.encodeComponent(username)}/dismiss',
       token: token,
     );
   }

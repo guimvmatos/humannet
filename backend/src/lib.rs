@@ -71,6 +71,11 @@ pub fn app(state: AppState) -> Router {
         )
         .route("/me/password", put(routes::account::change_password))
         .route("/me/counts", get(routes::activity::counts))
+        .route("/me/suggestions", get(routes::suggestions::list))
+        .route(
+            "/me/suggestions/{username}/dismiss",
+            post(routes::suggestions::dismiss),
+        )
         .route("/me/activity", get(routes::activity::list))
         .route("/me/activity/seen", post(routes::activity::mark_seen))
         .route("/me/profile", patch(routes::profiles::update))

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT u.id, u.username, u.display_name, u.bio, u.created_at\n        FROM users u\n        WHERE u.id = $1\n        ",
+  "query": "\n        SELECT u.id, u.username, u.display_name, u.bio, u.hometown, u.city, u.school,\n               u.created_at\n        FROM users u\n        WHERE u.id = $1\n        ",
   "describe": {
     "columns": [
       {
@@ -49,6 +49,39 @@
       },
       {
         "ordinal": 4,
+        "name": "hometown",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "hometown"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "city",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "city"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "school",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "school"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -69,8 +102,11 @@
       false,
       true,
       false,
+      false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "857ec563c7a4ee42a8d451c26caf5589edcbf94d027caa11acc8b827ff034e03"
+  "hash": "bb5bed09c24edc809dccba6dc893fa8efe95f57b87c721f22aa4e4a8c6b624c3"
 }

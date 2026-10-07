@@ -327,6 +327,12 @@ class _Header extends StatelessWidget {
   final VoidCallback onInvite;
   final VoidCallback onTestimonials;
 
+  String get _places => [
+    if (profile.hometown.isNotEmpty) 'De ${profile.hometown}',
+    if (profile.city.isNotEmpty) 'Mora em ${profile.city}',
+    if (profile.school.isNotEmpty) 'Estudou em ${profile.school}',
+  ].join(' · ');
+
   List<Widget> _friendButtons() {
     final onTap = busy ? null : onFriendAction;
     return switch (profile.relation) {
@@ -390,6 +396,14 @@ class _Header extends StatelessWidget {
           if (profile.bio.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(profile.bio),
+          ],
+          if (_places.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              _places,
+              key: const Key('profile_places'),
+              style: theme.textTheme.bodySmall,
+            ),
           ],
           if (profile.relation == Relation.requestReceived) ...[
             const SizedBox(height: 12),

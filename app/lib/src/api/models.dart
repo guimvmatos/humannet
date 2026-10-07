@@ -200,6 +200,9 @@ class Profile {
     required this.relation,
     this.displayName,
     this.stats,
+    this.hometown = '',
+    this.city = '',
+    this.school = '',
   });
 
   factory Profile.fromJson(Map<String, dynamic> json) {
@@ -212,6 +215,9 @@ class Profile {
       createdAt: DateTime.parse(json['created_at'] as String),
       relation: Relation.parse(json['relation'] as String?),
       stats: stats == null ? null : ProfileStats.fromJson(stats),
+      hometown: (json['hometown'] as String?) ?? '',
+      city: (json['city'] as String?) ?? '',
+      school: (json['school'] as String?) ?? '',
     );
   }
 
@@ -222,6 +228,9 @@ class Profile {
   final DateTime createdAt;
   final Relation relation;
   final ProfileStats? stats;
+  final String hometown;
+  final String city;
+  final String school;
 
   bool get isSelf => relation == Relation.self;
 
@@ -233,6 +242,9 @@ class Profile {
     createdAt: createdAt,
     relation: relation ?? this.relation,
     stats: stats,
+    hometown: hometown,
+    city: city,
+    school: school,
   );
 }
 
@@ -627,4 +639,17 @@ class ActivityItem {
   final String excerpt;
   final DateTime createdAt;
   final bool unread;
+}
+
+/// Sugestão de amizade, sempre com o motivo (R2).
+class Suggestion {
+  const Suggestion({required this.user, required this.reasons});
+
+  factory Suggestion.fromJson(Map<String, dynamic> json) => Suggestion(
+    user: Author.fromJson(json['user'] as Map<String, dynamic>),
+    reasons: (json['reasons'] as List<dynamic>).cast<String>(),
+  );
+
+  final Author user;
+  final List<String> reasons;
 }
