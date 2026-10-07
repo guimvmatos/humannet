@@ -26,6 +26,42 @@ Para cada ideia: **fase prevista**, **dependências** e **riscos**.
   - API de LLM: melhor qualidade, mas tem custo e envia dados para fora. Só com opt-in.
 - **Riscos:** custo, privacidade e o tom paternalista incomodar parte dos usuários. A feature precisa poder ser desligada.
 
+## Evento ao vivo: fotos e conversa de quem está lá
+
+**Ideia:** o check-in no evento (QR rotativo, SPEC 4.9) libera, **só para quem fez check-in**:
+
+1. **Fotos na página do evento.** Quem está no evento envia fotos para uma galeria do evento. A organização pode **destacar** fotos na página.
+2. **Conversa do evento.** Um chat geral só entre quem fez check-in.
+
+- **Fase:** 3, junto com o check-in.
+- **Por que encaixa:** comunidade presencial, conteúdo autoral, memória do evento ("memória digital" da Proposta).
+- **Desenho proposto:**
+  - **Galeria:** quem envia é o autor (o crédito aparece). "Destacar" pela organização **não é repost** (R4): a foto fica só na página do evento e não vai para o feed de ninguém.
+  - **Política de imagem obrigatória antes de lançar:**
+    - quem aparece na foto pode pedir remoção com um toque ("estou nesta foto");
+    - nada de fotos de menores;
+    - moderação da organização e da plataforma;
+    - detecção de CSAM (ver SPEC 7).
+  - **Conversa do evento:** abre no início do evento e fica **só leitura** algumas horas depois do fim. Depois é apagada (ex.: 7 dias). Bloqueios são respeitados.
+  - A presença na conversa segue a visibilidade do check-in (R7). Quem fez check-in invisível pode ler sem aparecer na lista.
+- **Riscos:** fotos de terceiros sem consentimento, assédio em chat aberto, custo de armazenamento de imagens, moderação em tempo real.
+
+## Turmas (grupos criados juntos, no presencial)
+
+**Ideia:** um grupo de amigos que está junto cria uma **Turma**, um grupo com nome próprio. Para criar, todos precisam estar **fisicamente juntos** ("encostar os celulares"). A Turma pode ter a própria página e publicar como grupo. O nome ainda está em aberto: "Turma", "Galera", "Bonde", "Rolê"... (definir com o público-alvo).
+
+- **Fase:** 3+ (depois de eventos e check-in, que testam a mesma mecânica de presença).
+- **Por que encaixa:** relação real e presencial (só cria quem está junto), "comunidade > audiência". Pode pegar em nichos (bandas, times de futebol de várzea, grupos de faculdade, viagens).
+- **Desenho proposto:**
+  - **Criação por QR em vez de Bluetooth:** um celular mostra um QR rotativo (o mesmo mecanismo do check-in) e os outros escaneiam em até 2 min.
+    - Bluetooth exige permissões pesadas no Android, falha com frequência e funciona de forma diferente no iOS.
+    - O QR prova a mesma coisa: "estávamos juntos".
+    - "Encostar" (NFC) pode vir depois, como enfeite.
+  - Membros precisam ser **amigos** entre si? Proposta: não precisam, mas cada um precisa aceitar entrar.
+  - **Publicar "como Turma":** o post aparece como "Turma X", **com o autor sempre visível** ("por @fulano"). Assim mantém R1: ninguém se esconde atrás do grupo.
+  - Entrar depois: por convite de um membro, ou de novo presencialmente (decidir).
+- **Riscos:** grupos usados para assédio coordenado (moderação de grupo), confusão com Comunidades (Turma = pequeno e fechado; Comunidade = aberto e temático).
+
 ## Linha do tempo pessoal e reencontros
 
 **Ideia:** no começo, a pessoa conta um pouco da própria história: cidade onde nasceu, ano de nascimento, cidades onde morou, escolas e faculdades, trabalhos, cada item com um **período** (ex.: Escola X, 1998–2005). A partir disso, a HumanNet sugere **pessoas da mesma época e do mesmo lugar**: colegas de escola, da faculdade, da cidade antiga ou da nova. É o "reencontro" do Orkut e do Facebook antigo.

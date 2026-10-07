@@ -40,7 +40,7 @@ A amizade é guardada **uma vez**, com o par ordenado (`user_a < user_b`). Não 
 
 ## Questões em aberto
 
-1. **Contas de organização (Fase 2: pub, empresa).** Organização não é pessoa. Proposta: a pessoa **acompanha** a organização (unilateral, como uma inscrição), e a organização não vê quem a acompanha individualmente. Precisa de confirmação.
+1. ~~Contas de organização~~ **Decidido (2026-10-07):** pessoas **acompanham** organizações (pub, empresa) de forma unilateral, sem aceite. É a única exceção à R9, porque organização não é pessoa. A organização não vê a lista individual de quem a acompanha.
 2. **Comunidades** continuam baseadas em "entrar", não em amizade.
 
 ## Verificação formal (candidato a TLA+)
