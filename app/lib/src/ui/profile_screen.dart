@@ -8,6 +8,8 @@ import '../auth/session_controller.dart';
 import 'edit_profile_screen.dart';
 import 'error_messages.dart';
 import 'post_list.dart';
+import 'report_dialog.dart';
+import 'settings_screen.dart';
 
 /// Perfil de um usuário. `asTab: true` = aba "Perfil" do próprio usuário
 /// (sem botão de voltar).
@@ -84,6 +86,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _snack(errorMessage(e));
     } finally {
       if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _report() async {
+    await showReportDialog(
+      context,
+      session: widget.session,
+      username: widget.username,
+    );
+  }
+
+  Future<void> _block() async {
+    final token = _token;
+    if (token == null) return;
+    final ok = await _confirm(
+      'Bloquear @${widget.username}?',
+      'Vocês deixam de ser amigos e nenhum dos dois encontra mais o outro. '
+          'A pessoa não é avisada. Você pode desbloquear em Configurações.',
+      'Bloquear',
+    );
+    if (!ok) return;
+    try {
+      await widget.session.api.block(token, widget.username);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('@${widget.username} bloqueado.')));
+      if (!widget.asTab) Navigator.of(context).pop();
+    } catch (e) {
+      _snack(errorMessage(e));
     }
   }
 
@@ -177,12 +209,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
         automaticallyImplyLeading: !widget.asTab,
         title: Text('@${widget.username}'),
         actions: [
-          if (isSelf)
+          if (isSelf) ...[
+            IconButton(
+              key: const Key('settings_button'),
+              tooltip: 'Configurações',
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => SettingsScreen(session: widget.session),
+                ),
+              ),
+            ),
             IconButton(
               key: const Key('logout_button'),
               tooltip: 'Sair',
               icon: const Icon(Icons.logout),
               onPressed: widget.session.logout,
+            ),
+          ] else if (p != null)
+            PopupMenuButton<String>(
+              key: const Key('profile_menu'),
+              onSelected: (v) => v == 'block' ? _block() : _report(),
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'report', child: Text('Denunciar perfil')),
+                PopupMenuItem(value: 'block', child: Text('Bloquear')),
+              ],
             ),
         ],
       ),
@@ -294,7 +345,7 @@ class _Header extends StatelessWidget {
           key: const Key('friend_button'),
           onPressed: onTap,
           icon: const Icon(Icons.people),
-          label: const Text('Amigos'),
+          label: const Text('Amigos ✓'),
         ),
       ],
     };

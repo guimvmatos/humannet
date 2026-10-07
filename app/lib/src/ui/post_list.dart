@@ -6,6 +6,7 @@ import '../api/models.dart';
 import '../auth/session_controller.dart';
 import 'error_messages.dart';
 import 'profile_screen.dart';
+import 'report_dialog.dart';
 
 typedef PageLoader = Future<PostPage> Function(String? before);
 
@@ -239,16 +240,25 @@ class PostTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (_isMine)
-                  PopupMenuButton<String>(
-                    key: Key('post_menu_${post.id}'),
-                    onSelected: (_) => _delete(context),
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(value: 'delete', child: Text('Apagar')),
-                    ],
-                  )
-                else
-                  const SizedBox(height: 40),
+                PopupMenuButton<String>(
+                  key: Key('post_menu_${post.id}'),
+                  onSelected: (v) => v == 'delete'
+                      ? _delete(context)
+                      : showReportDialog(
+                          context,
+                          session: session,
+                          postId: post.id,
+                        ),
+                  itemBuilder: (_) => [
+                    if (_isMine)
+                      const PopupMenuItem(value: 'delete', child: Text('Apagar'))
+                    else
+                      const PopupMenuItem(
+                        value: 'report',
+                        child: Text('Denunciar'),
+                      ),
+                  ],
+                ),
               ],
             ),
             Padding(

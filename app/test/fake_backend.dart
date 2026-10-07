@@ -16,6 +16,11 @@ class FakeBackend {
   /// Relação de alice com bob: none | request_sent | request_received | friends.
   String bobRelation = 'none';
 
+  bool bobBlocked = false;
+  final List<Map<String, dynamic>> reports = [];
+  bool accountDeleted = false;
+  String currentPassword = password;
+
   /// Carol pediu amizade à alice.
   bool carolRequested = true;
   bool carolFriend = false;
@@ -48,7 +53,38 @@ class FakeBackend {
       case 'GET /v1/users/alice':
         return _json(200, _profile('alice', relation: 'self'));
       case 'GET /v1/users/bob':
+        if (bobBlocked) return _json(404, {'error': 'not_found'});
         return _json(200, _profile('bob', relation: bobRelation));
+      case 'PUT /v1/users/bob/block':
+        bobBlocked = true;
+        bobRelation = 'none';
+        return http.Response('', 204);
+      case 'DELETE /v1/users/bob/block':
+        bobBlocked = false;
+        return http.Response('', 204);
+      case 'GET /v1/blocks':
+        return _json(200, {
+          'items': [
+            if (bobBlocked) {'id': 'u-bob', 'username': 'bob', 'display_name': null},
+          ],
+        });
+      case 'POST /v1/reports':
+        reports.add(jsonDecode(request.body) as Map<String, dynamic>);
+        return http.Response('', 202);
+      case 'PUT /v1/me/password':
+        final pw = jsonDecode(request.body) as Map<String, dynamic>;
+        if (pw['current_password'] != currentPassword) {
+          return _json(401, {'error': 'invalid_credentials'});
+        }
+        currentPassword = pw['new_password'] as String;
+        return http.Response('', 204);
+      case 'DELETE /v1/me':
+        final del = jsonDecode(request.body) as Map<String, dynamic>;
+        if (del['password'] != currentPassword) {
+          return _json(401, {'error': 'invalid_credentials'});
+        }
+        accountDeleted = true;
+        return http.Response('', 204);
       case 'GET /v1/users/bob/posts':
         if (bobRelation != 'friends') {
           return _json(403, {'error': 'forbidden'});

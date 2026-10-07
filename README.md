@@ -4,7 +4,7 @@ Uma rede social ética, humana e autêntica, feita a partir do Brasil.
 
 > Sem algoritmos ocultos. Sem bots. Sem métricas de vaidade. Uma pessoa, uma conta.
 
-**Status:** Fase 1 em andamento. Já funcionam convites, login, perfis, amizade mútua, posts de texto e feed cronológico.
+**Status:** Fase 1 em andamento. Já funcionam convites, login, perfis, amizade mútua, posts de texto, feed cronológico, bloqueio, denúncia, troca de senha e exclusão de conta.
 
 ## Documentação
 
@@ -69,6 +69,8 @@ cd app && flutter test
 | POST | `/v1/auth/login` | — | `{login, password}` (login = usuário ou e-mail) |
 | POST | `/v1/auth/logout` | Bearer | Revoga a sessão atual |
 | GET | `/v1/me` | Bearer | Dados do próprio usuário |
+| DELETE | `/v1/me` | Bearer | `{password}`: **exclui a conta** de forma definitiva |
+| PUT | `/v1/me/password` | Bearer | `{current_password, new_password}`: encerra as outras sessões |
 | POST | `/v1/invites` | Bearer | Gera um convite (até 5 ativos) |
 | PATCH | `/v1/me/profile` | Bearer | `{display_name?, bio?}` (`""` em display_name remove) |
 | GET | `/v1/users/{username}` | Bearer | Perfil + `relation` (`self`, `none`, `friends`, `request_sent`, `request_received`); `stats` só no próprio perfil (R3) |
@@ -76,6 +78,9 @@ cd app && flutter test
 | DELETE | `/v1/users/{username}/friend` | Bearer | Desfaz amizade, cancela ou recusa o pedido (idempotente) |
 | GET | `/v1/friend-requests` | Bearer | Pedidos recebidos |
 | GET | `/v1/friends` | Bearer | Meus amigos |
+| PUT / DELETE | `/v1/users/{username}/block` | Bearer | Bloquear / desbloquear (bloqueio invisível: 404 nos dois sentidos) |
+| GET | `/v1/blocks` | Bearer | Quem eu bloqueei |
+| POST | `/v1/reports` | Bearer | `{kind: "post", post_id \| kind: "user", username, reason, details?}` → 202 |
 | GET | `/v1/users/{username}/posts` | Bearer | Posts do usuário (só para o próprio e amigos; senão 403) |
 | POST | `/v1/posts` | Bearer | `{body}` (1–5000 caracteres) |
 | GET / DELETE | `/v1/posts/{id}` | Bearer | Ler (autor e amigos; senão 404) / apagar (só o autor; o texto é removido do banco) |

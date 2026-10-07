@@ -21,6 +21,11 @@ String errorMessage(Object error) {
     'cannot_befriend_self' => 'Você não pode adicionar a si mesmo.',
     'friend_request_limit' =>
       'Você tem muitos pedidos de amizade pendentes. Espere algumas respostas.',
+    'cannot_block_self' => 'Você não pode bloquear a si mesmo.',
+    'cannot_report_self' => 'Você não pode denunciar a si mesmo.',
+    'invalid_report_reason' => 'Escolha um motivo para a denúncia.',
+    'invalid_report_details' => 'Os detalhes devem ter até 1.000 caracteres.',
+    'report_limit' => 'Você fez muitas denúncias hoje. Tente amanhã.',
     'not_found' => 'Não encontrado.',
     'forbidden' => 'Você não tem permissão para isso.',
     'network_error' =>

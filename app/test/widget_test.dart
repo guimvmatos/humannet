@@ -211,4 +211,148 @@ void main() {
     expect(s2.status, SessionStatus.signedOut);
     expect(await bad.read(), isNull);
   });
+
+  Future<void> openBob(WidgetTester tester) async {
+    await tester.tap(find.byTooltip('Encontrar pessoa'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('find_person_field')), 'bob');
+    await tester.tap(find.text('Abrir'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('denunciar perfil envia motivo e detalhes', (tester) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+    await openBob(tester);
+
+    await tester.tap(find.byKey(const Key('profile_menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Denunciar perfil'));
+    await tester.pumpAndSettle();
+
+    // Sem motivo, não envia.
+    final send = find.byKey(const Key('send_report_button'));
+    expect(tester.widget<FilledButton>(send).onPressed, isNull);
+
+    await tester.ensureVisible(find.byKey(const Key('reason_impersonation')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('reason_impersonation')));
+    await tester.pump();
+    await tester.tap(send);
+    await tester.pumpAndSettle();
+
+    expect(backend.reports.single['kind'], 'user');
+    expect(backend.reports.single['username'], 'bob');
+    expect(backend.reports.single['reason'], 'impersonation');
+    expect(find.textContaining('Denúncia enviada'), findsOneWidget);
+  });
+
+  testWidgets('bloquear pela tela de perfil e desbloquear nas configurações', (
+    tester,
+  ) async {
+    final backend = FakeBackend()..bobRelation = 'friends';
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+    await openBob(tester);
+
+    await tester.tap(find.byKey(const Key('profile_menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bloquear'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('confirm_button')));
+    await tester.pumpAndSettle();
+
+    expect(backend.bobBlocked, isTrue);
+    expect(backend.bobRelation, 'none');
+    // Voltou para o feed.
+    expect(find.byKey(const Key('feed_screen')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('nav_profile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('blocked_tile')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('blocked_bob')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('unblock_bob')));
+    await tester.pumpAndSettle();
+    expect(backend.bobBlocked, isFalse);
+    expect(find.text('Você não bloqueou ninguém.'), findsOneWidget);
+  });
+
+  testWidgets('excluir conta exige confirmação e senha', (tester) async {
+    final backend = FakeBackend();
+    final store = InMemoryTokenStore();
+    final session = _session(backend, store);
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byKey(const Key('nav_profile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('delete_account_tile')));
+    await tester.pumpAndSettle();
+
+    final button = find.byKey(const Key('delete_account_button'));
+    expect(tester.widget<FilledButton>(button).onPressed, isNull);
+
+    await tester.tap(find.byKey(const Key('confirm_delete_checkbox')));
+    await tester.enterText(
+      find.byKey(const Key('delete_password_field')),
+      'senha-errada-123',
+    );
+    await tester.pump();
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    expect(find.text('Senha incorreta.'), findsOneWidget);
+    expect(backend.accountDeleted, isFalse);
+
+    await tester.enterText(
+      find.byKey(const Key('delete_password_field')),
+      FakeBackend.password,
+    );
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+
+    expect(backend.accountDeleted, isTrue);
+    expect(find.byKey(const Key('login_button')), findsOneWidget);
+    expect(await store.read(), isNull);
+  });
+
+  testWidgets('trocar senha', (tester) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byKey(const Key('nav_profile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('change_password_tile')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('current_password_field')),
+      FakeBackend.password,
+    );
+    await tester.enterText(
+      find.byKey(const Key('new_password_field')),
+      'nova-senha-segura-1',
+    );
+    await tester.tap(find.byKey(const Key('save_password_button')));
+    await tester.pumpAndSettle();
+
+    expect(backend.currentPassword, 'nova-senha-segura-1');
+    expect(find.textContaining('Senha trocada'), findsOneWidget);
+  });
 }

@@ -138,6 +138,74 @@ class ApiClient {
         .toList();
   }
 
+  // ------------------------------------------------------------ segurança
+
+  Future<void> block(String token, String username) async {
+    await _send(
+      'PUT',
+      '/v1/users/${Uri.encodeComponent(username)}/block',
+      token: token,
+    );
+  }
+
+  Future<void> unblock(String token, String username) async {
+    await _send(
+      'DELETE',
+      '/v1/users/${Uri.encodeComponent(username)}/block',
+      token: token,
+    );
+  }
+
+  Future<List<Author>> blocks(String token) async {
+    final json = await _send('GET', '/v1/blocks', token: token);
+    return (json!['items'] as List<dynamic>)
+        .map((e) => Author.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Denuncia um post (`postId`) ou um perfil (`username`).
+  Future<void> report(
+    String token, {
+    required String reason,
+    String? postId,
+    String? username,
+    String details = '',
+  }) async {
+    assert((postId == null) != (username == null), 'informe post OU perfil');
+    await _send(
+      'POST',
+      '/v1/reports',
+      token: token,
+      body: {
+        'kind': postId != null ? 'post' : 'user',
+        'post_id': ?postId,
+        'username': ?username,
+        'reason': reason,
+        'details': details,
+      },
+    );
+  }
+
+  // ------------------------------------------------------------ conta
+
+  Future<void> changePassword(
+    String token, {
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _send(
+      'PUT',
+      '/v1/me/password',
+      token: token,
+      body: {'current_password': currentPassword, 'new_password': newPassword},
+    );
+  }
+
+  /// Exclusão definitiva da conta. Exige a senha.
+  Future<void> deleteAccount(String token, String password) async {
+    await _send('DELETE', '/v1/me', token: token, body: {'password': password});
+  }
+
   // ------------------------------------------------------------ posts
 
   Future<Post> createPost(String token, String body) async {
