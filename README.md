@@ -83,7 +83,7 @@ cd app && flutter test
 | GET | `/v1/friends` | Bearer | Meus amigos |
 | PUT / DELETE | `/v1/users/{username}/block` | Bearer | Bloquear / desbloquear (bloqueio invisível: 404 nos dois sentidos) |
 | GET | `/v1/blocks` | Bearer | Quem eu bloqueei |
-| POST | `/v1/reports` | Bearer | `{kind: "post", post_id \| kind: "user", username, reason, details?}` → 202 |
+| POST | `/v1/reports` | Bearer | `{kind, <alvo>, reason, details?}` → 202. Alvos: `post` + `post_id`, `user` + `username`, `comment` + `comment_id`, `topic` + `topic_id`, `reply` + `reply_id`, `community` + `slug` |
 | GET | `/v1/users/{username}/posts` | Bearer | Posts do usuário (só para o próprio e amigos; senão 403) |
 | POST | `/v1/posts` | Bearer | `{body}` (1–5000 caracteres) |
 | GET / DELETE | `/v1/posts/{id}` | Bearer | Ler (autor e amigos; senão 404) / apagar (só o autor; o texto é removido do banco) |
@@ -92,12 +92,27 @@ cd app && flutter test
 | DELETE | `/v1/comments/{id}` | Bearer | Apagar comentário (autor do comentário ou do post) |
 | GET | `/v1/feed` | Bearer | Cronológico: amigos + você |
 
+**Comunidades** (SPEC 4.5). Pública: qualquer pessoa lê e entra. Fechada: só membros leem; entrar exige aprovação. Administradores moderam qualquer comunidade.
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/v1/communities?q=&theme=&mine=true` | Busca (nome/endereço) ou só as minhas; ordem alfabética, até 100 |
+| POST | `/v1/communities` | `{name, theme, visibility: public\|closed, description?, rules?, slug?}`: quem cria vira dono (até 10) |
+| GET / PATCH / DELETE | `/v1/communities/{slug}` | Ver (com `my_role`, `my_status`, `can_*`; contagens só para quem modera) / editar e apagar (dono) |
+| PUT / DELETE | `/v1/communities/{slug}/membership` | Entrar (ou pedir, se fechada) / sair ou cancelar pedido. O dono não sai |
+| GET | `/v1/communities/{slug}/members?status=active\|pending\|banned` | Membros (membros veem ativos; pedidos e banidos, só quem modera) |
+| POST | `/v1/communities/{slug}/members/{username}` | `{action}`: `approve`, `reject`, `ban`, `unban` (moderação); `promote`, `demote` (dono); `transfer` (só o dono) |
+| GET / POST | `/v1/communities/{slug}/topics` | Tópicos: fixados primeiro, depois pela última resposta / criar `{title, body?}` (membros) |
+| GET / PATCH / DELETE | `/v1/topics/{id}` | Ver / `{pinned?, locked?}` (moderação) / apagar (autor ou moderação) |
+| GET / POST | `/v1/topics/{id}/replies?after=` | Respostas (mais antiga primeiro) / responder `{body}`; tópico trancado só aceita da moderação |
+| DELETE | `/v1/replies/{id}` | Apagar resposta (autor ou moderação) |
+
 **Administração** (papel `admin`, definido pela variável `ADMIN_USERNAMES` no servidor):
 
 | Método | Rota | Descrição |
 |---|---|---|
 | GET | `/v1/admin/reports?status=open` | Fila de denúncias (com cópia do conteúdo) |
-| POST | `/v1/admin/reports/{id}/resolve` | `{action: dismiss \| remove_post \| suspend_user}`: fecha todas as denúncias do mesmo alvo e registra a ação |
+| POST | `/v1/admin/reports/{id}/resolve` | `{action: dismiss \| remove_content \| suspend_user}`: fecha todas as denúncias do mesmo alvo e registra a ação |
 | POST | `/v1/admin/users/{username}/unsuspend` | Reativa uma conta suspensa |
 | POST | `/v1/admin/users/{username}/password-reset` | Gera o código de redefinição de senha |
 

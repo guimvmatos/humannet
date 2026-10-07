@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../auth/session_controller.dart';
+import 'communities_screen.dart';
 import 'feed_screen.dart';
 import 'friends_screen.dart';
 import 'profile_screen.dart';
 
-/// Navegação principal após o login: Feed e Perfil.
+/// Navegação principal após o login: Feed, Amigos, Comunidades e Perfil.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key, required this.session});
 
@@ -18,11 +19,13 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
   final _friendsKey = GlobalKey<FriendsScreenState>();
+  final _communitiesKey = GlobalKey<CommunitiesScreenState>();
 
   void _select(int i) {
     setState(() => _index = i);
     // A aba Amigos recarrega ao ser aberta (pedidos novos).
     if (i == 1) _friendsKey.currentState?.refresh();
+    if (i == 2) _communitiesKey.currentState?.refresh();
   }
 
   @override
@@ -34,6 +37,7 @@ class _HomeShellState extends State<HomeShell> {
         children: [
           FeedScreen(session: widget.session),
           FriendsScreen(key: _friendsKey, session: widget.session),
+          CommunitiesScreen(key: _communitiesKey, session: widget.session),
           ProfileScreen(
             session: widget.session,
             username: username,
@@ -56,6 +60,12 @@ class _HomeShellState extends State<HomeShell> {
             icon: Icon(Icons.people_outline),
             selectedIcon: Icon(Icons.people),
             label: 'Amigos',
+          ),
+          NavigationDestination(
+            key: Key('nav_communities'),
+            icon: Icon(Icons.forum_outlined),
+            selectedIcon: Icon(Icons.forum),
+            label: 'Comunidades',
           ),
           NavigationDestination(
             key: Key('nav_profile'),

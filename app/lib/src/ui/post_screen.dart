@@ -6,6 +6,7 @@ import '../api/models.dart';
 import '../auth/session_controller.dart';
 import 'error_messages.dart';
 import 'post_list.dart';
+import 'report_dialog.dart';
 
 /// Um post com os comentários (do mais antigo ao mais novo) e o campo de resposta.
 class PostScreen extends StatefulWidget {
@@ -153,7 +154,16 @@ class _PostScreenState extends State<PostScreen> {
                               icon: const Icon(Icons.delete_outline),
                               onPressed: () => _delete(c),
                             )
-                          : null,
+                          : IconButton(
+                              key: Key('report_comment_${c.id}'),
+                              tooltip: 'Denunciar comentário',
+                              icon: const Icon(Icons.flag_outlined),
+                              onPressed: () => showReportDialog(
+                                context,
+                                session: widget.session,
+                                commentId: c.id,
+                              ),
+                            ),
                     ),
               ],
             ),

@@ -89,6 +89,7 @@ class _FeedScreenState extends State<FeedScreen> {
             'ou escreva o primeiro post.',
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'compose_fab',
         key: const Key('compose_button'),
         onPressed: _compose,
         icon: const Icon(Icons.edit),

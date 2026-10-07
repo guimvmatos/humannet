@@ -444,7 +444,7 @@ void main() {
     expect(find.text('texto ofensivo'), findsOneWidget);
     await tester.tap(find.byKey(const Key('remove_r1')));
     await tester.pumpAndSettle();
-    expect(backend.resolved, ['remove_post']);
+    expect(backend.resolved, ['remove_content']);
     expect(find.byKey(const Key('no_reports')), findsOneWidget);
   });
 
@@ -460,5 +460,86 @@ void main() {
     await tester.tap(find.byKey(const Key('settings_button')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('moderation_tile')), findsNothing);
+  });
+
+  testWidgets('comunidades: explorar, entrar, criar tópico e responder', (
+    tester,
+  ) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byKey(const Key('nav_communities')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('no_communities')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('explore_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('community_rock-sp')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('community_screen')), findsOneWidget);
+    expect(find.byKey(const Key('new_topic_button')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('join_community_button')));
+    await tester.pumpAndSettle();
+    expect(backend.rockStatus, 'active');
+    expect(find.byKey(const Key('leave_community_button')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('new_topic_button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('topic_title_field')),
+      'Melhor show do ano',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('publish_topic_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('topic_screen')), findsOneWidget);
+    expect(find.text('Melhor show do ano'), findsOneWidget);
+    expect(find.byKey(const Key('no_replies')), findsOneWidget);
+
+    await tester.enterText(find.byKey(const Key('reply_field')), 'Foi demais!');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('send_reply_button')));
+    await tester.pumpAndSettle();
+    expect(backend.replies.single['body'], 'Foi demais!');
+    expect(find.text('Foi demais!'), findsOneWidget);
+  });
+
+  testWidgets('criar comunidade abre a página dela', (tester) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byKey(const Key('nav_communities')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('create_community_button')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('community_name_field')),
+      'Família Matos',
+    );
+    await tester.tap(find.byKey(const Key('community_theme_field')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Música').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('visibility_closed')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('save_community_button')));
+    await tester.tap(find.byKey(const Key('save_community_button')));
+    await tester.pumpAndSettle();
+
+    final sent = backend.createdCommunities.single;
+    expect(sent['name'], 'Família Matos');
+    expect(sent['theme'], 'musica');
+    expect(sent['visibility'], 'closed');
+    expect(find.byKey(const Key('community_screen')), findsOneWidget);
+    expect(find.text('Você é o dono desta comunidade.'), findsOneWidget);
   });
 }

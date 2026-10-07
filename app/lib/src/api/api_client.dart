@@ -163,23 +163,40 @@ class ApiClient {
         .toList();
   }
 
-  /// Denuncia um post (`postId`) ou um perfil (`username`).
+  /// Denuncia um conteúdo. Informe exatamente um alvo.
   Future<void> report(
     String token, {
     required String reason,
     String? postId,
     String? username,
+    String? commentId,
+    String? topicId,
+    String? replyId,
+    String? communitySlug,
     String details = '',
   }) async {
-    assert((postId == null) != (username == null), 'informe post OU perfil');
+    final targets = <String, String?>{
+      'post': postId,
+      'user': username,
+      'comment': commentId,
+      'topic': topicId,
+      'reply': replyId,
+      'community': communitySlug,
+    }..removeWhere((_, v) => v == null);
+    assert(targets.length == 1, 'informe exatamente um alvo');
+    final kind = targets.keys.single;
     await _send(
       'POST',
       '/v1/reports',
       token: token,
       body: {
-        'kind': postId != null ? 'post' : 'user',
+        'kind': kind,
         'post_id': ?postId,
         'username': ?username,
+        'comment_id': ?commentId,
+        'topic_id': ?topicId,
+        'reply_id': ?replyId,
+        'slug': ?communitySlug,
         'reason': reason,
         'details': details,
       },
@@ -195,7 +212,7 @@ class ApiClient {
         .toList();
   }
 
-  /// `action`: dismiss | remove_post | suspend_user
+  /// `action`: dismiss | remove_content | suspend_user
   Future<void> resolveReport(String token, String id, String action) async {
     await _send(
       'POST',
@@ -339,6 +356,221 @@ class ApiClient {
       query: {'before': ?before},
     );
     return PostPage.fromJson(json!);
+  }
+
+  // ------------------------------------------------------------ comunidades
+
+  String _c(String slug) => '/v1/communities/${Uri.encodeComponent(slug)}';
+
+  Future<List<CommunityItem>> communities(
+    String token, {
+    String? query,
+    String? theme,
+    bool mine = false,
+  }) async {
+    final json = await _send(
+      'GET',
+      '/v1/communities',
+      token: token,
+      query: {
+        if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
+        'theme': ?theme,
+        if (mine) 'mine': 'true',
+      },
+    );
+    return (json!['items'] as List<dynamic>)
+        .map((e) => CommunityItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<Community> community(String token, String slug) async {
+    final json = await _send('GET', _c(slug), token: token);
+    return Community.fromJson(json!);
+  }
+
+  Future<Community> createCommunity(
+    String token, {
+    required String name,
+    required String theme,
+    required String visibility,
+    String description = '',
+    String rules = '',
+  }) async {
+    final json = await _send(
+      'POST',
+      '/v1/communities',
+      token: token,
+      body: {
+        'name': name,
+        'theme': theme,
+        'visibility': visibility,
+        'description': description,
+        'rules': rules,
+      },
+    );
+    return Community.fromJson(json!);
+  }
+
+  Future<Community> updateCommunity(
+    String token,
+    String slug, {
+    String? name,
+    String? description,
+    String? rules,
+    String? theme,
+    String? visibility,
+  }) async {
+    final json = await _send(
+      'PATCH',
+      _c(slug),
+      token: token,
+      body: {
+        'name': ?name,
+        'description': ?description,
+        'rules': ?rules,
+        'theme': ?theme,
+        'visibility': ?visibility,
+      },
+    );
+    return Community.fromJson(json!);
+  }
+
+  Future<void> deleteCommunity(String token, String slug) async {
+    await _send('DELETE', _c(slug), token: token);
+  }
+
+  /// Entra (pública) ou pede para entrar (fechada). Devolve active | pending.
+  Future<String> joinCommunity(String token, String slug) async {
+    final json = await _send('PUT', '${_c(slug)}/membership', token: token);
+    return json!['status'] as String;
+  }
+
+  Future<void> leaveCommunity(String token, String slug) async {
+    await _send('DELETE', '${_c(slug)}/membership', token: token);
+  }
+
+  /// `status`: active | pending | banned
+  Future<List<Member>> members(
+    String token,
+    String slug, {
+    String status = 'active',
+  }) async {
+    final json = await _send(
+      'GET',
+      '${_c(slug)}/members',
+      token: token,
+      query: {'status': status},
+    );
+    return (json!['items'] as List<dynamic>)
+        .map((e) => Member.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// approve | reject | ban | unban | promote | demote | transfer
+  Future<void> memberAction(
+    String token,
+    String slug,
+    String username,
+    String action,
+  ) async {
+    await _send(
+      'POST',
+      '${_c(slug)}/members/${Uri.encodeComponent(username)}',
+      token: token,
+      body: {'action': action},
+    );
+  }
+
+  Future<Paged<Topic>> topics(
+    String token,
+    String slug, {
+    String? before,
+  }) async {
+    final json = await _send(
+      'GET',
+      '${_c(slug)}/topics',
+      token: token,
+      query: {'before': ?before},
+    );
+    return Paged.fromJson(json!, Topic.fromJson);
+  }
+
+  Future<Topic> createTopic(
+    String token,
+    String slug, {
+    required String title,
+    String body = '',
+  }) async {
+    final json = await _send(
+      'POST',
+      '${_c(slug)}/topics',
+      token: token,
+      body: {'title': title, 'body': body},
+    );
+    return Topic.fromJson(json!);
+  }
+
+  Future<Topic> topic(String token, String id) async {
+    final json = await _send(
+      'GET',
+      '/v1/topics/${Uri.encodeComponent(id)}',
+      token: token,
+    );
+    return Topic.fromJson(json!);
+  }
+
+  Future<void> updateTopic(
+    String token,
+    String id, {
+    bool? pinned,
+    bool? locked,
+  }) async {
+    await _send(
+      'PATCH',
+      '/v1/topics/${Uri.encodeComponent(id)}',
+      token: token,
+      body: {'pinned': ?pinned, 'locked': ?locked},
+    );
+  }
+
+  Future<void> deleteTopic(String token, String id) async {
+    await _send(
+      'DELETE',
+      '/v1/topics/${Uri.encodeComponent(id)}',
+      token: token,
+    );
+  }
+
+  Future<Paged<Reply>> replies(
+    String token,
+    String topicId, {
+    String? after,
+  }) async {
+    final json = await _send(
+      'GET',
+      '/v1/topics/${Uri.encodeComponent(topicId)}/replies',
+      token: token,
+      query: {'after': ?after},
+    );
+    return Paged.fromJson(json!, Reply.fromJson);
+  }
+
+  Future<Reply> addReply(String token, String topicId, String body) async {
+    final json = await _send(
+      'POST',
+      '/v1/topics/${Uri.encodeComponent(topicId)}/replies',
+      token: token,
+      body: {'body': body},
+    );
+    return Reply.fromJson(json!);
+  }
+
+  Future<void> deleteReply(String token, String id) async {
+    await _send(
+      'DELETE',
+      '/v1/replies/${Uri.encodeComponent(id)}',
+      token: token,
+    );
   }
 
   /// Acorda a API (plano gratuito dorme sem uso). Ignora qualquer erro.

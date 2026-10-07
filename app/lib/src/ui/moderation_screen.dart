@@ -53,7 +53,7 @@ class _ModerationScreenState extends State<ModerationScreen> {
     try {
       await widget.session.api.resolveReport(token, r.id, action);
       _snack(switch (action) {
-        'remove_post' => 'Post removido.',
+        'remove_content' => 'Conteúdo removido.',
         'suspend_user' => '@${r.targetUsername} suspenso.',
         _ => 'Denúncia descartada.',
       });
@@ -182,7 +182,7 @@ class _ModerationScreenState extends State<ModerationScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${r.kind == 'post' ? 'Post' : 'Perfil'} de '
+                          '${_kindLabel(r.kind)} de '
                           '@${r.targetUsername ?? '(apagado)'}'
                           '${r.targetSuspended ? ' · suspenso' : ''}',
                           style: theme.textTheme.titleSmall,
@@ -215,13 +215,17 @@ class _ModerationScreenState extends State<ModerationScreen> {
                                   : () => _resolve(r, 'dismiss'),
                               child: const Text('Descartar'),
                             ),
-                            if (r.kind == 'post')
+                            if (r.kind != 'user')
                               FilledButton.tonal(
                                 key: Key('remove_${r.id}'),
                                 onPressed: _busy.contains(r.id)
                                     ? null
-                                    : () => _resolve(r, 'remove_post'),
-                                child: const Text('Remover post'),
+                                    : () => _resolve(r, 'remove_content'),
+                                child: Text(
+                                  r.kind == 'community'
+                                      ? 'Apagar comunidade'
+                                      : 'Remover',
+                                ),
                               ),
                             if (!r.targetSuspended && r.targetUsername != null)
                               FilledButton(
@@ -247,3 +251,12 @@ class _ModerationScreenState extends State<ModerationScreen> {
     );
   }
 }
+
+String _kindLabel(String kind) => switch (kind) {
+  'post' => 'Post',
+  'comment' => 'Comentário',
+  'topic' => 'Tópico',
+  'reply' => 'Resposta em tópico',
+  'community' => 'Comunidade (dono)',
+  _ => 'Perfil',
+};

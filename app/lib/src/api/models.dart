@@ -274,7 +274,7 @@ class AdminReport {
 
   final String id;
 
-  /// "post" ou "user".
+  /// post, user, comment, topic, reply ou community.
   final String kind;
   final String reason;
   final String snapshot;
@@ -295,4 +295,244 @@ class ResetCode {
 
   final String code;
   final DateTime expiresAt;
+}
+
+// ---------------------------------------------------------------- comunidades
+
+/// Temas de comunidade (códigos da API → texto).
+const communityThemes = <String, String>{
+  'tecnologia': 'Tecnologia',
+  'musica': 'Música',
+  'cinema': 'Cinema',
+  'series': 'Séries',
+  'livros': 'Livros',
+  'games': 'Games',
+  'esportes': 'Esportes',
+  'arte': 'Arte',
+  'culinaria': 'Culinária',
+  'viagens': 'Viagens',
+  'ciencia': 'Ciência',
+  'humor': 'Humor',
+  'cidade': 'Cidade e bairro',
+  'educacao': 'Educação',
+  'trabalho': 'Trabalho',
+  'familia': 'Família',
+  'outros': 'Outros',
+};
+
+/// Comunidade na lista (busca ou "minhas").
+class CommunityItem {
+  const CommunityItem({
+    required this.slug,
+    required this.name,
+    required this.description,
+    required this.theme,
+    required this.visibility,
+    this.myRole,
+    this.myStatus,
+  });
+
+  factory CommunityItem.fromJson(Map<String, dynamic> json) => CommunityItem(
+    slug: json['slug'] as String,
+    name: json['name'] as String,
+    description: (json['description'] as String?) ?? '',
+    theme: json['theme'] as String,
+    visibility: json['visibility'] as String,
+    myRole: json['my_role'] as String?,
+    myStatus: json['my_status'] as String?,
+  );
+
+  final String slug;
+  final String name;
+  final String description;
+  final String theme;
+
+  /// public | closed
+  final String visibility;
+  final String? myRole;
+
+  /// active | pending | banned | null (não participa)
+  final String? myStatus;
+
+  bool get isClosed => visibility == 'closed';
+  String get themeLabel => communityThemes[theme] ?? theme;
+}
+
+/// Comunidade com as permissões de quem está vendo.
+class Community {
+  const Community({
+    required this.slug,
+    required this.name,
+    required this.description,
+    required this.rules,
+    required this.theme,
+    required this.visibility,
+    required this.canRead,
+    required this.canPost,
+    required this.canModerate,
+    this.myRole,
+    this.myStatus,
+    this.memberCount,
+    this.pendingCount,
+  });
+
+  factory Community.fromJson(Map<String, dynamic> json) => Community(
+    slug: json['slug'] as String,
+    name: json['name'] as String,
+    description: (json['description'] as String?) ?? '',
+    rules: (json['rules'] as String?) ?? '',
+    theme: json['theme'] as String,
+    visibility: json['visibility'] as String,
+    canRead: (json['can_read'] as bool?) ?? false,
+    canPost: (json['can_post'] as bool?) ?? false,
+    canModerate: (json['can_moderate'] as bool?) ?? false,
+    myRole: json['my_role'] as String?,
+    myStatus: json['my_status'] as String?,
+    memberCount: json['member_count'] as int?,
+    pendingCount: json['pending_count'] as int?,
+  );
+
+  final String slug;
+  final String name;
+  final String description;
+  final String rules;
+  final String theme;
+  final String visibility;
+  final bool canRead;
+  final bool canPost;
+  final bool canModerate;
+  final String? myRole;
+  final String? myStatus;
+
+  /// Só para quem modera (R3).
+  final int? memberCount;
+  final int? pendingCount;
+
+  bool get isClosed => visibility == 'closed';
+  bool get isOwner => myRole == 'owner' && myStatus == 'active';
+  bool get isMember => myStatus == 'active';
+  bool get isPending => myStatus == 'pending';
+  bool get isBanned => myStatus == 'banned';
+  String get themeLabel => communityThemes[theme] ?? theme;
+}
+
+class Topic {
+  const Topic({
+    required this.id,
+    required this.communitySlug,
+    required this.communityName,
+    required this.author,
+    required this.title,
+    required this.body,
+    required this.pinned,
+    required this.locked,
+    required this.replyCount,
+    required this.createdAt,
+    required this.lastActivityAt,
+    required this.canReply,
+    required this.canDelete,
+    required this.canModerate,
+  });
+
+  factory Topic.fromJson(Map<String, dynamic> json) => Topic(
+    id: json['id'] as String,
+    communitySlug: json['community_slug'] as String,
+    communityName: json['community_name'] as String,
+    author: Author.fromJson(json['author'] as Map<String, dynamic>),
+    title: json['title'] as String,
+    body: (json['body'] as String?) ?? '',
+    pinned: (json['pinned'] as bool?) ?? false,
+    locked: (json['locked'] as bool?) ?? false,
+    replyCount: (json['reply_count'] as int?) ?? 0,
+    createdAt: DateTime.parse(json['created_at'] as String),
+    lastActivityAt: DateTime.parse(json['last_activity_at'] as String),
+    canReply: (json['can_reply'] as bool?) ?? false,
+    canDelete: (json['can_delete'] as bool?) ?? false,
+    canModerate: (json['can_moderate'] as bool?) ?? false,
+  );
+
+  final String id;
+  final String communitySlug;
+  final String communityName;
+  final Author author;
+  final String title;
+  final String body;
+  final bool pinned;
+  final bool locked;
+  final int replyCount;
+  final DateTime createdAt;
+  final DateTime lastActivityAt;
+  final bool canReply;
+  final bool canDelete;
+  final bool canModerate;
+}
+
+class Reply {
+  const Reply({
+    required this.id,
+    required this.author,
+    required this.body,
+    required this.createdAt,
+    required this.canDelete,
+  });
+
+  factory Reply.fromJson(Map<String, dynamic> json) => Reply(
+    id: json['id'] as String,
+    author: Author.fromJson(json['author'] as Map<String, dynamic>),
+    body: json['body'] as String,
+    createdAt: DateTime.parse(json['created_at'] as String),
+    canDelete: (json['can_delete'] as bool?) ?? false,
+  );
+
+  final String id;
+  final Author author;
+  final String body;
+  final DateTime createdAt;
+  final bool canDelete;
+}
+
+class Member {
+  const Member({
+    required this.user,
+    required this.role,
+    required this.status,
+  });
+
+  factory Member.fromJson(Map<String, dynamic> json) => Member(
+    user: Author.fromJson(json['user'] as Map<String, dynamic>),
+    role: json['role'] as String,
+    status: json['status'] as String,
+  );
+
+  final Author user;
+
+  /// owner | moderator | member
+  final String role;
+
+  /// active | pending | banned
+  final String status;
+
+  String get roleLabel => switch (role) {
+    'owner' => 'Dono',
+    'moderator' => 'Moderador',
+    _ => 'Membro',
+  };
+}
+
+/// Página genérica com cursor (`nextCursor == null` = fim).
+class Paged<T> {
+  const Paged({required this.items, this.nextCursor});
+
+  factory Paged.fromJson(
+    Map<String, dynamic> json,
+    T Function(Map<String, dynamic>) item,
+  ) => Paged(
+    items: (json['items'] as List<dynamic>)
+        .map((e) => item(e as Map<String, dynamic>))
+        .toList(),
+    nextCursor: json['next_cursor'] as String?,
+  );
+
+  final List<T> items;
+  final String? nextCursor;
 }

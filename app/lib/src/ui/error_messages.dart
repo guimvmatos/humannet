@@ -34,6 +34,26 @@ String errorMessage(Object error) {
     'invalid_reset_code' =>
       'Código inválido, expirado ou já usado. Peça um novo à administração.',
     'invalid_moderation_action' => 'Ação de moderação inválida.',
+    'invalid_community_name' =>
+      'O nome da comunidade deve ter entre 3 e 60 caracteres.',
+    'invalid_community_slug' =>
+      'Não deu para gerar um endereço com esse nome. Use letras ou números.',
+    'invalid_community_text' =>
+      'Descrição e regras devem ter até 2.000 caracteres cada.',
+    'invalid_community_theme' => 'Escolha um tema.',
+    'invalid_visibility' => 'Escolha se a comunidade é aberta ou fechada.',
+    'slug_taken' => 'Já existe uma comunidade com esse nome.',
+    'community_limit' => 'Você já é dono de 10 comunidades.',
+    'community_join_limit' => 'Você participa de comunidades demais.',
+    'owner_cannot_leave' =>
+      'O dono não pode sair. Transfira a comunidade para alguém ou apague.',
+    'invalid_topic_title' => 'O título deve ter entre 3 e 150 caracteres.',
+    'invalid_topic_body' => 'O texto deve ter até 5.000 caracteres.',
+    'invalid_reply_body' => 'A resposta deve ter entre 1 e 5.000 caracteres.',
+    'topic_locked' => 'Este tópico está trancado.',
+    'invalid_member_state' => 'Essa pessoa não está na situação certa para isso.',
+    'invalid_member_action' => 'Ação inválida.',
+    'cannot_target_self' => 'Você não pode fazer isso consigo mesmo.',
     'not_found' => 'Não encontrado.',
     'forbidden' => 'Você não tem permissão para isso.',
     'network_error' =>

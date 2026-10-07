@@ -17,18 +17,29 @@ const reportReasons = <String, String>{
   'other': 'Outro motivo',
 };
 
-/// Abre o diálogo de denúncia. Informe `postId` OU `username`.
+/// Abre o diálogo de denúncia. Informe exatamente um alvo.
 /// Devolve `true` se a denúncia foi enviada.
 Future<bool> showReportDialog(
   BuildContext context, {
   required SessionController session,
   String? postId,
   String? username,
+  String? commentId,
+  String? topicId,
+  String? replyId,
+  String? communitySlug,
 }) async {
   final sent = await showDialog<bool>(
     context: context,
-    builder: (_) =>
-        _ReportDialog(session: session, postId: postId, username: username),
+    builder: (_) => _ReportDialog(
+      session: session,
+      postId: postId,
+      username: username,
+      commentId: commentId,
+      topicId: topicId,
+      replyId: replyId,
+      communitySlug: communitySlug,
+    ),
   );
   if (sent == true && context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -41,11 +52,32 @@ Future<bool> showReportDialog(
 }
 
 class _ReportDialog extends StatefulWidget {
-  const _ReportDialog({required this.session, this.postId, this.username});
+  const _ReportDialog({
+    required this.session,
+    this.postId,
+    this.username,
+    this.commentId,
+    this.topicId,
+    this.replyId,
+    this.communitySlug,
+  });
 
   final SessionController session;
   final String? postId;
   final String? username;
+  final String? commentId;
+  final String? topicId;
+  final String? replyId;
+  final String? communitySlug;
+
+  String get title {
+    if (postId != null) return 'Denunciar post';
+    if (commentId != null) return 'Denunciar comentário';
+    if (topicId != null) return 'Denunciar tópico';
+    if (replyId != null) return 'Denunciar resposta';
+    if (communitySlug != null) return 'Denunciar comunidade';
+    return 'Denunciar perfil';
+  }
 
   @override
   State<_ReportDialog> createState() => _ReportDialogState();
@@ -77,6 +109,10 @@ class _ReportDialogState extends State<_ReportDialog> {
         reason: reason,
         postId: widget.postId,
         username: widget.username,
+        commentId: widget.commentId,
+        topicId: widget.topicId,
+        replyId: widget.replyId,
+        communitySlug: widget.communitySlug,
         details: _details.text.trim(),
       );
       if (mounted) Navigator.of(context).pop(true);
@@ -90,9 +126,7 @@ class _ReportDialogState extends State<_ReportDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(
-        widget.postId != null ? 'Denunciar post' : 'Denunciar perfil',
-      ),
+      title: Text(widget.title),
       content: SizedBox(
         width: double.maxFinite,
         child: ListView(

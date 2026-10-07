@@ -43,6 +43,12 @@ class FakeBackend {
 
   /// Carol pediu amizade à alice.
   bool carolRequested = true;
+
+  /// Comunidade pública "rock-sp" (de bob). alice: null | active.
+  String? rockStatus;
+  final List<Map<String, Object?>> topics = [];
+  final List<Map<String, Object?>> replies = [];
+  final List<Map<String, dynamic>> createdCommunities = [];
   bool carolFriend = false;
   String? displayName;
   String bio = '';
@@ -204,6 +210,74 @@ class FakeBackend {
         final post = _post(id, text);
         posts.insert(0, post);
         return _json(201, post);
+      case 'GET /v1/communities':
+        final mine = request.url.queryParameters['mine'] == 'true';
+        return _json(200, {
+          'items': [
+            if (!mine || rockStatus != null) _rockItem(),
+            for (final c in createdCommunities) c,
+          ],
+        });
+      case 'POST /v1/communities':
+        final c = jsonDecode(request.body) as Map<String, dynamic>;
+        final created = <String, dynamic>{
+          'id': 'c-new',
+          'slug': 'nova',
+          'name': c['name'],
+          'description': c['description'],
+          'rules': c['rules'],
+          'theme': c['theme'],
+          'visibility': c['visibility'],
+          'created_at': '2026-10-08T12:00:00Z',
+          'my_role': 'owner',
+          'my_status': 'active',
+          'can_read': true,
+          'can_post': true,
+          'can_moderate': true,
+          'member_count': 1,
+          'pending_count': 0,
+        };
+        createdCommunities.add(created);
+        return _json(201, created);
+      case 'GET /v1/communities/nova':
+        return _json(200, createdCommunities.single);
+      case 'GET /v1/communities/nova/topics':
+        return _json(200, {'items': <Object>[], 'next_cursor': null});
+      case 'GET /v1/communities/rock-sp':
+        return _json(200, {
+          ..._rockItem(),
+          'rules': 'Respeito.',
+          'created_at': '2026-10-08T12:00:00Z',
+          'can_read': true,
+          'can_post': rockStatus == 'active',
+          'can_moderate': false,
+        });
+      case 'PUT /v1/communities/rock-sp/membership':
+        rockStatus = 'active';
+        return _json(200, {'status': 'active'});
+      case 'GET /v1/communities/rock-sp/topics':
+        return _json(200, {'items': topics, 'next_cursor': null});
+      case 'POST /v1/communities/rock-sp/topics':
+        final t = jsonDecode(request.body) as Map<String, dynamic>;
+        final topic = _topic('t${topics.length + 1}', t['title'] as String);
+        topics.insert(0, topic);
+        return _json(201, topic);
+      case 'GET /v1/topics/t1':
+        return _json(200, topics.firstWhere((t) => t['id'] == 't1'));
+      case 'GET /v1/topics/t1/replies':
+        return _json(200, {'items': replies, 'next_cursor': null});
+      case 'POST /v1/topics/t1/replies':
+        final r = jsonDecode(request.body) as Map<String, dynamic>;
+        final reply = <String, Object?>{
+          'id': 'r${replies.length + 1}',
+          'topic_id': 't1',
+          'author': {'id': 'u-alice', 'username': username, 'display_name': null},
+          'body': (r['body'] as String).trim(),
+          'created_at': '2026-10-08T12:00:00Z',
+          'can_delete': true,
+        };
+        replies.add(reply);
+        return _json(201, reply);
       default:
         return _json(404, {'error': 'not_found'});
     }
@@ -237,6 +311,34 @@ class FakeBackend {
         },
     };
   }
+
+  Map<String, Object?> _rockItem() => {
+    'id': 'c-rock',
+    'slug': 'rock-sp',
+    'name': 'Rock SP',
+    'description': 'Shows e bandas.',
+    'theme': 'musica',
+    'visibility': 'public',
+    'my_role': rockStatus == null ? null : 'member',
+    'my_status': rockStatus,
+  };
+
+  static Map<String, Object?> _topic(String id, String title) => {
+    'id': id,
+    'community_slug': 'rock-sp',
+    'community_name': 'Rock SP',
+    'author': {'id': 'u-alice', 'username': username, 'display_name': null},
+    'title': title,
+    'body': '',
+    'pinned': false,
+    'locked': false,
+    'reply_count': 0,
+    'created_at': '2026-10-08T12:00:00Z',
+    'last_activity_at': '2026-10-08T12:00:00Z',
+    'can_reply': true,
+    'can_delete': true,
+    'can_moderate': false,
+  };
 
   static Map<String, Object?> _post(String id, String body) => {
     'id': id,
