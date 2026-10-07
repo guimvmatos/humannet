@@ -27,7 +27,7 @@ Contato: **CONTATO@EXEMPLO** (substituir pelo e-mail de contato).
 | Fotos que você publica (sem localização: o servidor apaga os metadados) | Posts, foto de perfil e Foto do dia |
 | Recados, depoimentos, status, cidade natal/atual e escola (opcionais) | Perfil e sugestão de amigos |
 
-**Não** coletamos localização, contatos, fotos do aparelho, identificador de
+**Não** coletamos localização, contatos, fotos que você não escolheu publicar, identificador de
 publicidade nem dados de navegação. **Não** há anúncios, **não** vendemos
 dados e **não** usamos algoritmo de recomendação: o feed é cronológico, só
 com seus amigos.
