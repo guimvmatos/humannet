@@ -127,10 +127,23 @@ Toda feature nova é validada contra estas regras:
 - Política de conteúdo escrita e visível no app antes de abrir o teste fechado.
 - **Aberto:** detecção de material de abuso infantil (CSAM) em imagens enviadas. Exige ferramenta de hash especializada. Precisa estar resolvido antes de abrir para o público.
 
-### 4.7 Temas visuais (Fase 1)
+### 4.7 Personalização visual (Fase 1: tema do app · Fase 2: perfil personalizável)
 
-- Paletas pré-definidas (claro, escuro, rosa, verde, ...) e estéticas **originais** ("anos 80", "aquarela", ...).
-- **Proibido** usar nome ou identidade visual de propriedade intelectual de terceiros (ex.: séries, estúdios).
+Inspiração declarada: os perfis do Flogão, do Fotolog e do MySpace, onde a página era quase toda personalizável. A personalização é uma forma de **expressão pessoal**, e é por isso que faz parte do produto.
+
+- **Tema do app** (Fase 1): como **eu** vejo o app. Paletas pré-definidas (claro, escuro, rosa, verde, ...) e estéticas **originais** ("anos 80", "aquarela", ...).
+- **Perfil personalizável** (Fase 2): como **os outros** veem a minha página. O dono escolhe:
+  - cores de fundo, texto, destaque e cartões;
+  - fundo: cor sólida, gradiente, padrão (bolinhas, xadrez, estrelas, ...) ou imagem própria, que passa por moderação;
+  - fonte, de uma lista curada (serifadas, manuscritas, pixel, máquina de escrever, ...);
+  - layout, entre alguns modelos (clássico, mural, cartões, coluna estreita estilo blog);
+  - enfeites: moldura do avatar, divisores, cursor de texto, "selos" da página;
+  - **temas prontos**, e mais tarde **temas da comunidade**, que qualquer um cria e compartilha.
+- **Regras técnicas e de segurança:**
+  - O tema é **dados estruturados** (JSON validado no servidor), **nunca** HTML ou CSS livre. Assim não há injeção de código, os perfis carregam rápido e o app continua estável.
+  - **Contraste mínimo garantido:** o app recusa combinações ilegíveis (WCAG AA), para que um tema não deixe o perfil impossível de ler.
+  - O visitante pode ligar **"ver perfis no meu tema"** (acessibilidade e conforto).
+  - **Proibido** usar nome ou identidade visual de propriedade intelectual de terceiros (séries, estúdios, marcas). O mesmo vale para **música de fundo** no perfil: só com faixas licenciadas, se um dia existir.
 
 ### 4.8 Eventos (Fase 2)
 
