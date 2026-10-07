@@ -232,6 +232,31 @@ pub fn place(raw: &str) -> Result<String, AppError> {
     Ok(v)
 }
 
+/// CPF: aceita com ou sem pontuação; confere os dígitos verificadores.
+/// Devolve só os 11 dígitos. Não prova que o CPF é de quem digitou.
+pub fn cpf(raw: &str) -> Result<String, AppError> {
+    let d: Vec<u32> = raw
+        .chars()
+        .filter(|c| !matches!(c, '.' | '-' | ' '))
+        .map(|c| c.to_digit(10))
+        .collect::<Option<_>>()
+        .ok_or(AppError::Validation("invalid_cpf"))?;
+    if d.len() != 11 || d.iter().all(|x| *x == d[0]) {
+        return Err(AppError::Validation("invalid_cpf"));
+    }
+    let check = |n: usize| {
+        let sum: u32 = (0..n).map(|i| d[i] * (n as u32 + 1 - i as u32)).sum();
+        let r = (sum * 10) % 11;
+        if r == 10 { 0 } else { r }
+    };
+    if check(9) != d[9] || check(10) != d[10] {
+        return Err(AppError::Validation("invalid_cpf"));
+    }
+    Ok(d.iter()
+        .map(|x| char::from_digit(*x, 10).unwrap_or('0'))
+        .collect())
+}
+
 pub const TESTIMONIAL_MAX: usize = 1000;
 
 /// Depoimento: 1–1000 caracteres, com quebras de linha.
@@ -257,6 +282,15 @@ fn has_forbidden_control(v: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn cpf_check_digits() {
+        assert_eq!(super::cpf("529.982.247-25").unwrap(), "52998224725");
+        assert!(super::cpf("529.982.247-24").is_err());
+        assert!(super::cpf("111.111.111-11").is_err());
+        assert!(super::cpf("1234").is_err());
+        assert!(super::cpf("abc").is_err());
+    }
+
     #[test]
     fn slugs() {
         assert_eq!(super::slugify("Música de Sampa!"), "musica-de-sampa");

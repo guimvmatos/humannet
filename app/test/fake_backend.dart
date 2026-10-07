@@ -62,6 +62,8 @@ class FakeBackend {
   List<dynamic> lastMediaIds = const [];
 
   String? status;
+  bool needsCpf = false;
+  String? cpfSent;
   int? statusHours;
   final List<Map<String, Object?>> bobScraps = [];
   bool carolFriend = false;
@@ -237,6 +239,10 @@ class FakeBackend {
           'width': 10,
           'height': 10,
         });
+      case 'PUT /v1/me/cpf':
+        cpfSent = (jsonDecode(request.body) as Map<String, dynamic>)['cpf'] as String;
+        needsCpf = false;
+        return http.Response('', 204);
       case 'PUT /v1/me/status':
         final st = jsonDecode(request.body) as Map<String, dynamic>;
         final text = st['text'] as String;
@@ -393,6 +399,7 @@ class FakeBackend {
     'display_name': displayName,
     'bio': bio,
     'role': isAdmin ? 'admin' : 'user',
+    'needs_cpf': needsCpf,
     'created_at': '2026-10-03T05:27:07Z',
   };
 

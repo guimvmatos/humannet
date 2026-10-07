@@ -253,6 +253,21 @@ async fn suspend(db: &sqlx::PgPool, user_id: Uuid) -> sqlx::Result<()> {
     tx.commit().await
 }
 
+/// POST /v1/admin/users/{username}/release-cpf — tira o CPF de uma conta
+/// (ex.: alguém usou o CPF de outra pessoa). A conta terá que informar de novo.
+pub async fn release_cpf(
+    State(state): State<AppState>,
+    AdminUser(admin): AdminUser,
+    Path(username): Path<String>,
+) -> AppResult<StatusCode> {
+    let id = user_id_by_username(&state, &username).await?;
+    sqlx::query!("UPDATE users SET cpf_hmac = NULL WHERE id = $1", id)
+        .execute(&state.db)
+        .await?;
+    log_action(&state.db, admin.user_id, "release_cpf", "user", id, None).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 /// POST /v1/admin/users/{username}/unsuspend
 pub async fn unsuspend(
     State(state): State<AppState>,

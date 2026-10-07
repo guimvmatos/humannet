@@ -182,7 +182,8 @@ pub async fn update(
           city         = COALESCE($6, city),
           school       = COALESCE($7, school)
         WHERE id = $1
-        RETURNING id, username, email, display_name, bio, role, created_at
+        RETURNING id, username, email, display_name, bio, role, created_at,
+                  (cpf_hmac IS NULL) AS "needs_cpf!"
         "#,
         user.user_id,
         display_name.is_some(),
@@ -195,5 +196,5 @@ pub async fn update(
     .fetch_one(&state.db)
     .await?;
 
-    Ok(Json(me))
+    Ok(Json(me.with_policy(&state)))
 }

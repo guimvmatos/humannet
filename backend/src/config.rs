@@ -14,6 +14,9 @@ pub struct Config {
     pub bootstrap_invite: Option<String>,
     /// Usuários com papel de administrador (ex.: "guimvmatos,outra").
     pub admin_usernames: Vec<String>,
+    /// Chave do HMAC do CPF. Com ela, o CPF passa a ser obrigatório.
+    /// NUNCA trocar depois de definida (os CPFs já cadastrados deixariam de bater).
+    pub cpf_key: Option<SecretKey>,
     /// Armazenamento de fotos (S3). `None` = fotos desligadas.
     pub s3: Option<crate::media::S3Config>,
 }
@@ -37,6 +40,11 @@ impl Config {
                 .map(|s| s.trim().to_ascii_lowercase())
                 .filter(|s| !s.is_empty())
                 .collect(),
+            cpf_key: env::var("CPF_HMAC_KEY")
+                .ok()
+                .map(|v| v.trim().as_bytes().to_vec())
+                .filter(|v| v.len() >= 16)
+                .map(SecretKey),
             s3: s3_from_env(),
         })
     }
@@ -69,6 +77,8 @@ pub struct Policy {
     pub max_active_invites: i64,
     /// `ADMIN_USERNAMES`: quem se cadastra com um destes nomes já nasce admin.
     pub admin_usernames: Vec<String>,
+    /// Chave do HMAC do CPF; `Some` = CPF obrigatório (uma conta por CPF).
+    pub cpf_key: Option<SecretKey>,
 }
 
 impl Default for Policy {
@@ -78,6 +88,7 @@ impl Default for Policy {
             invite_ttl_days: 14,
             max_active_invites: 5,
             admin_usernames: Vec::new(),
+            cpf_key: None,
         }
     }
 }
@@ -89,6 +100,7 @@ impl From<&Config> for Policy {
             invite_ttl_days: c.invite_ttl_days,
             max_active_invites: c.max_active_invites,
             admin_usernames: c.admin_usernames.clone(),
+            cpf_key: c.cpf_key.clone(),
         }
     }
 }
@@ -110,4 +122,14 @@ where
     let raw = env::var(key).unwrap_or_else(|_| default.to_owned());
     raw.parse::<T>()
         .with_context(|| format!("valor inválido para {key}"))
+}
+
+/// Chave secreta que nunca aparece em logs (`Debug` mostra `***`).
+#[derive(Clone)]
+pub struct SecretKey(pub Vec<u8>);
+
+impl std::fmt::Debug for SecretKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("***")
+    }
 }

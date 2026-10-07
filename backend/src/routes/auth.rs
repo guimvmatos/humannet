@@ -18,6 +18,9 @@ pub struct RegisterRequest {
     pub username: String,
     pub email: String,
     pub password: String,
+    /// Obrigatório quando o servidor exige CPF (CPF_HMAC_KEY definida).
+    #[serde(default)]
+    pub cpf: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -43,6 +46,7 @@ pub async fn register(
     let username = validation::username(&req.username)?;
     let email = validation::email(&req.email)?;
     validation::password(&req.password)?;
+    let cpf_hmac = cpf_hmac_for(&state, req.cpf.as_deref())?;
     let code = req.invite_code.trim();
     if code.is_empty() || code.len() > 64 {
         return Err(AppError::InvalidInvite);
@@ -79,8 +83,8 @@ pub async fn register(
     };
     let created_at = sqlx::query_scalar!(
         r#"
-        INSERT INTO users (id, username, email, password_hash, invited_by, role)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO users (id, username, email, password_hash, invited_by, role, cpf_hmac)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         RETURNING created_at
         "#,
         user_id,
@@ -89,6 +93,7 @@ pub async fn register(
         password_hash,
         invite.created_by,
         role,
+        cpf_hmac,
     )
     .fetch_one(&mut *tx)
     .await
@@ -121,6 +126,7 @@ pub async fn register(
                 bio: String::new(),
                 role: role.to_owned(),
                 created_at,
+                needs_cpf: false,
             },
         }),
     ))
@@ -146,7 +152,8 @@ pub async fn login(
     let user = sqlx::query_as!(
         UserWithHash,
         r#"
-        SELECT id, username, email, display_name, bio, role, suspended_at, password_hash, created_at
+        SELECT id, username, email, display_name, bio, role, suspended_at, password_hash, created_at,
+               (cpf_hmac IS NULL) AS "needs_cpf!"
         FROM users
         WHERE username = $1 OR email = $1
         "#,
@@ -194,7 +201,9 @@ pub async fn login(
             bio: user.bio,
             role: user.role,
             created_at: user.created_at,
-        },
+            needs_cpf: user.needs_cpf,
+        }
+        .with_policy(&state),
     }))
 }
 
@@ -213,6 +222,7 @@ struct UserWithHash {
     display_name: Option<String>,
     bio: String,
     role: String,
+    needs_cpf: bool,
     suspended_at: Option<OffsetDateTime>,
     password_hash: String,
     created_at: OffsetDateTime,
@@ -237,15 +247,26 @@ async fn create_session(
     Ok((token, expires_at))
 }
 
-fn map_unique_violation(err: sqlx::Error) -> AppError {
+pub fn map_unique_violation(err: sqlx::Error) -> AppError {
     if let sqlx::Error::Database(db) = &err
         && db.is_unique_violation()
     {
         return match db.constraint() {
             Some("users_username_key") => AppError::Conflict("username_taken"),
             Some("users_email_key") => AppError::Conflict("email_taken"),
+            Some("users_cpf_hmac_key") => AppError::Conflict("cpf_taken"),
             _ => AppError::Conflict("conflict"),
         };
     }
     err.into()
+}
+
+/// Com CPF obrigatório: valida e devolve o HMAC. Sem: ignora o campo.
+pub fn cpf_hmac_for(state: &AppState, raw: Option<&str>) -> AppResult<Option<Vec<u8>>> {
+    let Some(key) = &state.policy.cpf_key else {
+        return Ok(None);
+    };
+    let raw = raw.ok_or(AppError::Validation("cpf_required"))?;
+    let digits = validation::cpf(raw)?;
+    Ok(Some(crypto::cpf_hmac(&key.0, &digits)))
 }

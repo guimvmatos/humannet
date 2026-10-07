@@ -1,6 +1,6 @@
 # Política de Privacidade — HumanNet (beta fechado)
 
-Última atualização: 7 de outubro de 2026
+Última atualização: 8 de outubro de 2026
 
 A HumanNet é uma rede social em teste, só para convidados. Este texto explica,
 de forma direta, o que guardamos sobre você e por quê.
@@ -23,6 +23,9 @@ Contato: **CONTATO@EXEMPLO** (substituir pelo e-mail de contato).
 | Amizades, pedidos de amizade e bloqueios | Decidir quem vê o quê |
 | Denúncias que você faz ou recebe (com uma cópia do conteúdo denunciado) | Moderação e segurança |
 | Sessões de login (só um resumo criptográfico do token) | Manter você conectado |
+| CPF — **não guardamos o número**, só um código criptográfico (HMAC) que não dá para reverter | Garantir uma conta por pessoa |
+| Fotos que você publica (sem localização: o servidor apaga os metadados) | Posts, foto de perfil e Foto do dia |
+| Recados, depoimentos, status, cidade natal/atual e escola (opcionais) | Perfil e sugestão de amigos |
 
 **Não** coletamos localização, contatos, fotos do aparelho, identificador de
 publicidade nem dados de navegação. **Não** há anúncios, **não** vendemos

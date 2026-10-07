@@ -8,6 +8,7 @@ import 'package:humannet/src/auth/token_store.dart';
 import 'package:humannet/src/theme/theme_controller.dart';
 import 'package:humannet/src/ui/app.dart';
 import 'package:humannet/src/ui/compose_screen.dart';
+import 'package:humannet/src/ui/cpf.dart';
 
 import 'fake_backend.dart';
 
@@ -766,5 +767,34 @@ void main() {
           .onPressed,
       isNotNull,
     );
+  });
+
+  test('validação de CPF', () {
+    expect(isValidCpf('529.982.247-25'), isTrue);
+    expect(isValidCpf('52998224725'), isTrue);
+    expect(isValidCpf('529.982.247-24'), isFalse);
+    expect(isValidCpf('111.111.111-11'), isFalse);
+    expect(isValidCpf('123'), isFalse);
+  });
+
+  testWidgets('conta antiga sem CPF: pede antes de entrar', (tester) async {
+    final backend = FakeBackend()..needsCpf = true;
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    expect(find.byKey(const Key('cpf_screen')), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('cpf_field')), '123');
+    await tester.tap(find.byKey(const Key('save_cpf_button')));
+    await tester.pump();
+    expect(find.text('CPF inválido. Confira os números.'), findsOneWidget);
+    expect(backend.cpfSent, isNull);
+
+    await tester.enterText(find.byKey(const Key('cpf_field')), '529.982.247-25');
+    await tester.tap(find.byKey(const Key('save_cpf_button')));
+    await tester.pumpAndSettle();
+    expect(backend.cpfSent, '529.982.247-25');
+    expect(find.byKey(const Key('feed_screen')), findsOneWidget);
   });
 }

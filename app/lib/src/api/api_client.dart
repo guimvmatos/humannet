@@ -37,6 +37,7 @@ class ApiClient {
     required String username,
     required String email,
     required String password,
+    String? cpf,
   }) async {
     final json = await _send(
       'POST',
@@ -46,6 +47,7 @@ class ApiClient {
         'username': username,
         'email': email,
         'password': password,
+        'cpf': ?cpf,
       },
     );
     return AuthResult.fromJson(json!);
@@ -268,6 +270,20 @@ class ApiClient {
   }
 
   // ------------------------------------------------------------ conta
+
+  /// Contas antigas informam o CPF uma vez (o servidor guarda só um código).
+  Future<void> setCpf(String token, String cpf) async {
+    await _send('PUT', '/v1/me/cpf', token: token, body: {'cpf': cpf});
+  }
+
+  /// Admin: tira o CPF de uma conta (ex.: usado por outra pessoa).
+  Future<void> releaseCpf(String token, String username) async {
+    await _send(
+      'POST',
+      '/v1/admin/users/${Uri.encodeComponent(username)}/release-cpf',
+      token: token,
+    );
+  }
 
   Future<void> changePassword(
     String token, {

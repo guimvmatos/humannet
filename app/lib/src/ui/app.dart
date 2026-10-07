@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../auth/session_controller.dart';
 import '../theme/theme_controller.dart';
+import 'cpf.dart';
 import 'home_shell.dart';
 import 'login_screen.dart';
 
@@ -41,6 +42,8 @@ class _HumanNetAppState extends State<HumanNetApp> {
                 body: Center(child: CircularProgressIndicator()),
               ),
               SessionStatus.signedOut => LoginScreen(session: session),
+              SessionStatus.signedIn when session.user?.needsCpf ?? false =>
+                CpfScreen(session: session),
               SessionStatus.signedIn => HomeShell(session: session),
             },
           ),

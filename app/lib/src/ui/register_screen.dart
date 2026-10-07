@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../auth/session_controller.dart';
+import 'cpf.dart';
 import 'error_messages.dart';
 import 'rules_screen.dart';
 
@@ -21,6 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _username = TextEditingController();
   final _email = TextEditingController();
   final _password = TextEditingController();
+  final _cpf = TextEditingController();
   bool _busy = false;
   bool _acceptedRules = false;
   String? _error;
@@ -31,6 +33,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _username.dispose();
     _email.dispose();
     _password.dispose();
+    _cpf.dispose();
     super.dispose();
   }
 
@@ -46,6 +49,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         username: _username.text.trim().toLowerCase(),
         email: _email.text.trim(),
         password: _password.text,
+        cpf: _cpf.text.trim(),
       );
       // Sessão aberta: volta para a raiz, que agora mostra a home.
       if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
@@ -103,6 +107,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   autofillHints: const [AutofillHints.email],
                   validator: (v) =>
                       (v ?? '').contains('@') ? null : 'E-mail inválido',
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  key: const Key('register_cpf_field'),
+                  controller: _cpf,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'CPF',
+                    hintText: '000.000.000-00',
+                    helperText: cpfHelp,
+                    helperMaxLines: 3,
+                  ),
+                  validator: (v) =>
+                      isValidCpf(v ?? '') ? null : 'CPF inválido',
                 ),
                 const SizedBox(height: 16),
                 TextFormField(

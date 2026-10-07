@@ -9,6 +9,7 @@ argon2 = "0.6.0"
 axum = "0.8.9"
 base64 = "0.23.1"
 dotenvy = "0.15.7"
+hmac = "0.13"
 image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp"] }
 jiff = { version = "0.2.38", default-features = false, features = ["std"] }
 rand = "0.10.3"

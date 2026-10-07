@@ -59,12 +59,14 @@ class SessionController extends ChangeNotifier {
     required String username,
     required String email,
     required String password,
+    String? cpf,
   }) async {
     final result = await _api.register(
       inviteCode: inviteCode,
       username: username,
       email: email,
       password: password,
+      cpf: cpf,
     );
     await _signIn(result);
   }
@@ -86,6 +88,14 @@ class SessionController extends ChangeNotifier {
   }
 
   /// Atualiza os dados locais do usuário (ex.: após editar o perfil).
+  /// Recarrega o próprio usuário (ex.: depois de informar o CPF).
+  Future<void> refreshUser() async {
+    final token = _token;
+    if (token == null) return;
+    _user = await _api.me(token);
+    notifyListeners();
+  }
+
   void updateUser(User user) {
     _user = user;
     notifyListeners();

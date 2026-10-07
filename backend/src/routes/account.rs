@@ -100,3 +100,32 @@ pub async fn delete_account(
     tracing::info!(user_id = %user.user_id, "account deleted");
     Ok(StatusCode::NO_CONTENT)
 }
+
+#[derive(Deserialize)]
+pub struct SetCpf {
+    pub cpf: String,
+}
+
+/// PUT /v1/me/cpf — contas criadas antes da exigência informam o CPF uma vez.
+/// Não dá para trocar depois (só a administração libera).
+pub async fn set_cpf(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Json(req): Json<SetCpf>,
+) -> AppResult<StatusCode> {
+    let hmac = crate::routes::auth::cpf_hmac_for(&state, Some(&req.cpf))?
+        .ok_or(AppError::Validation("cpf_not_enabled"))?;
+    let n = sqlx::query!(
+        "UPDATE users SET cpf_hmac = $2 WHERE id = $1 AND cpf_hmac IS NULL",
+        user.user_id,
+        hmac
+    )
+    .execute(&state.db)
+    .await
+    .map_err(crate::routes::auth::map_unique_violation)?
+    .rows_affected();
+    if n == 0 {
+        return Err(AppError::Conflict("cpf_already_set"));
+    }
+    Ok(StatusCode::NO_CONTENT)
+}

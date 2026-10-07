@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users SET cpf_hmac = $2 WHERE id = $1 AND cpf_hmac IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e3f91e6a11a0bc41617535d05605d2e482ce89611e44235daca3df41f4decead"
+}

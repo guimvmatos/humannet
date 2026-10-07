@@ -79,6 +79,11 @@ pub fn app(state: AppState) -> Router {
             get(routes::me::get).delete(routes::account::delete_account),
         )
         .route("/me/password", put(routes::account::change_password))
+        .route("/me/cpf", put(routes::account::set_cpf))
+        .route(
+            "/admin/users/{username}/release-cpf",
+            post(routes::admin::release_cpf),
+        )
         .route("/me/counts", get(routes::activity::counts))
         .route("/me/status", put(routes::scraps::set_status))
         .route(

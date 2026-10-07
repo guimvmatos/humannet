@@ -69,6 +69,11 @@ String errorMessage(Object error) {
     'cannot_scrap_self' => 'Você não pode deixar recado para si mesmo.',
     'scrap_limit' => 'Muitos recados hoje. Tente amanhã.',
     'invalid_status' => 'O status deve ter até 80 caracteres.',
+    'cpf_required' => 'Informe seu CPF.',
+    'invalid_cpf' => 'CPF inválido. Confira os números.',
+    'cpf_taken' =>
+      'Esse CPF já tem uma conta. Se não foi você, fale com a administração.',
+    'cpf_already_set' => 'Seu CPF já está cadastrado.',
     'not_found' => 'Não encontrado.',
     'forbidden' => 'Você não tem permissão para isso.',
     'network_error' =>

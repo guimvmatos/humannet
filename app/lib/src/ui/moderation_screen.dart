@@ -65,6 +65,44 @@ class _ModerationScreenState extends State<ModerationScreen> {
     }
   }
 
+  Future<void> _releaseCpf() async {
+    final controller = TextEditingController();
+    final username = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Liberar CPF'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            prefixText: '@',
+            labelText: 'Conta que está usando o CPF',
+            helperText: 'A conta terá que informar um CPF de novo.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(controller.text),
+            child: const Text('Liberar'),
+          ),
+        ],
+      ),
+    );
+    final name = username?.trim().replaceFirst('@', '').toLowerCase() ?? '';
+    final token = widget.session.token;
+    if (name.isEmpty || token == null || !mounted) return;
+    try {
+      await widget.session.api.releaseCpf(token, name);
+      _snack('CPF de @$name liberado.');
+    } catch (e) {
+      _snack(errorMessage(e));
+    }
+  }
+
   Future<void> _resetCode() async {
     final controller = TextEditingController();
     final username = await showDialog<String>(
@@ -145,6 +183,11 @@ class _ModerationScreenState extends State<ModerationScreen> {
       appBar: AppBar(
         title: const Text('Moderação'),
         actions: [
+          IconButton(
+            tooltip: 'Liberar CPF',
+            icon: const Icon(Icons.badge_outlined),
+            onPressed: _releaseCpf,
+          ),
           IconButton(
             key: const Key('reset_code_button'),
             tooltip: 'Código para redefinir senha',

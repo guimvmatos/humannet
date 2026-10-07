@@ -68,7 +68,7 @@ cd app && flutter test
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
 | GET | `/health` | — | Liveness + banco |
-| POST | `/v1/auth/register` | — | `{invite_code, username, email, password}` → `{token, expires_at, user}` |
+| POST | `/v1/auth/register` | — | `{invite_code, username, email, password, cpf}` (CPF obrigatório se o servidor tem `CPF_HMAC_KEY`) → `{token, expires_at, user}` |
 | POST | `/v1/auth/login` | — | `{login, password}` (login = usuário ou e-mail) |
 | POST | `/v1/auth/logout` | Bearer | Revoga a sessão atual |
 | POST | `/v1/auth/reset-password` | — | `{username, code, new_password}`: código gerado por um admin (24 h, uso único, 5 tentativas) |
@@ -77,6 +77,7 @@ cd app && flutter test
 | GET | `/v1/me/counts` | Bearer | Bolinhas: `friend_requests`, `pending_testimonials`, `community_requests` (comunidades que modero), `unread_activity` |
 | GET | `/v1/me/activity` | Bearer | Novidades (30 dias, até 50): comentários nos meus posts e respostas em tópicos em que participo. Sem curtidas (R3/R6) |
 | POST | `/v1/me/activity/seen` | Bearer | Marca as novidades como vistas |
+| PUT | `/v1/me/cpf` | Bearer | `{cpf}`: contas antigas informam uma vez (`needs_cpf` em `/v1/me`). Uma conta por CPF; o servidor guarda só HMAC-SHA256 com `CPF_HMAC_KEY` |
 | PUT | `/v1/me/password` | Bearer | `{current_password, new_password}`: encerra as outras sessões |
 | POST | `/v1/invites` | Bearer | Gera um convite (até 5 ativos) |
 | PATCH | `/v1/me/profile` | Bearer | `{display_name?, bio?, hometown?, city?, school?}` (`""` remove; cidade/escola até 80) |
@@ -135,6 +136,7 @@ cd app && flutter test
 |---|---|---|
 | GET | `/v1/admin/reports?status=open` | Fila de denúncias (com cópia do conteúdo) |
 | POST | `/v1/admin/reports/{id}/resolve` | `{action: dismiss \| remove_content \| suspend_user}`: fecha todas as denúncias do mesmo alvo e registra a ação |
+| POST | `/v1/admin/users/{username}/release-cpf` | Tira o CPF de uma conta (ex.: usado por outra pessoa) |
 | POST | `/v1/admin/users/{username}/unsuspend` | Reativa uma conta suspensa |
 | POST | `/v1/admin/users/{username}/password-reset` | Gera o código de redefinição de senha |
 

@@ -8,6 +8,7 @@ class User {
     this.displayName,
     this.bio = '',
     this.role = 'user',
+    this.needsCpf = false,
   });
 
   factory User.fromJson(Map<String, dynamic> json) => User(
@@ -18,6 +19,7 @@ class User {
     bio: (json['bio'] as String?) ?? '',
     role: (json['role'] as String?) ?? 'user',
     createdAt: DateTime.parse(json['created_at'] as String),
+    needsCpf: (json['needs_cpf'] as bool?) ?? false,
   );
 
   final String id;
@@ -27,6 +29,9 @@ class User {
   final String bio;
   final String role;
   final DateTime createdAt;
+
+  /// Conta antiga sem CPF: o app pede antes de seguir.
+  final bool needsCpf;
 
   bool get isAdmin => role == 'admin';
 }

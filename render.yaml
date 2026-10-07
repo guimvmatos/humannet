@@ -40,6 +40,9 @@ services:
         sync: false
       - key: MEDIA_BUCKET
         sync: false
+      # Chave do CPF (uma conta por CPF). Gerada uma vez; NUNCA trocar.
+      - key: CPF_HMAC_KEY
+        sync: false
       - key: LOG_FORMAT
         value: json
       - key: RUST_LOG

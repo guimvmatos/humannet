@@ -82,6 +82,15 @@ pub fn new_human_code() -> String {
     out
 }
 
+/// HMAC-SHA256 do CPF (só dígitos) com a chave do servidor. Irreversível
+/// sem a chave; serve para garantir um CPF por conta sem guardar o número.
+pub fn cpf_hmac(key: &[u8], cpf_digits: &str) -> Vec<u8> {
+    use hmac::{KeyInit, Mac};
+    let mut mac = hmac::Hmac::<Sha256>::new_from_slice(key).expect("HMAC aceita qualquer chave");
+    mac.update(cpf_digits.as_bytes());
+    mac.finalize().into_bytes().to_vec()
+}
+
 /// SHA-256 de um segredo (token ou código). É o que vai para o banco.
 pub fn sha256(secret: &str) -> Vec<u8> {
     Sha256::digest(secret.as_bytes()).to_vec()

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        UPDATE users SET\n          display_name = CASE WHEN $2 THEN $3 ELSE display_name END,\n          bio          = COALESCE($4, bio),\n          hometown     = COALESCE($5, hometown),\n          city         = COALESCE($6, city),\n          school       = COALESCE($7, school)\n        WHERE id = $1\n        RETURNING id, username, email, display_name, bio, role, created_at\n        ",
+  "query": "\n        UPDATE users SET\n          display_name = CASE WHEN $2 THEN $3 ELSE display_name END,\n          bio          = COALESCE($4, bio),\n          hometown     = COALESCE($5, hometown),\n          city         = COALESCE($6, city),\n          school       = COALESCE($7, school)\n        WHERE id = $1\n        RETURNING id, username, email, display_name, bio, role, created_at,\n                  (cpf_hmac IS NULL) AS \"needs_cpf!\"\n        ",
   "describe": {
     "columns": [
       {
@@ -79,6 +79,12 @@
             "name": "created_at"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "needs_cpf!",
+        "type_info": "Bool",
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -99,8 +105,9 @@
       true,
       false,
       false,
-      false
+      false,
+      null
     ]
   },
-  "hash": "c9a273f14266f283a79f27655f39165407abfff178e6b87e01ce387aa122d393"
+  "hash": "2568f3fb61b01a9d859705d22f2aa4d9945641586b56450efb2bc39faf63ace6"
 }
