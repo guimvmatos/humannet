@@ -59,7 +59,7 @@ if kts.exists():
         create("release") {
             val ks = rootProject.file("key.properties")
             if (ks.exists()) {
-                val p = java.util.Properties().apply { ks.inputStream().use { load(it) } }
+                val p = Properties().apply { ks.inputStream().use { load(it) } }
                 keyAlias = p.getProperty("keyAlias")
                 keyPassword = p.getProperty("keyPassword")
                 storeFile = file(p.getProperty("storeFile"))
@@ -74,6 +74,10 @@ if kts.exists():
             'signingConfig = if (rootProject.file("key.properties").exists()) '
             'signingConfigs.getByName("release") else signingConfigs.getByName("debug")',
         )
+        # `java` dentro de android {} é a extensão do Gradle, não o pacote:
+        # importar Properties no topo do script.
+        if "import java.util.Properties" not in g:
+            g = "import java.util.Properties\n\n" + g
         kts.write_text(g)
 
 # 5) Nome exibido no Android.
