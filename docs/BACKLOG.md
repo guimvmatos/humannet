@@ -24,6 +24,30 @@ Para cada ideia: **fase prevista**, **dependências** e **riscos**.
   - API de LLM: melhor qualidade, mas tem custo e envia dados para fora. Só com opt-in.
 - **Riscos:** custo, privacidade e o tom paternalista incomodar parte dos usuários. A feature precisa poder ser desligada.
 
+## Posts e feed regionais
+
+**Ideia:** quem ativa a opção publica posts que só aparecem para pessoas dentro de um raio, e passa a ver posts dessa mesma região, no estilo Tinder.
+
+- **Fase:** 2, junto com eventos, porque as duas features usam a mesma infraestrutura de localização.
+- **Por que encaixa:**
+  - Reforça "comunidade viva" e "identidade real" (manifesto).
+  - Ajuda a resolver o problema dos primeiros usuários: densidade local tem mais valor que alcance global.
+  - Combina com eventos e locais (pubs) e com o crescimento cidade a cidade.
+- **Desenho proposto:**
+  - **Aba "Local" separada**, opt-in. Não substitui o feed principal (R2: nada oculto, o usuário escolhe).
+  - "Regional" é uma **opção de público do post**: Seguidores ou Região.
+  - **Nunca guardar coordenadas.** O app converte a posição numa **célula de grade** (geohash ou H3, na escala de um bairro ou cidade) e só a célula vai para o servidor (R5).
+  - **Nunca exibir distância** ("a 1,2 km"). No máximo o nome do bairro ou da cidade.
+  - O raio é escolhido entre opções fixas (bairro, cidade, região), não em metros.
+  - Posts regionais expiram ou deixam de ser regionais depois de um tempo (ex.: 7 dias).
+- **Riscos:**
+  - **Triangulação:** é o ataque clássico contra apps de distância. Quem consegue consultar a distância a partir de vários pontos descobre a posição exata. Células fixas e nenhuma distância exibida resolvem isso.
+  - **Perseguição e assédio:** postar "estou aqui" expõe a pessoa. A feature precisa ser opt-in, o bloqueio precisa valer também na aba Local, e ela fica **desligada para menores**, o que depende da verificação de idade (Fase 4).
+  - **Feed vazio** em regiões com poucos usuários: mostrar o fim explícito e sugerir ampliar o raio.
+  - **Moderação local:** denúncias regionais podem exigir moderadores da região.
+  - **LGPD:** localização é dado pessoal. Precisa de finalidade e consentimento específicos.
+- **Dependências:** bloqueio e denúncia (Fase 1b), verificação de idade (Fase 4) ou restrição a maiores declarados no beta.
+
 ## Ferramentas de descanso digital
 
 - **Fase:** 1–2
