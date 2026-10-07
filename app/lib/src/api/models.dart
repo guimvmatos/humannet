@@ -82,6 +82,7 @@ class Post {
     this.commentCount = 0,
     this.likedByMe = false,
     this.likeCount,
+    this.images = const [],
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
@@ -95,6 +96,9 @@ class Post {
       commentCount: (json['comment_count'] as int?) ?? 0,
       likedByMe: (json['liked_by_me'] as bool?) ?? false,
       likeCount: json['like_count'] as int?,
+      images: ((json['images'] as List<dynamic>?) ?? const [])
+          .map((e) => MediaRef.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 
@@ -108,6 +112,52 @@ class Post {
 
   /// Só presente para o autor (R3: curtidas são privadas).
   final int? likeCount;
+
+  /// Até 4 fotos.
+  final List<MediaRef> images;
+}
+
+/// Foto guardada no servidor (link assinado, vale algumas horas).
+class MediaRef {
+  const MediaRef({
+    required this.id,
+    required this.url,
+    required this.width,
+    required this.height,
+  });
+
+  factory MediaRef.fromJson(Map<String, dynamic> json) => MediaRef(
+    id: json['id'] as String,
+    url: json['url'] as String,
+    width: (json['width'] as int?) ?? 1,
+    height: (json['height'] as int?) ?? 1,
+  );
+
+  final String id;
+  final String url;
+  final int width;
+  final int height;
+
+  double get aspectRatio => height == 0 ? 1 : width / height;
+}
+
+/// Foto do dia (a mais recente, até 7 dias).
+class DailyPhoto {
+  const DailyPhoto({
+    required this.photo,
+    required this.caption,
+    required this.day,
+  });
+
+  factory DailyPhoto.fromJson(Map<String, dynamic> json) => DailyPhoto(
+    photo: MediaRef.fromJson(json['photo'] as Map<String, dynamic>),
+    caption: (json['caption'] as String?) ?? '',
+    day: DateTime.parse(json['day'] as String),
+  );
+
+  final MediaRef photo;
+  final String caption;
+  final DateTime day;
 }
 
 class Comment {
@@ -203,6 +253,8 @@ class Profile {
     this.hometown = '',
     this.city = '',
     this.school = '',
+    this.avatarUrl,
+    this.dailyPhoto,
   });
 
   factory Profile.fromJson(Map<String, dynamic> json) {
@@ -218,6 +270,10 @@ class Profile {
       hometown: (json['hometown'] as String?) ?? '',
       city: (json['city'] as String?) ?? '',
       school: (json['school'] as String?) ?? '',
+      avatarUrl: json['avatar_url'] as String?,
+      dailyPhoto: json['daily_photo'] == null
+          ? null
+          : DailyPhoto.fromJson(json['daily_photo'] as Map<String, dynamic>),
     );
   }
 
@@ -231,6 +287,8 @@ class Profile {
   final String hometown;
   final String city;
   final String school;
+  final String? avatarUrl;
+  final DailyPhoto? dailyPhoto;
 
   bool get isSelf => relation == Relation.self;
 
@@ -245,6 +303,8 @@ class Profile {
     hometown: hometown,
     city: city,
     school: school,
+    avatarUrl: avatarUrl,
+    dailyPhoto: dailyPhoto,
   );
 }
 

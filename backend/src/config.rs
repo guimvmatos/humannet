@@ -2,7 +2,7 @@ use std::{env, net::SocketAddr, str::FromStr};
 
 use anyhow::{Context, Result};
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct Config {
     pub database_url: String,
     pub bind_addr: SocketAddr,
@@ -14,6 +14,8 @@ pub struct Config {
     pub bootstrap_invite: Option<String>,
     /// Usuários com papel de administrador (ex.: "guimvmatos,outra").
     pub admin_usernames: Vec<String>,
+    /// Armazenamento de fotos (S3). `None` = fotos desligadas.
+    pub s3: Option<crate::media::S3Config>,
 }
 
 impl Config {
@@ -35,8 +37,27 @@ impl Config {
                 .map(|s| s.trim().to_ascii_lowercase())
                 .filter(|s| !s.is_empty())
                 .collect(),
+            s3: s3_from_env(),
         })
     }
+}
+
+/// Fotos ligadas só com todas as variáveis (nomes do padrão AWS, como o
+/// painel do Neon mostra, + MEDIA_BUCKET).
+fn s3_from_env() -> Option<crate::media::S3Config> {
+    let get = |k: &str| {
+        env::var(k)
+            .ok()
+            .map(|v| v.trim().to_owned())
+            .filter(|v| !v.is_empty())
+    };
+    Some(crate::media::S3Config {
+        endpoint: get("AWS_ENDPOINT_URL_S3")?,
+        region: get("AWS_REGION")?,
+        access_key_id: get("AWS_ACCESS_KEY_ID")?,
+        secret_access_key: get("AWS_SECRET_ACCESS_KEY")?,
+        bucket: get("MEDIA_BUCKET")?,
+    })
 }
 
 /// Políticas de negócio usadas pelos handlers (separadas do Config de infraestrutura

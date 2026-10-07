@@ -88,10 +88,15 @@ pub async fn delete_account(
     check_password(&state, &user, req.password).await?;
     let mut tx = state.db.begin().await?;
     crate::routes::communities::hand_over_owned(&mut tx, user.user_id).await?;
+    // Fotos: os registros caem junto com a conta; os arquivos, logo depois.
+    let keys = sqlx::query_scalar!("SELECT key FROM media WHERE owner_id = $1", user.user_id)
+        .fetch_all(&mut *tx)
+        .await?;
     sqlx::query!("DELETE FROM users WHERE id = $1", user.user_id)
         .execute(&mut *tx)
         .await?;
     tx.commit().await?;
+    state.media.delete_later(keys);
     tracing::info!(user_id = %user.user_id, "account deleted");
     Ok(StatusCode::NO_CONTENT)
 }

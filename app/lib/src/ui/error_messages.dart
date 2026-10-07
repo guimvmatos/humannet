@@ -58,6 +58,13 @@ String errorMessage(Object error) {
       'O depoimento deve ter entre 1 e 1.000 caracteres.',
     'cannot_testify_self' => 'Você não pode escrever um depoimento para si.',
     'invalid_place' => 'Cidade e escola devem ter até 80 caracteres.',
+    'invalid_image' =>
+      'Não deu para usar essa imagem. Envie uma foto JPEG, PNG ou WebP.',
+    'invalid_media' => 'Foto inválida ou já usada. Escolha de novo.',
+    'too_many_images' => 'No máximo 4 fotos por post.',
+    'invalid_caption' => 'A legenda deve ter até 200 caracteres.',
+    'upload_limit' => 'Muitas fotos em pouco tempo. Tente daqui a pouco.',
+    'media_unavailable' => 'Fotos ainda não estão ligadas no servidor.',
     'not_found' => 'Não encontrado.',
     'forbidden' => 'Você não tem permissão para isso.',
     'network_error' =>

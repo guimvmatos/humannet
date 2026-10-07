@@ -28,6 +28,18 @@ services:
       # Administradores (moderação), separados por vírgula.
       - key: ADMIN_USERNAMES
         value: guimvmatos
+      # Fotos (armazenamento de objetos do Neon, compatível com S3). Valores
+      # colados no painel; ver docs/SETUP-BETA.md. Sem eles, fotos desligadas.
+      - key: AWS_ENDPOINT_URL_S3
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: MEDIA_BUCKET
+        sync: false
       - key: LOG_FORMAT
         value: json
       - key: RUST_LOG

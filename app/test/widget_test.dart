@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:humannet/src/api/api_client.dart';
@@ -5,6 +7,7 @@ import 'package:humannet/src/auth/session_controller.dart';
 import 'package:humannet/src/auth/token_store.dart';
 import 'package:humannet/src/theme/theme_controller.dart';
 import 'package:humannet/src/ui/app.dart';
+import 'package:humannet/src/ui/compose_screen.dart';
 
 import 'fake_backend.dart';
 
@@ -648,5 +651,55 @@ void main() {
     await tester.pumpAndSettle();
     expect(backend.daveSuggestion, 'requested');
     expect(find.byKey(const Key('suggestion_dave')), findsNothing);
+  });
+
+  testWidgets('post com foto: envia a foto e depois o post', (tester) async {
+    // PNG 1×1 válido.
+    final png = base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    );
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.login(
+      login: FakeBackend.username,
+      password: FakeBackend.password,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              key: const Key('open_compose'),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => ComposeScreen(
+                    session: session,
+                    pickPhotos: (limit) async => [png, png],
+                  ),
+                ),
+              ),
+              child: const Text('abrir'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('open_compose')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('add_photos_button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('compose_photo_1')), findsOneWidget);
+    expect(find.text('Fotos (2/4)'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('remove_photo_1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('compose_photo_1')), findsNothing);
+
+    // Só foto, sem texto, já pode publicar.
+    await tester.tap(find.byKey(const Key('publish_button')));
+    await tester.pumpAndSettle();
+    expect(backend.uploads.single.$1, 'post');
+    expect(backend.uploads.single.$2, png);
+    expect(backend.lastMediaIds, ['m1']);
   });
 }

@@ -7,6 +7,7 @@ import '../api/models.dart';
 import '../auth/session_controller.dart';
 import 'edit_profile_screen.dart';
 import 'error_messages.dart';
+import 'photos.dart';
 import 'post_list.dart';
 import 'report_dialog.dart';
 import 'settings_screen.dart';
@@ -195,6 +196,128 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /// Foto de perfil: escolher (envia e define) ou remover.
+  Future<void> _avatarMenu() async {
+    final p = _profile;
+    if (p == null || !p.isSelf) return;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              key: const Key('pick_avatar'),
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Escolher foto de perfil'),
+              onTap: () => Navigator.of(ctx).pop('pick'),
+            ),
+            if (p.avatarUrl != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: const Text('Remover foto'),
+                onTap: () => Navigator.of(ctx).pop('remove'),
+              ),
+          ],
+        ),
+      ),
+    );
+    final token = _token;
+    if (action == null || token == null) return;
+    setState(() => _busy = true);
+    try {
+      final api = widget.session.api;
+      if (action == 'remove') {
+        await api.deleteAvatar(token);
+      } else {
+        final photos = await pickPhotos();
+        if (photos.isEmpty) return;
+        _snack('Enviando foto…');
+        final m = await api.uploadMedia(token, 'avatar', photos.first);
+        await api.setAvatar(token, m.id);
+      }
+      await _loadProfile();
+    } catch (e) {
+      _snack(errorMessage(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Foto do dia: escolher foto + legenda (substitui a de hoje).
+  Future<void> _postDaily() async {
+    final token = _token;
+    if (token == null) return;
+    final photos = await pickPhotos();
+    if (photos.isEmpty || !mounted) return;
+    final caption = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Foto do dia'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.memory(photos.first, height: 180, fit: BoxFit.cover),
+            ),
+            TextField(
+              key: const Key('daily_caption_field'),
+              controller: caption,
+              maxLength: 200,
+              decoration: const InputDecoration(
+                hintText: 'Legenda (opcional)',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            key: const Key('post_daily_button'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Postar'),
+          ),
+        ],
+      ),
+    );
+    final text = caption.text.trim();
+    if (ok != true) return;
+    setState(() => _busy = true);
+    try {
+      final api = widget.session.api;
+      _snack('Enviando foto…');
+      final m = await api.uploadMedia(token, 'daily', photos.first);
+      await api.setDailyPhoto(token, m.id, caption: text);
+      await _loadProfile();
+    } catch (e) {
+      _snack(errorMessage(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _removeDaily() async {
+    final token = _token;
+    if (token == null) return;
+    final ok = await _confirm(
+      'Apagar a Foto do dia?',
+      'Só a de hoje é apagada.',
+      'Apagar',
+    );
+    if (!ok) return;
+    try {
+      await widget.session.api.deleteDailyPhoto(token);
+      await _loadProfile();
+    } catch (e) {
+      _snack(errorMessage(e));
+    }
+  }
+
   Future<void> _openTestimonials() async {
     final p = _profile;
     if (p == null) return;
@@ -270,6 +393,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onEdit: _editProfile,
       onInvite: _createInvite,
       onTestimonials: _openTestimonials,
+      onAvatar: _avatarMenu,
+      onPostDaily: _postDaily,
+      onRemoveDaily: _removeDaily,
     );
 
     // Posts só para o próprio e amigos (ADR-0006). Sem chamar a API.
@@ -317,6 +443,9 @@ class _Header extends StatelessWidget {
     required this.onEdit,
     required this.onInvite,
     required this.onTestimonials,
+    required this.onAvatar,
+    required this.onPostDaily,
+    required this.onRemoveDaily,
   });
 
   final Profile profile;
@@ -326,6 +455,9 @@ class _Header extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onInvite;
   final VoidCallback onTestimonials;
+  final VoidCallback onAvatar;
+  final VoidCallback onPostDaily;
+  final VoidCallback onRemoveDaily;
 
   String get _places => [
     if (profile.hometown.isNotEmpty) 'De ${profile.hometown}',
@@ -386,13 +518,45 @@ class _Header extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            profile.displayName ?? '@${profile.username}',
-            key: const Key('profile_name'),
-            style: theme.textTheme.headlineSmall,
+          Row(
+            children: [
+              GestureDetector(
+                key: const Key('avatar'),
+                onTap: profile.isSelf && !busy ? onAvatar : null,
+                child: CircleAvatar(
+                  radius: 32,
+                  backgroundImage: profile.avatarUrl == null
+                      ? null
+                      : NetworkImage(profile.avatarUrl!),
+                  child: profile.avatarUrl == null
+                      ? Icon(
+                          profile.isSelf
+                              ? Icons.add_a_photo_outlined
+                              : Icons.person,
+                        )
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      profile.displayName ?? '@${profile.username}',
+                      key: const Key('profile_name'),
+                      style: theme.textTheme.headlineSmall,
+                    ),
+                    if (profile.displayName != null)
+                      Text(
+                        '@${profile.username}',
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          if (profile.displayName != null)
-            Text('@${profile.username}', style: theme.textTheme.bodyMedium),
           if (profile.bio.isNotEmpty) ...[
             const SizedBox(height: 12),
             Text(profile.bio),
@@ -445,6 +609,27 @@ class _Header extends StatelessWidget {
                   ]
                 : _friendButtons(),
           ),
+          if (profile.dailyPhoto case final d?) ...[
+            const SizedBox(height: 12),
+            _DailyPhotoCard(
+              daily: d,
+              isSelf: profile.isSelf,
+              onRemove: onRemoveDaily,
+            ),
+          ],
+          if (profile.isSelf) ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              key: const Key('daily_photo_button'),
+              onPressed: busy ? null : onPostDaily,
+              icon: const Icon(Icons.add_photo_alternate_outlined),
+              label: Text(
+                profile.dailyPhoto != null && _isToday(profile.dailyPhoto!.day)
+                    ? 'Trocar a Foto do dia'
+                    : 'Postar a Foto do dia',
+              ),
+            ),
+          ],
           if (profile.relation.canSeePosts) ...[
             const SizedBox(height: 8),
             TextButton.icon(
@@ -459,6 +644,82 @@ class _Header extends StatelessWidget {
             ),
           ],
           const Divider(height: 32),
+        ],
+      ),
+    );
+  }
+}
+
+bool _isToday(DateTime day) {
+  final now = DateTime.now().toUtc().subtract(const Duration(hours: 3));
+  return day.year == now.year && day.month == now.month && day.day == now.day;
+}
+
+String _dayLabel(DateTime day) {
+  if (_isToday(day)) return 'hoje';
+  if (_isToday(day.add(const Duration(days: 1)))) return 'ontem';
+  return '${day.day.toString().padLeft(2, '0')}/'
+      '${day.month.toString().padLeft(2, '0')}';
+}
+
+/// "Foto do dia": um espaço especial no perfil (estilo Fotolog).
+class _DailyPhotoCard extends StatelessWidget {
+  const _DailyPhotoCard({
+    required this.daily,
+    required this.isSelf,
+    required this.onRemove,
+  });
+
+  final DailyPhoto daily;
+  final bool isSelf;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      key: const Key('daily_photo_card'),
+      clipBehavior: Clip.antiAlias,
+      margin: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => PhotoViewer(images: [daily.photo]),
+              ),
+            ),
+            child: AspectRatio(
+              aspectRatio: daily.photo.aspectRatio.clamp(0.8, 1.8),
+              child: NetPhoto(daily.photo.url),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Foto do dia · ${_dayLabel(daily.day)}',
+                        style: theme.textTheme.labelMedium,
+                      ),
+                      if (daily.caption.isNotEmpty) Text(daily.caption),
+                    ],
+                  ),
+                ),
+                if (isSelf && _isToday(daily.day))
+                  IconButton(
+                    tooltip: 'Apagar a de hoje',
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: onRemove,
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE media SET attached_at = now()\n         WHERE id = ANY($1) AND owner_id = $2 AND kind = $3 AND attached_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6b7f69a0882d429433619bb6d538ddf60c28aae8ee83828af3345dca35f1ff92"
+}

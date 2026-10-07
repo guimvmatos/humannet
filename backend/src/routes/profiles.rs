@@ -28,6 +28,10 @@ pub struct ProfileDto {
     pub hometown: String,
     pub city: String,
     pub school: String,
+    /// Foto de perfil (link assinado). Visível para todos os logados.
+    pub avatar_url: Option<String>,
+    /// Foto do dia mais recente (até 7 dias). Só para o próprio e amigos.
+    pub daily_photo: Option<crate::routes::photos::DailyPhotoDto>,
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
     pub is_self: bool,
@@ -89,6 +93,12 @@ pub async fn get(
 
     let relation = friends::relation(&state.db, viewer.user_id, row.id).await?;
     let is_self = relation == Relation::Myself;
+    let avatar_url = crate::routes::photos::avatar_url(&state, row.id).await?;
+    let daily_photo = if matches!(relation, Relation::Myself | Relation::Friends) {
+        crate::routes::photos::latest_daily(&state, row.id).await?
+    } else {
+        None
+    };
     let stats = if is_self {
         Some(
             sqlx::query_as!(
@@ -118,6 +128,8 @@ pub async fn get(
         hometown: row.hometown,
         city: row.city,
         school: row.school,
+        avatar_url,
+        daily_photo,
         created_at: row.created_at,
         is_self,
         relation,

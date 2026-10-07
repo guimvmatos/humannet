@@ -11,9 +11,11 @@ use crate::{
     AppState,
     auth::AuthUser,
     error::{AppError, AppResult},
+    media::Kind,
     routes::{
         friends,
         pagination::{Page, PageQuery},
+        photos::{self, MediaDto},
         profiles::visible_user_id,
     },
     validation,
@@ -41,6 +43,8 @@ pub struct PostDto {
     pub liked_by_me: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub like_count: Option<i64>,
+    /// Até 4 fotos, na ordem.
+    pub images: Vec<MediaDto>,
 }
 
 /// Linha "achatada" vinda do banco.
@@ -69,12 +73,14 @@ impl From<PostRow> for PostDto {
             comment_count: 0,
             liked_by_me: false,
             like_count: None,
+            images: Vec::new(),
         }
     }
 }
 
 /// Preenche comentários/curtidas de vários posts numa única consulta.
-async fn enrich(db: &sqlx::PgPool, viewer: Uuid, posts: &mut [PostDto]) -> sqlx::Result<()> {
+async fn enrich(state: &AppState, viewer: Uuid, posts: &mut [PostDto]) -> sqlx::Result<()> {
+    let db = &state.db;
     if posts.is_empty() {
         return Ok(());
     }
@@ -102,17 +108,21 @@ async fn enrich(db: &sqlx::PgPool, viewer: Uuid, posts: &mut [PostDto]) -> sqlx:
             p.like_count = r.like_count;
         }
     }
+    let mut images = photos::for_posts(db, &state.media, &ids).await?;
+    for p in posts.iter_mut() {
+        p.images = images.remove(&p.id).unwrap_or_default();
+    }
     Ok(())
 }
 
 async fn page(
-    db: &sqlx::PgPool,
+    state: &AppState,
     viewer: Uuid,
     rows: Vec<PostRow>,
     limit: i64,
 ) -> sqlx::Result<Page<PostDto>> {
     let mut items: Vec<PostDto> = rows.into_iter().map(PostDto::from).collect();
-    enrich(db, viewer, &mut items).await?;
+    enrich(state, viewer, &mut items).await?;
     Ok(Page::from_overfetch(items, limit, |p| p.id))
 }
 
@@ -137,8 +147,15 @@ pub(crate) async fn visible_post_author(
 
 #[derive(Debug, Deserialize)]
 pub struct CreatePost {
+    #[serde(default)]
     pub body: String,
+    /// Fotos enviadas antes em POST /v1/media?kind=post (até 4).
+    #[serde(default)]
+    pub media_ids: Vec<Uuid>,
 }
+
+/// Fotos por post.
+pub const MAX_IMAGES: usize = 4;
 
 /// POST /v1/posts
 pub async fn create(
@@ -146,7 +163,16 @@ pub async fn create(
     user: AuthUser,
     Json(req): Json<CreatePost>,
 ) -> AppResult<(StatusCode, Json<PostDto>)> {
-    let body = validation::post_body(&req.body)?;
+    if req.media_ids.len() > MAX_IMAGES {
+        return Err(AppError::Validation("too_many_images"));
+    }
+    // Só foto é um post válido; só texto também. Vazio, não.
+    let body = if req.media_ids.is_empty() || !req.body.trim().is_empty() {
+        validation::post_body(&req.body)?
+    } else {
+        String::new()
+    };
+    let mut tx = state.db.begin().await?;
     let row = sqlx::query_as!(
         PostRow,
         r#"
@@ -163,10 +189,25 @@ pub async fn create(
         user.user_id,
         body
     )
-    .fetch_one(&state.db)
+    .fetch_one(&mut *tx)
     .await?;
-    let mut dto = PostDto::from(row);
-    dto.like_count = Some(0);
+    if !req.media_ids.is_empty() {
+        photos::claim(&mut tx, user.user_id, Kind::Post, &req.media_ids).await?;
+        for (i, m) in req.media_ids.iter().enumerate() {
+            sqlx::query!(
+                "INSERT INTO post_media (post_id, media_id, position) VALUES ($1, $2, $3)",
+                row.id,
+                m,
+                i16::try_from(i).unwrap_or(0)
+            )
+            .execute(&mut *tx)
+            .await?;
+        }
+    }
+    tx.commit().await?;
+    let mut items = [PostDto::from(row)];
+    enrich(&state, user.user_id, &mut items).await?;
+    let [dto] = items;
     Ok((StatusCode::CREATED, Json(dto)))
 }
 
@@ -195,7 +236,7 @@ pub async fn get(
         return Err(AppError::NotFound);
     }
     let mut items = [PostDto::from(row)];
-    enrich(&state.db, user.user_id, &mut items).await?;
+    enrich(&state, user.user_id, &mut items).await?;
     let [dto] = items;
     Ok(Json(dto))
 }
@@ -218,13 +259,14 @@ pub async fn delete(
         return Err(AppError::Forbidden);
     }
 
-    // Apaga também o conteúdo: exclusão lógica não deve reter o texto.
+    // Apaga também o conteúdo: exclusão lógica não deve reter o texto nem as fotos.
     sqlx::query!(
         "UPDATE posts SET deleted_at = now(), body = '[removido]' WHERE id = $1",
         id
     )
     .execute(&state.db)
     .await?;
+    photos::delete_post_media(&state, id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -259,7 +301,7 @@ pub async fn list_by_user(
     )
     .fetch_all(&state.db)
     .await?;
-    Ok(Json(page(&state.db, viewer.user_id, rows, limit).await?))
+    Ok(Json(page(&state, viewer.user_id, rows, limit).await?))
 }
 
 /// GET /v1/feed — modo cronológico (padrão, R2): meus amigos + eu.
@@ -290,7 +332,7 @@ pub async fn feed(
     )
     .fetch_all(&state.db)
     .await?;
-    Ok(Json(page(&state.db, user.user_id, rows, limit).await?))
+    Ok(Json(page(&state, user.user_id, rows, limit).await?))
 }
 
 /// PUT /v1/posts/{id}/like — idempotente.

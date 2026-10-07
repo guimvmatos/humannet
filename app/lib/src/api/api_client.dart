@@ -286,14 +286,71 @@ class ApiClient {
 
   // ------------------------------------------------------------ posts
 
-  Future<Post> createPost(String token, String body) async {
+  Future<Post> createPost(
+    String token,
+    String body, {
+    List<String> mediaIds = const [],
+  }) async {
     final json = await _send(
       'POST',
       '/v1/posts',
       token: token,
-      body: {'body': body},
+      body: {'body': body, if (mediaIds.isNotEmpty) 'media_ids': mediaIds},
     );
     return Post.fromJson(json!);
+  }
+
+  // ------------------------------------------------------------ fotos
+
+  /// Envia uma foto. `kind`: post | avatar | daily. O servidor recodifica
+  /// (sem metadados) e devolve o id para usar no post/avatar/Foto do dia.
+  Future<MediaRef> uploadMedia(
+    String token,
+    String kind,
+    List<int> bytes,
+  ) async {
+    final uri = _baseUri
+        .resolve('/v1/media')
+        .replace(queryParameters: {'kind': kind});
+    final request = http.Request('POST', uri)
+      ..headers['Accept'] = 'application/json'
+      ..headers['Authorization'] = 'Bearer $token'
+      ..headers['Content-Type'] = 'application/octet-stream'
+      ..bodyBytes = bytes;
+    final json = await _execute(request);
+    return MediaRef.fromJson(json!);
+  }
+
+  Future<MediaRef> setAvatar(String token, String mediaId) async {
+    final json = await _send(
+      'PUT',
+      '/v1/me/avatar',
+      token: token,
+      body: {'media_id': mediaId},
+    );
+    return MediaRef.fromJson(json!);
+  }
+
+  Future<void> deleteAvatar(String token) async {
+    await _send('DELETE', '/v1/me/avatar', token: token);
+  }
+
+  Future<DailyPhoto> setDailyPhoto(
+    String token,
+    String mediaId, {
+    String caption = '',
+  }) async {
+    final json = await _send(
+      'PUT',
+      '/v1/me/daily-photo',
+      token: token,
+      body: {'media_id': mediaId, 'caption': caption},
+    );
+    return DailyPhoto.fromJson(json!);
+  }
+
+  Future<void> deleteDailyPhoto(String token) async {
+    await _send('DELETE', '/v1/me/daily-photo', token: token);
   }
 
   Future<void> deletePost(String token, String id) async {
@@ -711,7 +768,10 @@ class ApiClient {
       request.headers['Content-Type'] = 'application/json';
       request.body = jsonEncode(body);
     }
+    return _execute(request);
+  }
 
+  Future<Map<String, dynamic>?> _execute(http.Request request) async {
     final http.Response response;
     try {
       final streamed = await _http.send(request).timeout(_timeout);

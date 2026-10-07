@@ -2,6 +2,7 @@ pub mod auth;
 pub mod config;
 pub mod crypto;
 pub mod error;
+pub mod media;
 pub mod ratelimit;
 pub mod routes;
 pub mod validation;
@@ -10,12 +11,12 @@ use std::time::Duration;
 
 use axum::{
     Router,
+    extract::DefaultBodyLimit,
     http::{HeaderName, StatusCode},
     routing::{delete, get, patch, post, put},
 };
 use sqlx::PgPool;
 use tower_http::{
-    limit::RequestBodyLimitLayer,
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
     timeout::TimeoutLayer,
     trace::TraceLayer,
@@ -23,7 +24,7 @@ use tower_http::{
 
 pub use config::{Config, Policy};
 
-/// Limite de corpo para a API JSON. Upload de mídia terá rota própria.
+/// Limite de corpo para a API JSON. O upload de fotos tem limite próprio.
 const MAX_BODY_BYTES: usize = 64 * 1024;
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
 
@@ -32,6 +33,7 @@ pub struct AppState {
     pub db: PgPool,
     pub policy: Policy,
     pub auth_limits: std::sync::Arc<ratelimit::AuthLimits>,
+    pub media: media::MediaStore,
 }
 
 impl AppState {
@@ -40,7 +42,14 @@ impl AppState {
             db,
             policy,
             auth_limits: std::sync::Arc::default(),
+            // Testes: em memória. Produção: `with_media` (main.rs).
+            media: media::MediaStore::memory(),
         }
+    }
+
+    pub fn with_media(mut self, media: media::MediaStore) -> Self {
+        self.media = media;
+        self
     }
 }
 
@@ -71,6 +80,18 @@ pub fn app(state: AppState) -> Router {
         )
         .route("/me/password", put(routes::account::change_password))
         .route("/me/counts", get(routes::activity::counts))
+        .route(
+            "/media",
+            post(routes::photos::upload).layer(DefaultBodyLimit::max(media::MAX_UPLOAD_BYTES)),
+        )
+        .route(
+            "/me/avatar",
+            put(routes::photos::set_avatar).delete(routes::photos::delete_avatar),
+        )
+        .route(
+            "/me/daily-photo",
+            put(routes::photos::set_daily).delete(routes::photos::delete_daily),
+        )
         .route("/me/suggestions", get(routes::suggestions::list))
         .route(
             "/me/suggestions/{username}/dismiss",
@@ -169,7 +190,8 @@ pub fn app(state: AppState) -> Router {
         .nest("/v1", v1)
         .with_state(state)
         // Camadas: a última adicionada é a mais externa.
-        .layer(RequestBodyLimitLayer::new(MAX_BODY_BYTES))
+        // Corpo JSON até 64 KiB; o upload de fotos tem limite próprio na rota.
+        .layer(DefaultBodyLimit::max(MAX_BODY_BYTES))
         .layer(TimeoutLayer::with_status_code(
             StatusCode::REQUEST_TIMEOUT,
             REQUEST_TIMEOUT,

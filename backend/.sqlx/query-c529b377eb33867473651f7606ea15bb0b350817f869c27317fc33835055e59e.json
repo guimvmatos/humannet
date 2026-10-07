@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO daily_photos (user_id, day, media_id, caption) VALUES ($1, $2, $3, $4)\n         ON CONFLICT (user_id, day) DO UPDATE SET media_id = EXCLUDED.media_id,\n           caption = EXCLUDED.caption, created_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c529b377eb33867473651f7606ea15bb0b350817f869c27317fc33835055e59e"
+}

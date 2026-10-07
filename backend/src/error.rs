@@ -29,6 +29,8 @@ pub enum AppError {
     TooManyAttempts,
     #[error("limit reached: {0}")]
     LimitReached(&'static str),
+    #[error("unavailable: {0}")]
+    Unavailable(&'static str),
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
 }
@@ -51,6 +53,7 @@ impl AppError {
             Self::Conflict(code) => (StatusCode::CONFLICT, code),
             Self::TooManyAttempts => (StatusCode::TOO_MANY_REQUESTS, "too_many_attempts"),
             Self::LimitReached(code) => (StatusCode::TOO_MANY_REQUESTS, code),
+            Self::Unavailable(code) => (StatusCode::SERVICE_UNAVAILABLE, code),
             Self::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "internal_error"),
         }
     }

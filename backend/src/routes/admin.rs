@@ -138,6 +138,9 @@ pub async fn resolve_report(
         "dismiss" => "dismissed",
         "remove_content" | "remove_post" => {
             remove_content(&state.db, &report.target_kind, report.target_id).await?;
+            if report.target_kind == "post" {
+                crate::routes::photos::delete_post_media(&state, report.target_id).await?;
+            }
             "actioned"
         }
         "suspend_user" => {

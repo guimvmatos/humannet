@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../api/models.dart';
 import '../auth/session_controller.dart';
 import 'error_messages.dart';
+import 'photos.dart';
 import 'post_screen.dart';
 import 'profile_screen.dart';
 import 'report_dialog.dart';
@@ -266,10 +267,16 @@ class PostTile extends StatelessWidget {
                 ),
               ],
             ),
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: SelectableText(post.body),
-            ),
+            if (post.body.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: SelectableText(post.body),
+              ),
+            if (post.images.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 8, 12, 0),
+                child: PostImages(images: post.images),
+              ),
             const SizedBox(height: 4),
             EngagementBar(
               key: ValueKey('engagement_${post.id}'),

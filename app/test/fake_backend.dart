@@ -56,6 +56,10 @@ class FakeBackend {
 
   /// Sugestão de amizade: dave (null = some da lista).
   String? daveSuggestion = 'shown';
+
+  /// Fotos recebidas em POST /v1/media (kind, bytes).
+  final List<(String, List<int>)> uploads = [];
+  List<dynamic> lastMediaIds = const [];
   bool carolFriend = false;
   String? displayName;
   String bio = '';
@@ -212,11 +216,23 @@ class FakeBackend {
       case 'POST /v1/posts':
         final created = jsonDecode(request.body) as Map<String, dynamic>;
         final text = (created['body'] as String).trim();
-        if (text.isEmpty) return _json(422, {'error': 'invalid_post_body'});
+        lastMediaIds = (created['media_ids'] as List<dynamic>?) ?? const [];
+        if (text.isEmpty && lastMediaIds.isEmpty) {
+          return _json(422, {'error': 'invalid_post_body'});
+        }
         final id = '01a10000-0000-7000-8000-${(_seq++).toString().padLeft(12, '0')}';
         final post = _post(id, text);
         posts.insert(0, post);
         return _json(201, post);
+      case 'POST /v1/media':
+        final kind = request.url.queryParameters['kind'] ?? '';
+        uploads.add((kind, request.bodyBytes));
+        return _json(201, {
+          'id': 'm${uploads.length}',
+          'url': 'memory://m${uploads.length}',
+          'width': 10,
+          'height': 10,
+        });
       case 'GET /v1/me/suggestions':
         return _json(200, {
           'items': [

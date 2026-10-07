@@ -79,8 +79,30 @@ async fn main() -> Result<()> {
     }
 }
 
-async fn serve(config: Config, db: sqlx::PgPool) -> Result<()> {
-    let state = AppState::new(db, Policy::from(&config));
+async fn serve(mut config: Config, db: sqlx::PgPool) -> Result<()> {
+    let media = match config.s3.take() {
+        Some(s3) => {
+            tracing::info!(?s3, "fotos ligadas");
+            humannet_api::media::MediaStore::s3(s3)?
+        }
+        None => {
+            tracing::warn!("fotos desligadas: faltam variáveis AWS_* / MEDIA_BUCKET");
+            humannet_api::media::MediaStore::Disabled
+        }
+    };
+    let state = AppState::new(db.clone(), Policy::from(&config)).with_media(media.clone());
+    // Faxina de hora em hora: fotos enviadas e nunca usadas.
+    tokio::spawn(async move {
+        let mut tick = tokio::time::interval(std::time::Duration::from_secs(3600));
+        loop {
+            tick.tick().await;
+            match humannet_api::routes::photos::cleanup_orphans(&db, &media).await {
+                Ok(0) => {}
+                Ok(n) => tracing::info!(n, "fotos órfãs apagadas"),
+                Err(e) => tracing::warn!(error = %e, "faxina de fotos falhou"),
+            }
+        }
+    });
     let listener = tokio::net::TcpListener::bind(config.bind_addr).await?;
     tracing::info!(addr = %config.bind_addr, "HumanNet API ouvindo");
     axum::serve(listener, app(state))

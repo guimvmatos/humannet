@@ -90,7 +90,10 @@ cd app && flutter test
 | GET | `/v1/blocks` | Bearer | Quem eu bloqueei |
 | POST | `/v1/reports` | Bearer | `{kind, <alvo>, reason, details?}` → 202. Alvos: `post` + `post_id`, `user` + `username`, `comment` + `comment_id`, `topic` + `topic_id`, `reply` + `reply_id`, `community` + `slug`, `testimonial` + `testimonial_id` |
 | GET | `/v1/users/{username}/posts` | Bearer | Posts do usuário (só para o próprio e amigos; senão 403) |
-| POST | `/v1/posts` | Bearer | `{body}` (1–5000 caracteres) |
+| POST | `/v1/media?kind=post\|avatar\|daily` | Bearer | Corpo = bytes da imagem (JPEG/PNG/WebP, até 10 MB). O servidor recodifica em JPEG **sem metadados** (tira GPS), reduz (1600 px; avatar 512×512) e devolve `{id, url, width, height}`. Fotos não usadas em 24 h são apagadas |
+| POST | `/v1/posts` | Bearer | `{body, media_ids?}`: texto (até 5000) e/ou até 4 fotos (`kind=post`). Posts trazem `images` |
+| PUT / DELETE | `/v1/me/avatar` | Bearer | `{media_id}` (`kind=avatar`) / remover. Perfil traz `avatar_url` |
+| PUT / DELETE | `/v1/me/daily-photo` | Bearer | Foto do dia `{media_id, caption?}` (`kind=daily`, legenda até 200) / apagar a de hoje. Perfil traz `daily_photo` (a mais recente, até 7 dias; só amigos) |
 | GET / DELETE | `/v1/posts/{id}` | Bearer | Ler (autor e amigos; senão 404) / apagar (só o autor; o texto é removido do banco) |
 | PUT / DELETE | `/v1/posts/{id}/like` | Bearer | Curtir / descurtir. `like_count` só vem para o autor (R3) |
 | GET / POST | `/v1/posts/{id}/comments` | Bearer | Listar (mais antigo primeiro) / comentar `{body}` (1–2000) |
