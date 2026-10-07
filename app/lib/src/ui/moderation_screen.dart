@@ -259,5 +259,6 @@ String _kindLabel(String kind) => switch (kind) {
   'reply' => 'Resposta em tópico',
   'community' => 'Comunidade (dono)',
   'testimonial' => 'Depoimento',
+  'scrap' => 'Recado',
   _ => 'Perfil',
 };

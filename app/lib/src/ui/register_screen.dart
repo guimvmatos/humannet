@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../auth/session_controller.dart';
 import 'error_messages.dart';
+import 'rules_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key, required this.session});
@@ -21,6 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _busy = false;
+  bool _acceptedRules = false;
   String? _error;
 
   @override
@@ -125,9 +127,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     style: TextStyle(color: theme.colorScheme.error),
                   ),
                 ],
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+                CheckboxListTile(
+                  key: const Key('accept_rules'),
+                  value: _acceptedRules,
+                  onChanged: (v) => setState(() => _acceptedRules = v ?? false),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Li e aceito as regras de convivência'),
+                  subtitle: Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      key: const Key('read_rules'),
+                      style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const RulesScreen(),
+                        ),
+                      ),
+                      child: const Text('Ler as regras'),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 FilledButton(
-                  onPressed: _busy ? null : _submit,
+                  key: const Key('register_button'),
+                  onPressed: _busy || !_acceptedRules ? null : _submit,
                   child: _busy
                       ? const SizedBox.square(
                           dimension: 20,

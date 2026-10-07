@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT u.id AS \"id!\", u.username AS \"username!\", u.display_name\n        FROM friends f JOIN users u ON u.id = f.friend_id\n        WHERE f.user_id = $1\n        ORDER BY lower(coalesce(u.display_name, u.username))\n        LIMIT 1000\n        ",
+  "query": "\n        SELECT u.id, u.username, u.display_name, NULL::text AS avatar_url\n        FROM blocks b JOIN users u ON u.id = b.blocked_id\n        WHERE b.blocker_id = $1\n        ORDER BY b.created_at DESC\n        ",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id!",
+        "name": "id",
         "type_info": "Uuid",
         "origin": {
           "Table": {
@@ -16,7 +16,7 @@
       },
       {
         "ordinal": 1,
-        "name": "username!",
+        "name": "username",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -35,6 +35,12 @@
             "name": "display_name"
           }
         }
+      },
+      {
+        "ordinal": 3,
+        "name": "avatar_url",
+        "type_info": "Text",
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -45,8 +51,9 @@
     "nullable": [
       false,
       false,
-      true
+      true,
+      null
     ]
   },
-  "hash": "8902da8462c90cdd2af51a95613344fbd22f53c79ced7bb93d6c09eba73f4531"
+  "hash": "7550cd26bfa10c3074e54b797f5e713e40877b14e6dbf2b5acc64066645415ba"
 }

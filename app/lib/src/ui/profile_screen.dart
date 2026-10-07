@@ -10,6 +10,7 @@ import 'error_messages.dart';
 import 'photos.dart';
 import 'post_list.dart';
 import 'report_dialog.dart';
+import 'scraps_screen.dart';
 import 'settings_screen.dart';
 import 'testimonials_screen.dart';
 
@@ -318,6 +319,94 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _openScraps() async {
+    final p = _profile;
+    if (p == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ScrapsScreen(
+          session: widget.session,
+          username: p.username,
+          canWrite: p.relation == Relation.friends,
+        ),
+      ),
+    );
+  }
+
+  /// Status/subnick: frase curta com validade.
+  Future<void> _editStatus() async {
+    final token = _token;
+    final p = _profile;
+    if (token == null || p == null) return;
+    final text = TextEditingController(text: p.status ?? '');
+    var hours = 24;
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Seu status'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                key: const Key('status_field'),
+                controller: text,
+                autofocus: true,
+                maxLength: 80,
+                decoration: const InputDecoration(
+                  hintText: 'Ex.: de férias 🌴, estudando, ouvindo Cartola',
+                  helperText: 'Só seus amigos veem.',
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text('Vale por'),
+              Wrap(
+                spacing: 8,
+                children: [
+                  for (final (h, label) in const [
+                    (24, '1 dia'),
+                    (72, '3 dias'),
+                    (168, '1 semana'),
+                    (0, 'sempre'),
+                  ])
+                    ChoiceChip(
+                      label: Text(label),
+                      selected: hours == h,
+                      onSelected: (_) => setLocal(() => hours = h),
+                    ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            if ((p.status ?? '').isNotEmpty)
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(''),
+                child: const Text('Apagar'),
+              ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              key: const Key('save_status_button'),
+              onPressed: () => Navigator.of(ctx).pop(text.text.trim()),
+              child: const Text('Salvar'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (result == null) return;
+    try {
+      await widget.session.api.setStatus(token, result, hours: hours);
+      await _loadProfile();
+    } catch (e) {
+      _snack(errorMessage(e));
+    }
+  }
+
   Future<void> _openTestimonials() async {
     final p = _profile;
     if (p == null) return;
@@ -393,6 +482,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onEdit: _editProfile,
       onInvite: _createInvite,
       onTestimonials: _openTestimonials,
+      onScraps: _openScraps,
+      onStatus: _editStatus,
       onAvatar: _avatarMenu,
       onPostDaily: _postDaily,
       onRemoveDaily: _removeDaily,
@@ -443,6 +534,8 @@ class _Header extends StatelessWidget {
     required this.onEdit,
     required this.onInvite,
     required this.onTestimonials,
+    required this.onScraps,
+    required this.onStatus,
     required this.onAvatar,
     required this.onPostDaily,
     required this.onRemoveDaily,
@@ -455,6 +548,8 @@ class _Header extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onInvite;
   final VoidCallback onTestimonials;
+  final VoidCallback onScraps;
+  final VoidCallback onStatus;
   final VoidCallback onAvatar;
   final VoidCallback onPostDaily;
   final VoidCallback onRemoveDaily;
@@ -552,6 +647,21 @@ class _Header extends StatelessWidget {
                         '@${profile.username}',
                         style: theme.textTheme.bodyMedium,
                       ),
+                    if (profile.status != null || profile.isSelf)
+                      InkWell(
+                        key: const Key('status_line'),
+                        onTap: profile.isSelf ? onStatus : null,
+                        child: Text(
+                          profile.status ??
+                              (profile.isSelf ? '+ escrever um status' : ''),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontStyle: FontStyle.italic,
+                            color: profile.status == null
+                                ? theme.colorScheme.primary
+                                : null,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -632,6 +742,12 @@ class _Header extends StatelessWidget {
           ],
           if (profile.relation.canSeePosts) ...[
             const SizedBox(height: 8),
+            TextButton.icon(
+              key: const Key('scraps_button'),
+              onPressed: onScraps,
+              icon: const Icon(Icons.sticky_note_2_outlined),
+              label: const Text('Recados'),
+            ),
             TextButton.icon(
               key: const Key('testimonials_button'),
               onPressed: onTestimonials,

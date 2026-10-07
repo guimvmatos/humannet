@@ -224,6 +224,11 @@ class PostTile extends StatelessWidget {
           children: [
             Row(
               children: [
+                GestureDetector(
+                  onTap: () => _openAuthor(context),
+                  child: UserAvatar(post.author, radius: 16),
+                ),
+                const SizedBox(width: 8),
                 Expanded(
                   child: InkWell(
                     onTap: () => _openAuthor(context),

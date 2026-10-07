@@ -213,6 +213,11 @@ async fn remove_content(db: &sqlx::PgPool, kind: &str, id: Uuid) -> AppResult<()
             .execute(db)
             .await?;
         }
+        "scrap" => {
+            sqlx::query!("DELETE FROM scraps WHERE id = $1", id)
+                .execute(db)
+                .await?;
+        }
         "testimonial" => {
             sqlx::query!("DELETE FROM testimonials WHERE id = $1", id)
                 .execute(db)

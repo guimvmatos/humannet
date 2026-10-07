@@ -65,6 +65,10 @@ String errorMessage(Object error) {
     'invalid_caption' => 'A legenda deve ter até 200 caracteres.',
     'upload_limit' => 'Muitas fotos em pouco tempo. Tente daqui a pouco.',
     'media_unavailable' => 'Fotos ainda não estão ligadas no servidor.',
+    'invalid_scrap_body' => 'O recado deve ter entre 1 e 1.000 caracteres.',
+    'cannot_scrap_self' => 'Você não pode deixar recado para si mesmo.',
+    'scrap_limit' => 'Muitos recados hoje. Tente amanhã.',
+    'invalid_status' => 'O status deve ter até 80 caracteres.',
     'not_found' => 'Não encontrado.',
     'forbidden' => 'Você não tem permissão para isso.',
     'network_error' =>

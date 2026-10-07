@@ -28,6 +28,8 @@ pub struct ProfileDto {
     pub hometown: String,
     pub city: String,
     pub school: String,
+    /// Status/subnick vigente. Só para o próprio e amigos.
+    pub status: Option<String>,
     /// Foto de perfil (link assinado). Visível para todos os logados.
     pub avatar_url: Option<String>,
     /// Foto do dia mais recente (até 7 dias). Só para o próprio e amigos.
@@ -82,7 +84,7 @@ pub async fn get(
     let row = sqlx::query!(
         r#"
         SELECT u.id, u.username, u.display_name, u.bio, u.hometown, u.city, u.school,
-               u.created_at
+               u.status_text, u.status_expires_at, u.created_at
         FROM users u
         WHERE u.id = $1
         "#,
@@ -128,6 +130,11 @@ pub async fn get(
         hometown: row.hometown,
         city: row.city,
         school: row.school,
+        status: if matches!(relation, Relation::Myself | Relation::Friends) {
+            crate::routes::scraps::current_status(row.status_text, row.status_expires_at)
+        } else {
+            None
+        },
         avatar_url,
         daily_photo,
         created_at: row.created_at,

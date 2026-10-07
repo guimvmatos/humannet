@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT u.id, u.username, u.display_name, u.bio, u.hometown, u.city, u.school,\n               u.created_at\n        FROM users u\n        WHERE u.id = $1\n        ",
+  "query": "\n        SELECT u.id, u.username, u.display_name, u.bio, u.hometown, u.city, u.school,\n               u.status_text, u.status_expires_at, u.created_at\n        FROM users u\n        WHERE u.id = $1\n        ",
   "describe": {
     "columns": [
       {
@@ -82,6 +82,28 @@
       },
       {
         "ordinal": 7,
+        "name": "status_text",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "status_text"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "status_expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "status_expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -105,8 +127,10 @@
       false,
       false,
       false,
+      false,
+      true,
       false
     ]
   },
-  "hash": "bb5bed09c24edc809dccba6dc893fa8efe95f57b87c721f22aa4e4a8c6b624c3"
+  "hash": "2844e088497d1f7aea02e25cfcf7dcca3170035338d18af48eab39438e2b0a72"
 }

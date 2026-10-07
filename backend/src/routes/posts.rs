@@ -26,6 +26,35 @@ pub struct AuthorDto {
     pub id: Uuid,
     pub username: String,
     pub display_name: Option<String>,
+    /// Foto de perfil (link assinado). Preenchida por `fill_avatars`.
+    pub avatar_url: Option<String>,
+}
+
+/// Preenche `avatar_url` de vários autores numa consulta só.
+pub async fn fill_avatars<'a>(
+    state: &AppState,
+    authors: impl IntoIterator<Item = &'a mut AuthorDto>,
+) -> sqlx::Result<()> {
+    let mut authors: Vec<&mut AuthorDto> = authors.into_iter().collect();
+    if authors.is_empty() {
+        return Ok(());
+    }
+    let mut ids: Vec<Uuid> = authors.iter().map(|a| a.id).collect();
+    ids.sort();
+    ids.dedup();
+    let rows = sqlx::query!(
+        "SELECT u.id, m.key FROM users u JOIN media m ON m.id = u.avatar_media_id
+         WHERE u.id = ANY($1)",
+        &ids
+    )
+    .fetch_all(&state.db)
+    .await?;
+    let keys: std::collections::HashMap<Uuid, String> =
+        rows.into_iter().map(|r| (r.id, r.key)).collect();
+    for a in &mut authors {
+        a.avatar_url = keys.get(&a.id).map(|k| state.media.url(k));
+    }
+    Ok(())
 }
 
 /// Post como o app o recebe.
@@ -66,6 +95,7 @@ impl From<PostRow> for PostDto {
                 id: r.author_id,
                 username: r.author_username,
                 display_name: r.author_display_name,
+                avatar_url: None,
             },
             body: r.body,
             created_at: r.created_at,
@@ -108,6 +138,7 @@ async fn enrich(state: &AppState, viewer: Uuid, posts: &mut [PostDto]) -> sqlx::
             p.like_count = r.like_count;
         }
     }
+    fill_avatars(state, posts.iter_mut().map(|p| &mut p.author)).await?;
     let mut images = photos::for_posts(db, &state.media, &ids).await?;
     for p in posts.iter_mut() {
         p.images = images.remove(&p.id).unwrap_or_default();

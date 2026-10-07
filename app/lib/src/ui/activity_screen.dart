@@ -7,7 +7,9 @@ import '../auth/session_controller.dart';
 import 'error_messages.dart';
 import 'post_list.dart' show relativeTime;
 import 'post_screen.dart';
+import 'scraps_screen.dart';
 import 'topic_screen.dart';
+import 'photos.dart';
 
 /// Novidades dos últimos 30 dias: comentários nos meus posts e respostas nos
 /// tópicos em que participo. Abrir a tela marca tudo como visto.
@@ -50,6 +52,20 @@ class _ActivityScreenState extends State<ActivityScreen> {
   Future<void> _open(ActivityItem a) async {
     final token = widget.session.token;
     if (token == null) return;
+    if (a.kind == 'scrap') {
+      final me = widget.session.user?.username;
+      if (me == null) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ScrapsScreen(
+            session: widget.session,
+            username: me,
+            canWrite: false,
+          ),
+        ),
+      );
+      return;
+    }
     if (a.kind == 'reply') {
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
@@ -114,16 +130,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
               for (final (i, a) in items.indexed)
                 ListTile(
                   key: Key('activity_$i'),
-                  leading: Icon(
-                    a.kind == 'reply'
-                        ? Icons.forum_outlined
-                        : Icons.mode_comment_outlined,
-                    color: a.unread ? theme.colorScheme.primary : null,
-                  ),
+                  leading: UserAvatar(a.actor),
                   title: Text(
-                    a.kind == 'reply'
-                        ? '${a.actor.label} respondeu em "${a.targetTitle}"'
-                        : '${a.actor.label} comentou no seu post',
+                    switch (a.kind) {
+                      'reply' =>
+                        '${a.actor.label} respondeu em "${a.targetTitle}"',
+                      'scrap' => '${a.actor.label} deixou um recado',
+                      _ => '${a.actor.label} comentou no seu post',
+                    },
                     style: a.unread
                         ? const TextStyle(fontWeight: FontWeight.bold)
                         : null,

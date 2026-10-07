@@ -62,11 +62,13 @@ impl Row {
                 id: self.author_id,
                 username: self.author_username,
                 display_name: self.author_display_name,
+                avatar_url: None,
             },
             recipient: AuthorDto {
                 id: self.recipient_id,
                 username: self.recipient_username,
                 display_name: self.recipient_display_name,
+                avatar_url: None,
             },
             body: self.body,
             status: self.status,
@@ -111,9 +113,9 @@ pub async fn list(
     )
     .fetch_all(&state.db)
     .await?;
-    Ok(Json(ListDto {
-        items: rows.into_iter().map(|r| r.into_dto(me)).collect(),
-    }))
+    let mut items: Vec<TestimonialDto> = rows.into_iter().map(|r| r.into_dto(me)).collect();
+    crate::routes::posts::fill_avatars(&state, items.iter_mut().map(|t| &mut t.author)).await?;
+    Ok(Json(ListDto { items }))
 }
 
 /// GET /v1/me/testimonials/pending — escritos sobre mim, esperando aprovação.
@@ -140,9 +142,9 @@ pub async fn pending(
     )
     .fetch_all(&state.db)
     .await?;
-    Ok(Json(ListDto {
-        items: rows.into_iter().map(|r| r.into_dto(me)).collect(),
-    }))
+    let mut items: Vec<TestimonialDto> = rows.into_iter().map(|r| r.into_dto(me)).collect();
+    crate::routes::posts::fill_avatars(&state, items.iter_mut().map(|t| &mut t.author)).await?;
+    Ok(Json(ListDto { items }))
 }
 
 #[derive(Debug, Deserialize)]
@@ -183,7 +185,9 @@ pub async fn write(
     .fetch_one(&state.db)
     .await?;
     let row = fetch(&state, id).await?.ok_or(AppError::NotFound)?;
-    Ok((StatusCode::OK, Json(row.into_dto(me))))
+    let mut dto = row.into_dto(me);
+    crate::routes::posts::fill_avatars(&state, [&mut dto.author]).await?;
+    Ok((StatusCode::OK, Json(dto)))
 }
 
 async fn fetch(state: &AppState, id: Uuid) -> sqlx::Result<Option<Row>> {

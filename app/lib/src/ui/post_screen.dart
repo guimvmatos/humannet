@@ -7,6 +7,7 @@ import '../auth/session_controller.dart';
 import 'error_messages.dart';
 import 'post_list.dart';
 import 'report_dialog.dart';
+import 'photos.dart';
 
 /// Um post com os comentários (do mais antigo ao mais novo) e o campo de resposta.
 class PostScreen extends StatefulWidget {
@@ -142,6 +143,7 @@ class _PostScreenState extends State<PostScreen> {
                   for (final c in comments)
                     ListTile(
                       key: Key('comment_${c.id}'),
+                      leading: UserAvatar(c.author),
                       title: Text(
                         '${c.author.label} · ${relativeTime(c.createdAt)}',
                         style: theme.textTheme.bodySmall,

@@ -57,17 +57,31 @@ class InviteCreated {
 
 /// Autor de um post (dados públicos).
 class Author {
-  const Author({required this.id, required this.username, this.displayName});
+  const Author({
+    required this.id,
+    required this.username,
+    this.displayName,
+    this.avatarUrl,
+    this.status,
+  });
 
   factory Author.fromJson(Map<String, dynamic> json) => Author(
     id: json['id'] as String,
     username: json['username'] as String,
     displayName: json['display_name'] as String?,
+    avatarUrl: json['avatar_url'] as String?,
+    status: json['status'] as String?,
   );
 
   final String id;
   final String username;
   final String? displayName;
+
+  /// Foto de perfil (link assinado), quando houver.
+  final String? avatarUrl;
+
+  /// Status/subnick (só na lista de amigos).
+  final String? status;
 
   String get label => displayName ?? '@$username';
 }
@@ -255,6 +269,7 @@ class Profile {
     this.school = '',
     this.avatarUrl,
     this.dailyPhoto,
+    this.status,
   });
 
   factory Profile.fromJson(Map<String, dynamic> json) {
@@ -271,6 +286,7 @@ class Profile {
       city: (json['city'] as String?) ?? '',
       school: (json['school'] as String?) ?? '',
       avatarUrl: json['avatar_url'] as String?,
+      status: json['status'] as String?,
       dailyPhoto: json['daily_photo'] == null
           ? null
           : DailyPhoto.fromJson(json['daily_photo'] as Map<String, dynamic>),
@@ -290,6 +306,9 @@ class Profile {
   final String? avatarUrl;
   final DailyPhoto? dailyPhoto;
 
+  /// Status/subnick vigente (só para o próprio e amigos).
+  final String? status;
+
   bool get isSelf => relation == Relation.self;
 
   Profile copyWith({Relation? relation}) => Profile(
@@ -305,6 +324,7 @@ class Profile {
     school: school,
     avatarUrl: avatarUrl,
     dailyPhoto: dailyPhoto,
+    status: status,
   );
 }
 
@@ -712,4 +732,29 @@ class Suggestion {
 
   final Author user;
   final List<String> reasons;
+}
+
+/// Recado no perfil (estilo scrap).
+class Scrap {
+  const Scrap({
+    required this.id,
+    required this.author,
+    required this.body,
+    required this.createdAt,
+    required this.canDelete,
+  });
+
+  factory Scrap.fromJson(Map<String, dynamic> json) => Scrap(
+    id: json['id'] as String,
+    author: Author.fromJson(json['author'] as Map<String, dynamic>),
+    body: json['body'] as String,
+    createdAt: DateTime.parse(json['created_at'] as String),
+    canDelete: (json['can_delete'] as bool?) ?? false,
+  );
+
+  final String id;
+  final Author author;
+  final String body;
+  final DateTime createdAt;
+  final bool canDelete;
 }

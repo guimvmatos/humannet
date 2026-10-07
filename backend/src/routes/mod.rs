@@ -13,6 +13,7 @@ pub mod photos;
 pub mod posts;
 pub mod profiles;
 pub mod safety;
+pub mod scraps;
 pub mod suggestions;
 pub mod testimonials;
 pub mod topics;

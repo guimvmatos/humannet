@@ -71,6 +71,7 @@ pub async fn create(
                 id: user.user_id,
                 username: r.username,
                 display_name: r.display_name,
+                avatar_url: None,
             },
             body: r.body,
             created_at: r.created_at,
@@ -106,7 +107,7 @@ pub async fn list(
     )
     .fetch_all(&state.db)
     .await?;
-    let items = rows
+    let mut items: Vec<CommentDto> = rows
         .into_iter()
         .map(|r| CommentDto {
             id: r.id,
@@ -116,11 +117,13 @@ pub async fn list(
                 id: r.author_id,
                 username: r.username,
                 display_name: r.display_name,
+                avatar_url: None,
             },
             body: r.body,
             created_at: r.created_at,
         })
         .collect();
+    crate::routes::posts::fill_avatars(&state, items.iter_mut().map(|c| &mut c.author)).await?;
     Ok(Json(ListDto { items }))
 }
 

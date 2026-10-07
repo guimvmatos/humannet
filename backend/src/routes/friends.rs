@@ -236,29 +236,39 @@ pub async fn incoming(
     )
     .fetch_all(&state.db)
     .await?;
-    let items = rows
+    let mut items: Vec<FriendRequestDto> = rows
         .into_iter()
         .map(|r| FriendRequestDto {
             user: AuthorDto {
                 id: r.id,
                 username: r.username,
                 display_name: r.display_name,
+                avatar_url: None,
             },
             created_at: r.created_at,
         })
         .collect();
+    crate::routes::posts::fill_avatars(&state, items.iter_mut().map(|r| &mut r.user)).await?;
     Ok(Json(ListDto { items }))
+}
+
+/// Amigo na lista, com o status/subnick vigente.
+#[derive(Debug, Serialize)]
+pub struct FriendDto {
+    #[serde(flatten)]
+    pub user: AuthorDto,
+    pub status: Option<String>,
 }
 
 /// GET /v1/friends — meus amigos, em ordem alfabética.
 pub async fn list(
     State(state): State<AppState>,
     user: AuthUser,
-) -> AppResult<Json<ListDto<AuthorDto>>> {
-    let items = sqlx::query_as!(
-        AuthorDto,
+) -> AppResult<Json<ListDto<FriendDto>>> {
+    let rows = sqlx::query!(
         r#"
-        SELECT u.id AS "id!", u.username AS "username!", u.display_name
+        SELECT u.id AS "id!", u.username AS "username!", u.display_name,
+               u.status_text AS "status_text!", u.status_expires_at
         FROM friends f JOIN users u ON u.id = f.friend_id
         WHERE f.user_id = $1
         ORDER BY lower(coalesce(u.display_name, u.username))
@@ -268,5 +278,18 @@ pub async fn list(
     )
     .fetch_all(&state.db)
     .await?;
+    let mut items: Vec<FriendDto> = rows
+        .into_iter()
+        .map(|r| FriendDto {
+            user: AuthorDto {
+                id: r.id,
+                username: r.username,
+                display_name: r.display_name,
+                avatar_url: None,
+            },
+            status: crate::routes::scraps::current_status(r.status_text, r.status_expires_at),
+        })
+        .collect();
+    crate::routes::posts::fill_avatars(&state, items.iter_mut().map(|f| &mut f.user)).await?;
     Ok(Json(ListDto { items }))
 }

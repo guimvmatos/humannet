@@ -136,3 +136,25 @@ class PhotoViewer extends StatelessWidget {
     );
   }
 }
+
+/// Foto de perfil redonda; sem foto, a inicial do nome.
+class UserAvatar extends StatelessWidget {
+  const UserAvatar(this.author, {super.key, this.radius = 18});
+
+  final Author author;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = author.avatarUrl;
+    final name = author.displayName ?? author.username;
+    return CircleAvatar(
+      radius: radius,
+      backgroundImage: url == null ? null : NetworkImage(url),
+      onBackgroundImageError: url == null ? null : (_, _) {},
+      child: url == null
+          ? Text(name.isEmpty ? '?' : name.characters.first.toUpperCase())
+          : null,
+    );
+  }
+}

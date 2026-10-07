@@ -119,7 +119,7 @@ pub async fn list_blocks(
     let items = sqlx::query_as!(
         AuthorDto,
         r#"
-        SELECT u.id, u.username, u.display_name
+        SELECT u.id, u.username, u.display_name, NULL::text AS avatar_url
         FROM blocks b JOIN users u ON u.id = b.blocked_id
         WHERE b.blocker_id = $1
         ORDER BY b.created_at DESC
@@ -156,6 +156,7 @@ pub enum ReportTarget {
     Reply { reply_id: Uuid },
     Community { slug: String },
     Testimonial { testimonial_id: Uuid },
+    Scrap { scrap_id: Uuid },
 }
 
 #[derive(Debug, Deserialize)]
@@ -283,6 +284,21 @@ pub async fn report(
                 return Err(AppError::NotFound);
             }
             ("testimonial", *testimonial_id, t.body, t.author_id)
+        }
+        ReportTarget::Scrap { scrap_id } => {
+            let s = sqlx::query!(
+                "SELECT author_id, recipient_id, body FROM scraps WHERE id = $1",
+                scrap_id
+            )
+            .fetch_optional(&state.db)
+            .await?
+            .ok_or(AppError::NotFound)?;
+            if !friends::can_see_content(&state.db, me, s.recipient_id).await?
+                || is_blocked_either_way(&state.db, me, s.author_id).await?
+            {
+                return Err(AppError::NotFound);
+            }
+            ("scrap", *scrap_id, s.body, s.author_id)
         }
     };
     if target_user == me {

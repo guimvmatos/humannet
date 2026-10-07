@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM scraps WHERE id = $1 AND (recipient_id = $2 OR author_id = $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c5d06b6802c258d8a87c740554e325a7a6ede9f084c3d240c09bb93e5b399124"
+}

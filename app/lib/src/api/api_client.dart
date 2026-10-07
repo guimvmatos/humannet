@@ -183,9 +183,11 @@ class ApiClient {
     String? replyId,
     String? communitySlug,
     String? testimonialId,
+    String? scrapId,
     String details = '',
   }) async {
     final targets = <String, String?>{
+      'scrap': scrapId,
       'testimonial': testimonialId,
       'post': postId,
       'user': username,
@@ -209,6 +211,7 @@ class ApiClient {
         'reply_id': ?replyId,
         'slug': ?communitySlug,
         'testimonial_id': ?testimonialId,
+        'scrap_id': ?scrapId,
         'reason': reason,
         'details': details,
       },
@@ -690,6 +693,46 @@ class ApiClient {
       'DELETE',
       '/v1/testimonials/${Uri.encodeComponent(id)}',
       token: token,
+    );
+  }
+
+  // ------------------------------------------------------------ recados e status
+
+  Future<Paged<Scrap>> scraps(
+    String token,
+    String username, {
+    String? before,
+  }) async {
+    final json = await _send(
+      'GET',
+      '/v1/users/${Uri.encodeComponent(username)}/scraps',
+      token: token,
+      query: {'before': ?before},
+    );
+    return Paged.fromJson(json!, Scrap.fromJson);
+  }
+
+  Future<Scrap> writeScrap(String token, String username, String body) async {
+    final json = await _send(
+      'POST',
+      '/v1/users/${Uri.encodeComponent(username)}/scraps',
+      token: token,
+      body: {'body': body},
+    );
+    return Scrap.fromJson(json!);
+  }
+
+  Future<void> deleteScrap(String token, String id) async {
+    await _send('DELETE', '/v1/scraps/${Uri.encodeComponent(id)}', token: token);
+  }
+
+  /// `text == ''` apaga. `hours`: 24, 72, 168 ou 0 (sem validade).
+  Future<void> setStatus(String token, String text, {int hours = 24}) async {
+    await _send(
+      'PUT',
+      '/v1/me/status',
+      token: token,
+      body: {'text': text, 'hours': hours},
     );
   }
 

@@ -702,4 +702,69 @@ void main() {
     expect(backend.uploads.single.$2, png);
     expect(backend.lastMediaIds, ['m1']);
   });
+
+  testWidgets('status no próprio perfil e recado para um amigo', (
+    tester,
+  ) async {
+    final backend = FakeBackend()..bobRelation = 'friends';
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byKey(const Key('nav_profile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('status_line')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('status_field')), 'de férias');
+    await tester.tap(find.text('3 dias'));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('save_status_button')));
+    await tester.pumpAndSettle();
+    expect(backend.status, 'de férias');
+    expect(backend.statusHours, 72);
+    expect(find.text('de férias'), findsOneWidget);
+
+    // Recado no perfil de bob (amigo).
+    await tester.tap(find.byKey(const Key('nav_feed')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Encontrar pessoa'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('find_person_field')), 'bob');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('scraps_button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('no_scraps')), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('scrap_field')), 'Saudades!');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('send_scrap_button')));
+    await tester.pumpAndSettle();
+    expect(backend.bobScraps.single['body'], 'Saudades!');
+    expect(find.text('Saudades!'), findsOneWidget);
+  });
+
+  testWidgets('cadastro exige aceitar as regras', (tester) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await tester.tap(find.text('Tenho um convite'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('register_button')));
+    final button = tester.widget<FilledButton>(
+      find.byKey(const Key('register_button')),
+    );
+    expect(button.onPressed, isNull);
+    await tester.ensureVisible(find.byKey(const Key('accept_rules')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('accept_rules')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<FilledButton>(find.byKey(const Key('register_button')))
+          .onPressed,
+      isNotNull,
+    );
+  });
 }

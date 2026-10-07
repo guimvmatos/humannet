@@ -7,6 +7,7 @@ import '../auth/session_controller.dart';
 import 'error_messages.dart';
 import 'post_list.dart' show relativeTime;
 import 'report_dialog.dart';
+import 'photos.dart';
 
 /// Depoimentos de um perfil. No próprio perfil, mostra também os que esperam
 /// aprovação. Amigos podem escrever (ou reescrever) o seu.
@@ -235,6 +236,7 @@ class _TestimonialsScreenState extends State<TestimonialsScreen> {
               for (final t in items)
                 ListTile(
                   key: Key('testimonial_${t.id}'),
+                  leading: UserAvatar(t.author),
                   title: Text(
                     '${t.author.label} · ${relativeTime(t.createdAt)}'
                     '${t.isPending ? ' · esperando aprovação' : ''}',

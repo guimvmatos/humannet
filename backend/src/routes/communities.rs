@@ -575,19 +575,21 @@ pub async fn members(
     )
     .fetch_all(&state.db)
     .await?;
-    let items = rows
+    let mut items: Vec<MemberDto> = rows
         .into_iter()
         .map(|r| MemberDto {
             user: AuthorDto {
                 id: r.id,
                 username: r.username,
                 display_name: r.display_name,
+                avatar_url: None,
             },
             role: r.role,
             status: r.status,
             since: r.created_at,
         })
         .collect();
+    crate::routes::posts::fill_avatars(&state, items.iter_mut().map(|m| &mut m.user)).await?;
     Ok(Json(ListDto { items }))
 }
 

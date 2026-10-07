@@ -80,6 +80,12 @@ pub fn app(state: AppState) -> Router {
         )
         .route("/me/password", put(routes::account::change_password))
         .route("/me/counts", get(routes::activity::counts))
+        .route("/me/status", put(routes::scraps::set_status))
+        .route(
+            "/users/{username}/scraps",
+            get(routes::scraps::list).post(routes::scraps::create),
+        )
+        .route("/scraps/{id}", delete(routes::scraps::delete))
         .route(
             "/media",
             post(routes::photos::upload).layer(DefaultBodyLimit::max(media::MAX_UPLOAD_BYTES)),

@@ -62,6 +62,12 @@ pub async fn counts(State(state): State<AppState>, user: AuthUser) -> AppResult<
               AND NOT EXISTS (SELECT 1 FROM blocks b
                 WHERE (b.blocker_id = $1 AND b.blocked_id = r.author_id)
                    OR (b.blocker_id = r.author_id AND b.blocked_id = $1)))
+          +
+          (SELECT count(*) FROM scraps s
+            WHERE s.recipient_id = $1 AND s.created_at > (SELECT t FROM seen)
+              AND NOT EXISTS (SELECT 1 FROM blocks b
+                WHERE (b.blocker_id = $1 AND b.blocked_id = s.author_id)
+                   OR (b.blocker_id = s.author_id AND b.blocked_id = $1)))
           AS "unread_activity!"
         "#,
         me
@@ -78,10 +84,10 @@ pub async fn counts(State(state): State<AppState>, user: AuthUser) -> AppResult<
 
 #[derive(Debug, Serialize)]
 pub struct ActivityDto {
-    /// comment | reply
+    /// comment | reply | scrap
     pub kind: String,
     pub actor: AuthorDto,
-    /// Post (comment) ou tópico (reply).
+    /// Post (comment), tópico (reply) ou recado (scrap).
     pub target_id: Uuid,
     /// Título do tópico; vazio para comentário.
     pub target_title: String,
@@ -106,6 +112,10 @@ pub async fn list(
           WHERE p.author_id = $1 AND c.author_id <> $1
             AND c.deleted_at IS NULL AND p.deleted_at IS NULL
             AND c.created_at > now() - make_interval(days => $2)
+          UNION ALL
+          SELECT 'scrap', s.author_id, s.id, '', s.body, s.created_at
+          FROM scraps s
+          WHERE s.recipient_id = $1 AND s.created_at > now() - make_interval(days => $2)
           UNION ALL
           SELECT 'reply', r.author_id, t.id, t.title, r.body, r.created_at
           FROM topic_replies r JOIN topics t ON t.id = r.topic_id
@@ -132,7 +142,7 @@ pub async fn list(
     )
     .fetch_all(&state.db)
     .await?;
-    let items = rows
+    let mut items: Vec<ActivityDto> = rows
         .into_iter()
         .map(|r| {
             let excerpt: String = r.body.chars().take(140).collect();
@@ -142,6 +152,7 @@ pub async fn list(
                     id: r.id,
                     username: r.username,
                     display_name: r.display_name,
+                    avatar_url: None,
                 },
                 target_id: r.target_id,
                 target_title: r.title,
@@ -151,6 +162,7 @@ pub async fn list(
             }
         })
         .collect();
+    crate::routes::posts::fill_avatars(&state, items.iter_mut().map(|a| &mut a.actor)).await?;
     Ok(Json(ListDto { items }))
 }
 

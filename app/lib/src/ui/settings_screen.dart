@@ -7,6 +7,7 @@ import '../auth/session_controller.dart';
 import 'appearance_screen.dart';
 import 'error_messages.dart';
 import 'moderation_screen.dart';
+import 'rules_screen.dart';
 
 /// Configurações da conta: senha, bloqueados, excluir conta, sair.
 class SettingsScreen extends StatelessWidget {
@@ -34,6 +35,14 @@ class SettingsScreen extends StatelessWidget {
             ),
             const Divider(),
           ],
+          ListTile(
+            key: const Key('rules_tile'),
+            leading: const Icon(Icons.gavel_outlined),
+            title: const Text('Regras de convivência'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const RulesScreen()),
+            ),
+          ),
           ListTile(
             key: const Key('appearance_tile'),
             leading: const Icon(Icons.palette_outlined),

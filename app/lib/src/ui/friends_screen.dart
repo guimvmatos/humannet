@@ -6,6 +6,7 @@ import '../api/models.dart';
 import '../auth/session_controller.dart';
 import 'error_messages.dart';
 import 'profile_screen.dart';
+import 'photos.dart';
 
 /// Aba "Amigos": pedidos recebidos (aceitar/recusar) e lista de amigos.
 class FriendsScreen extends StatefulWidget {
@@ -154,6 +155,7 @@ class FriendsScreenState extends State<FriendsScreen> {
               for (final r in _requests)
                 ListTile(
                   key: Key('request_${r.user.username}'),
+                  leading: UserAvatar(r.user),
                   title: Text(r.user.label),
                   subtitle: Text('@${r.user.username}'),
                   onTap: () => _open(r.user.username),
@@ -186,6 +188,7 @@ class FriendsScreenState extends State<FriendsScreen> {
               for (final sg in _suggestions)
                 ListTile(
                   key: Key('suggestion_${sg.user.username}'),
+                  leading: UserAvatar(sg.user),
                   title: Text(sg.user.label),
                   subtitle: Text(
                     '@${sg.user.username} · ${sg.reasons.join(' · ')}',
@@ -227,9 +230,13 @@ class FriendsScreenState extends State<FriendsScreen> {
             for (final f in _friends)
               ListTile(
                 key: Key('friend_${f.username}'),
-                leading: const Icon(Icons.person_outline),
+                leading: UserAvatar(f),
                 title: Text(f.label),
-                subtitle: Text('@${f.username}'),
+                subtitle: Text(
+                  f.status == null
+                      ? '@${f.username}'
+                      : '@${f.username} · ${f.status}',
+                ),
                 onTap: () => _open(f.username),
               ),
           ],

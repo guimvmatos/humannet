@@ -6,6 +6,7 @@ import '../api/models.dart';
 import '../auth/session_controller.dart';
 import 'error_messages.dart';
 import 'profile_screen.dart';
+import 'photos.dart';
 
 /// Membros de uma comunidade. Quem modera também vê pedidos e removidos.
 class CommunityMembersScreen extends StatefulWidget {
@@ -163,6 +164,7 @@ class _CommunityMembersScreenState extends State<CommunityMembersScreen> {
               for (final m in pending)
                 ListTile(
                   key: Key('pending_${m.user.username}'),
+                  leading: UserAvatar(m.user),
                   title: Text(m.user.label),
                   subtitle: Text('@${m.user.username}'),
                   onTap: () => _openProfile(m.user.username),
@@ -199,6 +201,7 @@ class _CommunityMembersScreenState extends State<CommunityMembersScreen> {
               for (final m in active)
                 ListTile(
                   key: Key('member_${m.user.username}'),
+                  leading: UserAvatar(m.user),
                   title: Text(m.user.label),
                   subtitle: Text('@${m.user.username} · ${m.roleLabel}'),
                   onTap: () => _openProfile(m.user.username),

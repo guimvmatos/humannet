@@ -15,6 +15,7 @@ Uma rede social ética, humana e autêntica, feita a partir do Brasil.
 | [`docs/BACKLOG.md`](docs/BACKLOG.md) | Ideias futuras com fase, dependências e riscos |
 | [`docs/SETUP-BETA.md`](docs/SETUP-BETA.md) | Passo a passo: Neon, Render, assinatura, Google Play, convites |
 | [`docs/PRIVACIDADE.md`](docs/PRIVACIDADE.md) | Política de privacidade do beta |
+| [`docs/REGRAS.md`](docs/REGRAS.md) | Regras de convivência (as mesmas do app) |
 | [`CLAUDE.md`](CLAUDE.md) | Convenções do repo (para pessoas e agentes de IA) |
 
 ## Estrutura
@@ -79,6 +80,9 @@ cd app && flutter test
 | PUT | `/v1/me/password` | Bearer | `{current_password, new_password}`: encerra as outras sessões |
 | POST | `/v1/invites` | Bearer | Gera um convite (até 5 ativos) |
 | PATCH | `/v1/me/profile` | Bearer | `{display_name?, bio?, hometown?, city?, school?}` (`""` remove; cidade/escola até 80) |
+| PUT | `/v1/me/status` | Bearer | Status/subnick `{text, hours: 24\|72\|168\|0}` (até 80; `""` apaga; 0 = sem validade). Só amigos veem (perfil e lista de amigos) |
+| GET / POST | `/v1/users/{username}/scraps` | Bearer | Recados (mais novos primeiro) / deixar recado `{body}` (1–1000). Só amigos escrevem e leem |
+| DELETE | `/v1/scraps/{id}` | Bearer | Apagar recado (dono do perfil ou autor) |
 | GET | `/v1/me/suggestions` | Bearer | Pessoas que você talvez conheça, cada uma com `reasons` (amigos em comum, mesma escola, cidade natal ou cidade atual). Sem contatos nem localização |
 | POST | `/v1/me/suggestions/{username}/dismiss` | Bearer | Não sugerir mais essa pessoa |
 | GET | `/v1/users/{username}` | Bearer | Perfil + `relation` (`self`, `none`, `friends`, `request_sent`, `request_received`); `stats` só no próprio perfil (R3) |
@@ -88,7 +92,7 @@ cd app && flutter test
 | GET | `/v1/friends` | Bearer | Meus amigos |
 | PUT / DELETE | `/v1/users/{username}/block` | Bearer | Bloquear / desbloquear (bloqueio invisível: 404 nos dois sentidos) |
 | GET | `/v1/blocks` | Bearer | Quem eu bloqueei |
-| POST | `/v1/reports` | Bearer | `{kind, <alvo>, reason, details?}` → 202. Alvos: `post` + `post_id`, `user` + `username`, `comment` + `comment_id`, `topic` + `topic_id`, `reply` + `reply_id`, `community` + `slug`, `testimonial` + `testimonial_id` |
+| POST | `/v1/reports` | Bearer | `{kind, <alvo>, reason, details?}` → 202. Alvos: `post` + `post_id`, `user` + `username`, `comment` + `comment_id`, `topic` + `topic_id`, `reply` + `reply_id`, `community` + `slug`, `testimonial` + `testimonial_id`, `scrap` + `scrap_id` |
 | GET | `/v1/users/{username}/posts` | Bearer | Posts do usuário (só para o próprio e amigos; senão 403) |
 | POST | `/v1/media?kind=post\|avatar\|daily` | Bearer | Corpo = bytes da imagem (JPEG/PNG/WebP, até 10 MB). O servidor recodifica em JPEG **sem metadados** (tira GPS), reduz (1600 px; avatar 512×512) e devolve `{id, url, width, height}`. Fotos não usadas em 24 h são apagadas |
 | POST | `/v1/posts` | Bearer | `{body, media_ids?}`: texto (até 5000) e/ou até 4 fotos (`kind=post`). Posts trazem `images` |

@@ -7,6 +7,7 @@ import '../auth/session_controller.dart';
 import 'error_messages.dart';
 import 'post_list.dart' show relativeTime;
 import 'report_dialog.dart';
+import 'photos.dart';
 
 /// Um tópico com as respostas (da mais antiga à mais nova) e o campo de resposta.
 class TopicScreen extends StatefulWidget {
@@ -263,6 +264,7 @@ class _TopicScreenState extends State<TopicScreen> {
                     for (final r in _replies)
                       ListTile(
                         key: Key('reply_${r.id}'),
+                        leading: UserAvatar(r.author),
                         title: Text(
                           '${r.author.label} · ${relativeTime(r.createdAt)}',
                           style: theme.textTheme.bodySmall,

@@ -79,7 +79,7 @@ pub async fn list(
     .fetch_all(&state.db)
     .await?;
 
-    let items = rows
+    let mut items: Vec<SuggestionDto> = rows
         .into_iter()
         .map(|r| {
             let mut reasons = Vec::new();
@@ -102,12 +102,14 @@ pub async fn list(
                     id: r.id,
                     username: r.username,
                     display_name: r.display_name,
+                    avatar_url: None,
                 },
                 mutual_friends: r.mutual,
                 reasons,
             }
         })
         .collect();
+    crate::routes::posts::fill_avatars(&state, items.iter_mut().map(|s| &mut s.user)).await?;
     Ok(Json(ListDto { items }))
 }
 

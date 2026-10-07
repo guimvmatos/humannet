@@ -163,7 +163,7 @@ pub async fn list(
     )
     .fetch_all(&state.db)
     .await?;
-    let items = rows
+    let mut items: Vec<TopicDto> = rows
         .into_iter()
         .map(|r| TopicDto {
             id: r.id,
@@ -176,6 +176,7 @@ pub async fn list(
                 id: r.author_id,
                 username: r.username,
                 display_name: r.display_name,
+                avatar_url: None,
             },
             title: r.title,
             body: excerpt(&r.body),
@@ -186,6 +187,7 @@ pub async fn list(
             last_activity_at: r.last_activity_at,
         })
         .collect();
+    crate::routes::posts::fill_avatars(&state, items.iter_mut().map(|t| &mut t.author)).await?;
     Ok(Json(Page::from_overfetch(items, limit, |t| t.id)))
 }
 
@@ -238,6 +240,7 @@ pub async fn create(
                 id: user.user_id,
                 username: r.username,
                 display_name: r.display_name,
+                avatar_url: None,
             },
             title: r.title,
             body: r.body,
@@ -274,7 +277,7 @@ pub async fn get(
     .fetch_one(&state.db)
     .await?;
     let a = &ctx.access;
-    Ok(Json(TopicDto {
+    let mut dto = TopicDto {
         id: r.id,
         community_slug: ctx.community.slug.clone(),
         community_name: ctx.community.name.clone(),
@@ -285,6 +288,7 @@ pub async fn get(
             id: r.author_id,
             username: r.username,
             display_name: r.display_name,
+            avatar_url: None,
         },
         title: r.title,
         body: r.body,
@@ -293,7 +297,9 @@ pub async fn get(
         reply_count: r.reply_count,
         created_at: r.created_at,
         last_activity_at: r.last_activity_at,
-    }))
+    };
+    crate::routes::posts::fill_avatars(&state, [&mut dto.author]).await?;
+    Ok(Json(dto))
 }
 
 #[derive(Debug, Deserialize)]
@@ -383,7 +389,7 @@ pub async fn replies(
     .fetch_all(&state.db)
     .await?;
     let is_mod = ctx.access.is_mod();
-    let items = rows
+    let mut items: Vec<ReplyDto> = rows
         .into_iter()
         .map(|r| ReplyDto {
             id: r.id,
@@ -393,11 +399,13 @@ pub async fn replies(
                 id: r.author_id,
                 username: r.username,
                 display_name: r.display_name,
+                avatar_url: None,
             },
             body: r.body,
             created_at: r.created_at,
         })
         .collect();
+    crate::routes::posts::fill_avatars(&state, items.iter_mut().map(|r| &mut r.author)).await?;
     Ok(Json(Page::from_overfetch(items, limit, |r| r.id)))
 }
 
@@ -455,6 +463,7 @@ pub async fn reply(
                 id: user.user_id,
                 username: r.username,
                 display_name: r.display_name,
+                avatar_url: None,
             },
             body: r.body,
             created_at: r.created_at,

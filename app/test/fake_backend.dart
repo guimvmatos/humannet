@@ -60,6 +60,10 @@ class FakeBackend {
   /// Fotos recebidas em POST /v1/media (kind, bytes).
   final List<(String, List<int>)> uploads = [];
   List<dynamic> lastMediaIds = const [];
+
+  String? status;
+  int? statusHours;
+  final List<Map<String, Object?>> bobScraps = [];
   bool carolFriend = false;
   String? displayName;
   String bio = '';
@@ -233,6 +237,25 @@ class FakeBackend {
           'width': 10,
           'height': 10,
         });
+      case 'PUT /v1/me/status':
+        final st = jsonDecode(request.body) as Map<String, dynamic>;
+        final text = st['text'] as String;
+        status = text.isEmpty ? null : text;
+        statusHours = st['hours'] as int?;
+        return _json(200, {'text': text, 'expires_at': null});
+      case 'GET /v1/users/bob/scraps':
+        return _json(200, {'items': bobScraps, 'next_cursor': null});
+      case 'POST /v1/users/bob/scraps':
+        final b = jsonDecode(request.body) as Map<String, dynamic>;
+        final scrap = <String, Object?>{
+          'id': 's${bobScraps.length + 1}',
+          'author': {'id': 'u-alice', 'username': username, 'display_name': null},
+          'body': (b['body'] as String).trim(),
+          'created_at': '2026-10-08T12:00:00Z',
+          'can_delete': true,
+        };
+        bobScraps.insert(0, scrap);
+        return _json(201, scrap);
       case 'GET /v1/me/suggestions':
         return _json(200, {
           'items': [
@@ -383,6 +406,7 @@ class FakeBackend {
       'created_at': '2026-10-03T05:27:07Z',
       'is_self': isSelf,
       'relation': relation,
+      if (isSelf) 'status': status,
       if (isSelf)
         'stats': {
           'friends': (bobRelation == 'friends' ? 1 : 0) + (carolFriend ? 1 : 0),
