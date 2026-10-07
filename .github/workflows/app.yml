@@ -53,7 +53,9 @@ jobs:
 
       # Enquanto android/ não estiver commitado, gera e ajusta aqui.
       - name: preparar android/
-        run: ./tool/setup_android.sh
+        run: |
+          set -o pipefail
+          ./tool/setup_android.sh 2>&1 | tee -a /tmp/build.log
       # Assinatura própria (necessária para a Play Store e para instalar
       # atualizações por cima). Vem dos segredos ANDROID_*; sem eles, usa a
       # chave de debug do CI (cada build exige desinstalar o anterior).
@@ -75,20 +77,33 @@ jobs:
         # para trocar; sem ela, usa a API no Render.
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL || 'https://humannet-api.onrender.com' }}
-        run: >-
-          flutter build apk --release --target-platform android-arm64
-          --build-number=${{ github.run_number }}
-          --dart-define=API_BASE_URL="$API_BASE_URL"
-          --dart-define=GIT_SHA="${GITHUB_SHA::7}"
+        run: |
+          set -o pipefail
+          flutter build apk --release --target-platform android-arm64 \
+            --build-number=${{ github.run_number }} \
+            --dart-define=API_BASE_URL="$API_BASE_URL" \
+            --dart-define=GIT_SHA="${GITHUB_SHA::7}" 2>&1 | tee -a /tmp/build.log
       - name: build AAB (Play Store)
         if: env.SIGNED == '1'
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL || 'https://humannet-api.onrender.com' }}
-        run: >-
-          flutter build appbundle --release
-          --build-number=${{ github.run_number }}
-          --dart-define=API_BASE_URL="$API_BASE_URL"
-          --dart-define=GIT_SHA="${GITHUB_SHA::7}"
+        run: |
+          set -o pipefail
+          flutter build appbundle --release \
+            --build-number=${{ github.run_number }} \
+            --dart-define=API_BASE_URL="$API_BASE_URL" \
+            --dart-define=GIT_SHA="${GITHUB_SHA::7}" 2>&1 | tee -a /tmp/build.log
+      # Repositório público: o resumo do job é visível sem login, então o fim
+      # do log de build vai para lá quando algo falha.
+      - name: resumo do erro de build
+        if: failure()
+        run: |
+          {
+            echo '### Falha no build do app (últimas 80 linhas)'
+            echo '```'
+            tail -n 80 /tmp/build.log 2>/dev/null || echo '(sem log)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         with:
           name: humannet-apk
