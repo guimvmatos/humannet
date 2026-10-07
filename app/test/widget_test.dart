@@ -529,6 +529,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Música').last);
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('visibility_closed')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('visibility_closed')));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const Key('save_community_button')));
