@@ -70,10 +70,17 @@ pub async fn register(
     .ok_or(AppError::InvalidInvite)?;
 
     let user_id = Uuid::now_v7();
+    // ADMIN_USERNAMES também vale para quem se cadastra com a API já no ar
+    // (sync_admins só roda na inicialização).
+    let role = if state.policy.admin_usernames.contains(&username) {
+        "admin"
+    } else {
+        "user"
+    };
     let created_at = sqlx::query_scalar!(
         r#"
-        INSERT INTO users (id, username, email, password_hash, invited_by)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO users (id, username, email, password_hash, invited_by, role)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING created_at
         "#,
         user_id,
@@ -81,6 +88,7 @@ pub async fn register(
         email,
         password_hash,
         invite.created_by,
+        role,
     )
     .fetch_one(&mut *tx)
     .await
@@ -111,7 +119,7 @@ pub async fn register(
                 email,
                 display_name: None,
                 bio: String::new(),
-                role: "user".to_owned(),
+                role: role.to_owned(),
                 created_at,
             },
         }),

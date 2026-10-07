@@ -46,6 +46,8 @@ pub struct Policy {
     pub session_ttl_days: i64,
     pub invite_ttl_days: i64,
     pub max_active_invites: i64,
+    /// `ADMIN_USERNAMES`: quem se cadastra com um destes nomes já nasce admin.
+    pub admin_usernames: Vec<String>,
 }
 
 impl Default for Policy {
@@ -54,6 +56,7 @@ impl Default for Policy {
             session_ttl_days: 30,
             invite_ttl_days: 14,
             max_active_invites: 5,
+            admin_usernames: Vec::new(),
         }
     }
 }
@@ -64,6 +67,7 @@ impl From<&Config> for Policy {
             session_ttl_days: c.session_ttl_days,
             invite_ttl_days: c.invite_ttl_days,
             max_active_invites: c.max_active_invites,
+            admin_usernames: c.admin_usernames.clone(),
         }
     }
 }

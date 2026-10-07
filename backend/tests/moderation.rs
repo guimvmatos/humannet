@@ -58,6 +58,27 @@ async fn admin_routes_require_admin_role(db: PgPool) {
     assert_eq!(s, StatusCode::FORBIDDEN);
 }
 
+/// ADMIN_USERNAMES vale também para quem se cadastra com a API já no ar.
+#[sqlx::test]
+async fn admin_username_is_admin_from_registration(db: PgPool) {
+    let policy = Policy {
+        admin_usernames: vec!["boss".to_owned()],
+        ..Policy::default()
+    };
+    let app = humannet_api::app(AppState::new(db.clone(), policy));
+    let invite = admin_invite(&db).await;
+    let (s, body) = register(&app, &invite, "Boss", "boss@example.com").await;
+    assert_eq!(s, StatusCode::CREATED, "{body}");
+    assert_eq!(body["user"]["role"], "admin");
+    let boss = body["token"].as_str().unwrap();
+    let (s, _) = call(&app, Method::GET, "/v1/admin/reports", Some(boss), None).await;
+    assert_eq!(s, StatusCode::OK);
+
+    let alice = signup(&app, &db, "alice").await;
+    let (_, me) = call(&app, Method::GET, "/v1/me", Some(&alice), None).await;
+    assert_eq!(me["role"], "user");
+}
+
 #[sqlx::test]
 async fn remove_reported_post(db: PgPool) {
     let app = test_app(db.clone());
