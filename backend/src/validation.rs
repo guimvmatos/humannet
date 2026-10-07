@@ -223,6 +223,19 @@ pub fn reply_body(raw: &str) -> Result<String, AppError> {
     Ok(v.to_owned())
 }
 
+pub const TESTIMONIAL_MAX: usize = 1000;
+
+/// Depoimento: 1–1000 caracteres, com quebras de linha.
+pub fn testimonial_body(raw: &str) -> Result<String, AppError> {
+    let v = normalize_newlines(raw);
+    let v = v.trim();
+    let n = v.chars().count();
+    if n == 0 || n > TESTIMONIAL_MAX || has_forbidden_control(v) {
+        return Err(AppError::Validation("invalid_testimonial_body"));
+    }
+    Ok(v.to_owned())
+}
+
 /// CRLF/CR → LF, para que textos vindos de qualquer plataforma sejam aceitos.
 fn normalize_newlines(raw: &str) -> String {
     raw.replace("\r\n", "\n").replace('\r', "\n")

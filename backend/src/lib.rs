@@ -137,7 +137,24 @@ pub fn app(state: AppState) -> Router {
             "/topics/{id}/replies",
             get(routes::topics::replies).post(routes::topics::reply),
         )
-        .route("/replies/{id}", delete(routes::topics::delete_reply));
+        .route("/replies/{id}", delete(routes::topics::delete_reply))
+        .route(
+            "/users/{username}/testimonials",
+            get(routes::testimonials::list),
+        )
+        .route(
+            "/users/{username}/testimonial",
+            put(routes::testimonials::write),
+        )
+        .route(
+            "/me/testimonials/pending",
+            get(routes::testimonials::pending),
+        )
+        .route(
+            "/testimonials/{id}/approve",
+            post(routes::testimonials::approve),
+        )
+        .route("/testimonials/{id}", delete(routes::testimonials::delete));
 
     Router::new()
         .route("/health", get(routes::health::health))

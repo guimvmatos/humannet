@@ -11,4 +11,5 @@ pub mod pagination;
 pub mod posts;
 pub mod profiles;
 pub mod safety;
+pub mod testimonials;
 pub mod topics;

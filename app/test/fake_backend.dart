@@ -49,6 +49,9 @@ class FakeBackend {
   final List<Map<String, Object?>> topics = [];
   final List<Map<String, Object?>> replies = [];
   final List<Map<String, dynamic>> createdCommunities = [];
+
+  /// Depoimento de carol sobre alice: pending → approved.
+  String? carolTestimonial = 'pending';
   bool carolFriend = false;
   String? displayName;
   String bio = '';
@@ -210,6 +213,20 @@ class FakeBackend {
         final post = _post(id, text);
         posts.insert(0, post);
         return _json(201, post);
+      case 'GET /v1/users/alice/testimonials':
+        return _json(200, {
+          'items': [if (carolTestimonial == 'approved') _testimonial()],
+        });
+      case 'GET /v1/me/testimonials/pending':
+        return _json(200, {
+          'items': [if (carolTestimonial == 'pending') _testimonial()],
+        });
+      case 'POST /v1/testimonials/d1/approve':
+        carolTestimonial = 'approved';
+        return http.Response('', 204);
+      case 'DELETE /v1/testimonials/d1':
+        carolTestimonial = null;
+        return http.Response('', 204);
       case 'GET /v1/communities':
         final mine = request.url.queryParameters['mine'] == 'true';
         return _json(200, {
@@ -308,9 +325,20 @@ class FakeBackend {
           'friends': (bobRelation == 'friends' ? 1 : 0) + (carolFriend ? 1 : 0),
           'posts': posts.length,
           'pending_requests': carolRequested ? 1 : 0,
+          'pending_testimonials': carolTestimonial == 'pending' ? 1 : 0,
         },
     };
   }
+
+  Map<String, Object?> _testimonial() => {
+    'id': 'd1',
+    'author': {'id': 'u-carol', 'username': 'carol', 'display_name': 'Carol'},
+    'recipient': {'id': 'u-alice', 'username': username, 'display_name': null},
+    'body': 'A Alice é a melhor amiga do mundo.',
+    'status': carolTestimonial,
+    'created_at': '2026-10-08T12:00:00Z',
+    'can_delete': true,
+  };
 
   Map<String, Object?> _rockItem() => {
     'id': 'c-rock',

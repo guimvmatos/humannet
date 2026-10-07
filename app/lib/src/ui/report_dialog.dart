@@ -28,6 +28,7 @@ Future<bool> showReportDialog(
   String? topicId,
   String? replyId,
   String? communitySlug,
+  String? testimonialId,
 }) async {
   final sent = await showDialog<bool>(
     context: context,
@@ -39,6 +40,7 @@ Future<bool> showReportDialog(
       topicId: topicId,
       replyId: replyId,
       communitySlug: communitySlug,
+      testimonialId: testimonialId,
     ),
   );
   if (sent == true && context.mounted) {
@@ -60,6 +62,7 @@ class _ReportDialog extends StatefulWidget {
     this.topicId,
     this.replyId,
     this.communitySlug,
+    this.testimonialId,
   });
 
   final SessionController session;
@@ -69,8 +72,10 @@ class _ReportDialog extends StatefulWidget {
   final String? topicId;
   final String? replyId;
   final String? communitySlug;
+  final String? testimonialId;
 
   String get title {
+    if (testimonialId != null) return 'Denunciar depoimento';
     if (postId != null) return 'Denunciar post';
     if (commentId != null) return 'Denunciar comentário';
     if (topicId != null) return 'Denunciar tópico';
@@ -113,6 +118,7 @@ class _ReportDialogState extends State<_ReportDialog> {
         topicId: widget.topicId,
         replyId: widget.replyId,
         communitySlug: widget.communitySlug,
+        testimonialId: widget.testimonialId,
         details: _details.text.trim(),
       );
       if (mounted) Navigator.of(context).pop(true);

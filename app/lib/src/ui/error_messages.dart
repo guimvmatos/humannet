@@ -54,6 +54,9 @@ String errorMessage(Object error) {
     'invalid_member_state' => 'Essa pessoa não está na situação certa para isso.',
     'invalid_member_action' => 'Ação inválida.',
     'cannot_target_self' => 'Você não pode fazer isso consigo mesmo.',
+    'invalid_testimonial_body' =>
+      'O depoimento deve ter entre 1 e 1.000 caracteres.',
+    'cannot_testify_self' => 'Você não pode escrever um depoimento para si.',
     'not_found' => 'Não encontrado.',
     'forbidden' => 'Você não tem permissão para isso.',
     'network_error' =>

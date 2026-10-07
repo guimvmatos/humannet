@@ -82,6 +82,13 @@ pub async fn block(
     )
     .execute(&mut *tx)
     .await?;
+    sqlx::query!(
+        "DELETE FROM testimonials WHERE (author_id = $1 AND recipient_id = $2) OR (author_id = $2 AND recipient_id = $1)",
+        me,
+        other
+    )
+    .execute(&mut *tx)
+    .await?;
     tx.commit().await?;
     tracing::info!(blocker = %me, "user blocked");
     Ok(StatusCode::NO_CONTENT)
@@ -148,6 +155,7 @@ pub enum ReportTarget {
     Topic { topic_id: Uuid },
     Reply { reply_id: Uuid },
     Community { slug: String },
+    Testimonial { testimonial_id: Uuid },
 }
 
 #[derive(Debug, Deserialize)]
@@ -257,6 +265,24 @@ pub async fn report(
                 c.name, c.slug, c.description, c.rules
             );
             ("community", c.id, snap, owner)
+        }
+        ReportTarget::Testimonial { testimonial_id } => {
+            // Visível para quem consegue ler: dono do perfil, amigos (se aprovado) e autor.
+            let t = sqlx::query!(
+                "SELECT author_id, recipient_id, body, status FROM testimonials WHERE id = $1",
+                testimonial_id
+            )
+            .fetch_optional(&state.db)
+            .await?
+            .ok_or(AppError::NotFound)?;
+            let visible = me == t.recipient_id
+                || (t.status == "approved"
+                    && friends::can_see_content(&state.db, me, t.recipient_id).await?
+                    && !is_blocked_either_way(&state.db, me, t.author_id).await?);
+            if !visible {
+                return Err(AppError::NotFound);
+            }
+            ("testimonial", *testimonial_id, t.body, t.author_id)
         }
     };
     if target_user == me {

@@ -175,17 +175,20 @@ class ProfileStats {
     required this.friends,
     required this.posts,
     required this.pendingRequests,
+    this.pendingTestimonials = 0,
   });
 
   factory ProfileStats.fromJson(Map<String, dynamic> json) => ProfileStats(
     friends: json['friends'] as int,
     posts: json['posts'] as int,
     pendingRequests: (json['pending_requests'] as int?) ?? 0,
+    pendingTestimonials: (json['pending_testimonials'] as int?) ?? 0,
   );
 
   final int friends;
   final int posts;
   final int pendingRequests;
+  final int pendingTestimonials;
 }
 
 class Profile {
@@ -535,4 +538,39 @@ class Paged<T> {
 
   final List<T> items;
   final String? nextCursor;
+}
+
+/// Depoimento (estilo Orkut): um amigo escreve, o dono do perfil aprova.
+class Testimonial {
+  const Testimonial({
+    required this.id,
+    required this.author,
+    required this.recipient,
+    required this.body,
+    required this.status,
+    required this.createdAt,
+    required this.canDelete,
+  });
+
+  factory Testimonial.fromJson(Map<String, dynamic> json) => Testimonial(
+    id: json['id'] as String,
+    author: Author.fromJson(json['author'] as Map<String, dynamic>),
+    recipient: Author.fromJson(json['recipient'] as Map<String, dynamic>),
+    body: json['body'] as String,
+    status: json['status'] as String,
+    createdAt: DateTime.parse(json['created_at'] as String),
+    canDelete: (json['can_delete'] as bool?) ?? false,
+  );
+
+  final String id;
+  final Author author;
+  final Author recipient;
+  final String body;
+
+  /// pending | approved
+  final String status;
+  final DateTime createdAt;
+  final bool canDelete;
+
+  bool get isPending => status == 'pending';
 }

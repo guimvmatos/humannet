@@ -83,7 +83,7 @@ cd app && flutter test
 | GET | `/v1/friends` | Bearer | Meus amigos |
 | PUT / DELETE | `/v1/users/{username}/block` | Bearer | Bloquear / desbloquear (bloqueio invisível: 404 nos dois sentidos) |
 | GET | `/v1/blocks` | Bearer | Quem eu bloqueei |
-| POST | `/v1/reports` | Bearer | `{kind, <alvo>, reason, details?}` → 202. Alvos: `post` + `post_id`, `user` + `username`, `comment` + `comment_id`, `topic` + `topic_id`, `reply` + `reply_id`, `community` + `slug` |
+| POST | `/v1/reports` | Bearer | `{kind, <alvo>, reason, details?}` → 202. Alvos: `post` + `post_id`, `user` + `username`, `comment` + `comment_id`, `topic` + `topic_id`, `reply` + `reply_id`, `community` + `slug`, `testimonial` + `testimonial_id` |
 | GET | `/v1/users/{username}/posts` | Bearer | Posts do usuário (só para o próprio e amigos; senão 403) |
 | POST | `/v1/posts` | Bearer | `{body}` (1–5000 caracteres) |
 | GET / DELETE | `/v1/posts/{id}` | Bearer | Ler (autor e amigos; senão 404) / apagar (só o autor; o texto é removido do banco) |
@@ -91,6 +91,16 @@ cd app && flutter test
 | GET / POST | `/v1/posts/{id}/comments` | Bearer | Listar (mais antigo primeiro) / comentar `{body}` (1–2000) |
 | DELETE | `/v1/comments/{id}` | Bearer | Apagar comentário (autor do comentário ou do post) |
 | GET | `/v1/feed` | Bearer | Cronológico: amigos + você |
+
+**Depoimentos** (SPEC 4.2): só amigos escrevem; o dono do perfil aprova antes de aparecer. Quem vê: o dono, os amigos dele e o autor.
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET | `/v1/users/{username}/testimonials` | Aprovados (+ o meu, mesmo pendente) |
+| PUT | `/v1/users/{username}/testimonial` | `{body}` (1–1000): escreve ou reescreve o meu (volta a pendente) |
+| GET | `/v1/me/testimonials/pending` | Esperando minha aprovação (contagem em `stats.pending_testimonials`) |
+| POST | `/v1/testimonials/{id}/approve` | Aprovar (dono do perfil) |
+| DELETE | `/v1/testimonials/{id}` | Recusar/remover (dono do perfil) ou apagar (autor) |
 
 **Comunidades** (SPEC 4.5). Pública: qualquer pessoa lê e entra. Fechada: só membros leem; entrar exige aprovação. Administradores moderam qualquer comunidade.
 

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM testimonials WHERE (author_id = $1 AND recipient_id = $2) OR (author_id = $2 AND recipient_id = $1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6c634e40321d3f82f89ba61273f5a283047c1afc10e16d896305e9b252066756"
+}

@@ -210,6 +210,11 @@ async fn remove_content(db: &sqlx::PgPool, kind: &str, id: Uuid) -> AppResult<()
             .execute(db)
             .await?;
         }
+        "testimonial" => {
+            sqlx::query!("DELETE FROM testimonials WHERE id = $1", id)
+                .execute(db)
+                .await?;
+        }
         "community" => {
             sqlx::query!(
                 "UPDATE communities SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL",

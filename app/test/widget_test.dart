@@ -544,4 +544,29 @@ void main() {
     expect(find.byKey(const Key('community_screen')), findsOneWidget);
     expect(find.text('Você é o dono desta comunidade.'), findsOneWidget);
   });
+
+  testWidgets('aprovar depoimento no próprio perfil', (tester) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byKey(const Key('nav_profile')));
+    await tester.pumpAndSettle();
+    expect(find.text('Depoimentos (1 para aprovar)'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('testimonials_button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('pending_testimonial_d1')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('approve_testimonial_d1')));
+    await tester.pumpAndSettle();
+    expect(backend.carolTestimonial, 'approved');
+    expect(find.byKey(const Key('pending_testimonial_d1')), findsNothing);
+    expect(find.byKey(const Key('testimonial_d1')), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Depoimentos'), findsOneWidget);
+  });
 }

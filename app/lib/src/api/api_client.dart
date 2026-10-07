@@ -173,9 +173,11 @@ class ApiClient {
     String? topicId,
     String? replyId,
     String? communitySlug,
+    String? testimonialId,
     String details = '',
   }) async {
     final targets = <String, String?>{
+      'testimonial': testimonialId,
       'post': postId,
       'user': username,
       'comment': commentId,
@@ -197,6 +199,7 @@ class ApiClient {
         'topic_id': ?topicId,
         'reply_id': ?replyId,
         'slug': ?communitySlug,
+        'testimonial_id': ?testimonialId,
         'reason': reason,
         'details': details,
       },
@@ -569,6 +572,57 @@ class ApiClient {
     await _send(
       'DELETE',
       '/v1/replies/${Uri.encodeComponent(id)}',
+      token: token,
+    );
+  }
+
+  // ------------------------------------------------------------ depoimentos
+
+  Future<List<Testimonial>> testimonials(String token, String username) async {
+    final json = await _send(
+      'GET',
+      '/v1/users/${Uri.encodeComponent(username)}/testimonials',
+      token: token,
+    );
+    return (json!['items'] as List<dynamic>)
+        .map((e) => Testimonial.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<Testimonial>> pendingTestimonials(String token) async {
+    final json = await _send('GET', '/v1/me/testimonials/pending', token: token);
+    return (json!['items'] as List<dynamic>)
+        .map((e) => Testimonial.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Escreve (ou reescreve) o meu depoimento sobre um amigo.
+  Future<Testimonial> writeTestimonial(
+    String token,
+    String username,
+    String body,
+  ) async {
+    final json = await _send(
+      'PUT',
+      '/v1/users/${Uri.encodeComponent(username)}/testimonial',
+      token: token,
+      body: {'body': body},
+    );
+    return Testimonial.fromJson(json!);
+  }
+
+  Future<void> approveTestimonial(String token, String id) async {
+    await _send(
+      'POST',
+      '/v1/testimonials/${Uri.encodeComponent(id)}/approve',
+      token: token,
+    );
+  }
+
+  Future<void> deleteTestimonial(String token, String id) async {
+    await _send(
+      'DELETE',
+      '/v1/testimonials/${Uri.encodeComponent(id)}',
       token: token,
     );
   }

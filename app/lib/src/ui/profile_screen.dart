@@ -10,6 +10,7 @@ import 'error_messages.dart';
 import 'post_list.dart';
 import 'report_dialog.dart';
 import 'settings_screen.dart';
+import 'testimonials_screen.dart';
 
 /// Perfil de um usuário. `asTab: true` = aba "Perfil" do próprio usuário
 /// (sem botão de voltar).
@@ -194,6 +195,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _openTestimonials() async {
+    final p = _profile;
+    if (p == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => TestimonialsScreen(
+          session: widget.session,
+          username: p.username,
+          isSelf: p.isSelf,
+          canWrite: p.relation == Relation.friends,
+        ),
+      ),
+    );
+    if (p.isSelf) await _loadProfile();
+  }
+
   void _snack(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
@@ -252,6 +269,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onDecline: () => _friendAction(decline: true),
       onEdit: _editProfile,
       onInvite: _createInvite,
+      onTestimonials: _openTestimonials,
     );
 
     // Posts só para o próprio e amigos (ADR-0006). Sem chamar a API.
@@ -298,6 +316,7 @@ class _Header extends StatelessWidget {
     required this.onDecline,
     required this.onEdit,
     required this.onInvite,
+    required this.onTestimonials,
   });
 
   final Profile profile;
@@ -306,6 +325,7 @@ class _Header extends StatelessWidget {
   final VoidCallback onDecline;
   final VoidCallback onEdit;
   final VoidCallback onInvite;
+  final VoidCallback onTestimonials;
 
   List<Widget> _friendButtons() {
     final onTap = busy ? null : onFriendAction;
@@ -411,6 +431,19 @@ class _Header extends StatelessWidget {
                   ]
                 : _friendButtons(),
           ),
+          if (profile.relation.canSeePosts) ...[
+            const SizedBox(height: 8),
+            TextButton.icon(
+              key: const Key('testimonials_button'),
+              onPressed: onTestimonials,
+              icon: const Icon(Icons.format_quote_outlined),
+              label: Text(
+                (stats?.pendingTestimonials ?? 0) > 0
+                    ? 'Depoimentos (${stats!.pendingTestimonials} para aprovar)'
+                    : 'Depoimentos',
+              ),
+            ),
+          ],
           const Divider(height: 32),
         ],
       ),

@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO testimonials (id, author_id, recipient_id, body)\n        VALUES ($1, $2, $3, $4)\n        ON CONFLICT (author_id, recipient_id) DO UPDATE\n          SET body = EXCLUDED.body, status = 'pending', created_at = now(), approved_at = NULL\n        RETURNING id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "testimonials",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a72015a1c0f6016c7853f4c7e88eedd1613e03685385c0d31bef3b6cf21e667f"
+}

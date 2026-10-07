@@ -40,6 +40,8 @@ pub struct ProfileStats {
     pub posts: i64,
     /// Pedidos de amizade recebidos e ainda não respondidos.
     pub pending_requests: i64,
+    /// Depoimentos esperando aprovação.
+    pub pending_testimonials: i64,
 }
 
 /// Resolve um username (normalizado) para id. Username inválido = não encontrado.
@@ -90,7 +92,9 @@ pub async fn get(
                 SELECT
                   (SELECT count(*) FROM friends WHERE user_id = $1) AS "friends!",
                   (SELECT count(*) FROM posts WHERE author_id = $1 AND deleted_at IS NULL) AS "posts!",
-                  (SELECT count(*) FROM friend_requests WHERE to_id = $1) AS "pending_requests!"
+                  (SELECT count(*) FROM friend_requests WHERE to_id = $1) AS "pending_requests!",
+                  (SELECT count(*) FROM testimonials
+                    WHERE recipient_id = $1 AND status = 'pending') AS "pending_testimonials!"
                 "#,
                 row.id
             )
