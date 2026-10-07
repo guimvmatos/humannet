@@ -96,6 +96,30 @@ página, **Delete Database**.
 
 ---
 
+## Passo 2d — Ligar as fotos (armazenamento do Neon, 10 min) ✅ feito em 07/10/2026
+
+Fotos ficam no **Object storage** do Neon (5 GB grátis, mesma conta). O
+servidor recodifica cada foto sem metadados (tira GPS) antes de guardar.
+
+1. **https://console.neon.tech** → projeto **humannet** → menu **Object storage**
+   → **Create your first bucket**.
+2. Nome `humannet-fotos`, visibilidade **Private** (não muda depois) → **Create bucket**.
+3. Botão verde **Connect** → aba **Storage** → aba **.env**. Ali estão
+   `AWS_ENDPOINT_URL_S3`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+   (**Reveal credential** para ver) e `AWS_REGION`.
+4. Render → **humannet-api** → **Environment** → **Edit** → adicione as 4
+   variáveis com os mesmos nomes e mais `MEDIA_BUCKET` = `humannet-fotos`.
+   Copie um valor por vez (não use "Copy credentials").
+5. **Save, rebuild, and deploy**.
+
+✅ **Confere:** no app, **Escrever → Fotos** publica um post com foto.
+Sem essas variáveis, o app avisa "Fotos ainda não estão ligadas no servidor".
+
+> Se a senha vazar: no Neon, **Rotate credentials** e troque
+> `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` no Render.
+
+---
+
 ## Passo 3 — Chave de assinatura do app no GitHub (10 min)
 
 O Google Play exige que o app seja assinado sempre com a mesma chave. Eu gerei
