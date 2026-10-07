@@ -19,7 +19,10 @@ use crate::{
     AppState,
     auth::AuthUser,
     error::{AppError, AppResult},
-    routes::{posts::AuthorDto, profiles::user_id_by_username},
+    routes::{
+        posts::AuthorDto,
+        profiles::{user_id_by_username, visible_user_id},
+    },
 };
 
 /// Máximo de pedidos enviados ainda pendentes (anti-spam).
@@ -95,7 +98,7 @@ pub async fn can_see_content<'e>(
 }
 
 /// Serializa operações sobre o mesmo par (evita corrida em pedidos cruzados).
-async fn lock_pair(conn: &mut PgConnection, x: Uuid, y: Uuid) -> sqlx::Result<()> {
+pub(crate) async fn lock_pair(conn: &mut PgConnection, x: Uuid, y: Uuid) -> sqlx::Result<()> {
     let (a, b) = ordered(x, y);
     sqlx::query!(
         "SELECT pg_advisory_xact_lock(hashtextextended($1::text || $2::text, 0))",
@@ -120,7 +123,7 @@ pub async fn request_or_accept(
     Path(username): Path<String>,
 ) -> AppResult<Json<RelationDto>> {
     let me = user.user_id;
-    let other = user_id_by_username(&state, &username).await?;
+    let other = visible_user_id(&state, me, &username).await?;
     if other == me {
         return Err(AppError::Validation("cannot_befriend_self"));
     }

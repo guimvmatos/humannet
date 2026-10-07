@@ -1,3 +1,4 @@
+pub mod account;
 pub mod auth;
 pub mod friends;
 pub mod health;
@@ -6,3 +7,4 @@ pub mod me;
 pub mod pagination;
 pub mod posts;
 pub mod profiles;
+pub mod safety;

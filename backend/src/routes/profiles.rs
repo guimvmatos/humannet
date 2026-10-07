@@ -51,13 +51,23 @@ pub async fn user_id_by_username(state: &AppState, raw: &str) -> AppResult<Uuid>
         .ok_or(AppError::NotFound)
 }
 
+/// Como `user_id_by_username`, mas responde "não encontrado" se houver bloqueio
+/// em qualquer sentido entre `viewer` e o usuário (o bloqueio é invisível).
+pub async fn visible_user_id(state: &AppState, viewer: Uuid, raw: &str) -> AppResult<Uuid> {
+    let id = user_id_by_username(state, raw).await?;
+    if id != viewer && crate::routes::safety::is_blocked_either_way(&state.db, viewer, id).await? {
+        return Err(AppError::NotFound);
+    }
+    Ok(id)
+}
+
 /// GET /v1/users/{username}
 pub async fn get(
     State(state): State<AppState>,
     viewer: AuthUser,
     Path(username): Path<String>,
 ) -> AppResult<Json<ProfileDto>> {
-    let id = user_id_by_username(&state, &username).await?;
+    let id = visible_user_id(&state, viewer.user_id, &username).await?;
 
     let row = sqlx::query!(
         r#"

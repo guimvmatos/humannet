@@ -39,7 +39,11 @@ pub fn app(state: AppState) -> Router {
         .route("/auth/register", post(routes::auth::register))
         .route("/auth/login", post(routes::auth::login))
         .route("/auth/logout", post(routes::auth::logout))
-        .route("/me", get(routes::me::get))
+        .route(
+            "/me",
+            get(routes::me::get).delete(routes::account::delete_account),
+        )
+        .route("/me/password", put(routes::account::change_password))
         .route("/me/profile", patch(routes::profiles::update))
         .route("/invites", post(routes::invites::create))
         .route("/users/{username}", get(routes::profiles::get))
@@ -47,6 +51,12 @@ pub fn app(state: AppState) -> Router {
             "/users/{username}/friend",
             put(routes::friends::request_or_accept).delete(routes::friends::remove),
         )
+        .route(
+            "/users/{username}/block",
+            put(routes::safety::block).delete(routes::safety::unblock),
+        )
+        .route("/blocks", get(routes::safety::list_blocks))
+        .route("/reports", post(routes::safety::report))
         .route("/friends", get(routes::friends::list))
         .route("/friend-requests", get(routes::friends::incoming))
         .route("/users/{username}/posts", get(routes::posts::list_by_user))

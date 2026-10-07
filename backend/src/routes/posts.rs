@@ -14,7 +14,7 @@ use crate::{
     routes::{
         friends,
         pagination::{Page, PageQuery},
-        profiles::user_id_by_username,
+        profiles::visible_user_id,
     },
     validation,
 };
@@ -165,7 +165,7 @@ pub async fn list_by_user(
     Path(username): Path<String>,
     Query(q): Query<PageQuery>,
 ) -> AppResult<Json<Page<PostDto>>> {
-    let author = user_id_by_username(&state, &username).await?;
+    let author = visible_user_id(&state, viewer.user_id, &username).await?;
     if !friends::can_see_content(&state.db, viewer.user_id, author).await? {
         return Err(AppError::Forbidden);
     }

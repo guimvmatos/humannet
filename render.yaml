@@ -11,6 +11,10 @@ services:
     dockerContext: ./backend
     dockerfilePath: ./backend/Dockerfile
     healthCheckPath: /health
+    # Só recompila/reinicia quando o código do servidor muda (não em docs/app).
+    buildFilter:
+      paths:
+        - backend/**
     envVars:
       - key: DATABASE_URL
         fromDatabase:
