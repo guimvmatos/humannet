@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM community_members m\n           JOIN communities c ON c.id = m.community_id\n           WHERE m.user_id = $1 AND m.role = 'owner' AND c.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "eb8a84ee91fb89e8eba6c74b9be80704b3c8e981fd0b26f5fe0f8299fcedd215"
+}

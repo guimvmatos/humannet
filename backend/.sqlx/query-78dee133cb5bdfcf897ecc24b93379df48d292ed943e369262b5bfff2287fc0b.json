@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO moderation_actions (id, admin_id, action, target_kind, target_id)\n         VALUES ($1, $2, $3, 'community_member', $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "78dee133cb5bdfcf897ecc24b93379df48d292ed943e369262b5bfff2287fc0b"
+}

@@ -96,6 +96,133 @@ pub fn comment_body(raw: &str) -> Result<String, AppError> {
     Ok(v.to_owned())
 }
 
+// ---------------------------------------------------------------- comunidades
+
+pub const COMMUNITY_TEXT_MAX: usize = 2000;
+pub const TOPIC_TITLE_MAX: usize = 150;
+
+pub const COMMUNITY_THEMES: &[&str] = &[
+    "tecnologia",
+    "musica",
+    "cinema",
+    "series",
+    "livros",
+    "games",
+    "esportes",
+    "arte",
+    "culinaria",
+    "viagens",
+    "ciencia",
+    "humor",
+    "cidade",
+    "educacao",
+    "trabalho",
+    "familia",
+    "outros",
+];
+
+/// Endereço da comunidade: `[a-z0-9-]{3,40}`, sem hífen nas pontas.
+pub fn community_slug(raw: &str) -> Result<String, AppError> {
+    let s = raw.trim().to_ascii_lowercase();
+    let ok = (3..=40).contains(&s.len())
+        && s.bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+        && !s.starts_with('-')
+        && !s.ends_with('-');
+    if ok {
+        Ok(s)
+    } else {
+        Err(AppError::Validation("invalid_community_slug"))
+    }
+}
+
+/// Gera um endereço a partir do nome ("Música de Sampa!" → "musica-de-sampa").
+pub fn slugify(name: &str) -> String {
+    let mut out = String::new();
+    for c in name.chars().flat_map(char::to_lowercase) {
+        let c = match c {
+            'á' | 'à' | 'â' | 'ã' | 'ä' => 'a',
+            'é' | 'è' | 'ê' | 'ë' => 'e',
+            'í' | 'ì' | 'î' | 'ï' => 'i',
+            'ó' | 'ò' | 'ô' | 'õ' | 'ö' => 'o',
+            'ú' | 'ù' | 'û' | 'ü' => 'u',
+            'ç' => 'c',
+            'ñ' => 'n',
+            c => c,
+        };
+        if c.is_ascii_alphanumeric() {
+            out.push(c);
+        } else if !out.is_empty() && !out.ends_with('-') {
+            out.push('-');
+        }
+    }
+    let mut s: String = out.trim_end_matches('-').chars().take(40).collect();
+    while s.ends_with('-') {
+        s.pop();
+    }
+    s
+}
+
+/// Nome da comunidade: 3–60 caracteres, sem caracteres de controle.
+pub fn community_name(raw: &str) -> Result<String, AppError> {
+    let v = raw.trim();
+    let n = v.chars().count();
+    if !(3..=60).contains(&n) || v.chars().any(char::is_control) {
+        return Err(AppError::Validation("invalid_community_name"));
+    }
+    Ok(v.to_owned())
+}
+
+/// Descrição e regras: até 2000 caracteres, com quebras de linha.
+pub fn community_text(raw: &str) -> Result<String, AppError> {
+    let v = normalize_newlines(raw);
+    let v = v.trim();
+    if v.chars().count() > COMMUNITY_TEXT_MAX || has_forbidden_control(v) {
+        return Err(AppError::Validation("invalid_community_text"));
+    }
+    Ok(v.to_owned())
+}
+
+pub fn community_theme(raw: &str) -> Result<String, AppError> {
+    let v = raw.trim();
+    if COMMUNITY_THEMES.contains(&v) {
+        Ok(v.to_owned())
+    } else {
+        Err(AppError::Validation("invalid_community_theme"))
+    }
+}
+
+/// Título de tópico: 3–150 caracteres, uma linha.
+pub fn topic_title(raw: &str) -> Result<String, AppError> {
+    let v = raw.trim();
+    let n = v.chars().count();
+    if !(3..=TOPIC_TITLE_MAX).contains(&n) || v.chars().any(char::is_control) {
+        return Err(AppError::Validation("invalid_topic_title"));
+    }
+    Ok(v.to_owned())
+}
+
+/// Texto do tópico: até 5000 caracteres (pode ser vazio: só o título).
+pub fn topic_body(raw: &str) -> Result<String, AppError> {
+    let v = normalize_newlines(raw);
+    let v = v.trim();
+    if v.chars().count() > POST_MAX || has_forbidden_control(v) {
+        return Err(AppError::Validation("invalid_topic_body"));
+    }
+    Ok(v.to_owned())
+}
+
+/// Resposta em tópico: 1–5000 caracteres.
+pub fn reply_body(raw: &str) -> Result<String, AppError> {
+    let v = normalize_newlines(raw);
+    let v = v.trim();
+    let n = v.chars().count();
+    if n == 0 || n > POST_MAX || has_forbidden_control(v) {
+        return Err(AppError::Validation("invalid_reply_body"));
+    }
+    Ok(v.to_owned())
+}
+
 /// CRLF/CR → LF, para que textos vindos de qualquer plataforma sejam aceitos.
 fn normalize_newlines(raw: &str) -> String {
     raw.replace("\r\n", "\n").replace('\r', "\n")
@@ -108,6 +235,15 @@ fn has_forbidden_control(v: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn slugs() {
+        assert_eq!(super::slugify("Música de Sampa!"), "musica-de-sampa");
+        assert_eq!(super::slugify("  --Ação 2026--  "), "acao-2026");
+        assert!(super::community_slug("ab").is_err());
+        assert!(super::community_slug("-abc").is_err());
+        assert_eq!(super::community_slug(" Rock-SP ").unwrap(), "rock-sp");
+    }
+
     use super::*;
 
     #[test]

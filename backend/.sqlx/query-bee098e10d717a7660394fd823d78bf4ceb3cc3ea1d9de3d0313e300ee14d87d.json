@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE topics SET pinned = coalesce($2, pinned), locked = coalesce($3, locked)\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bee098e10d717a7660394fd823d78bf4ceb3cc3ea1d9de3d0313e300ee14d87d"
+}

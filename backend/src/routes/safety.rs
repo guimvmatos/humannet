@@ -17,9 +17,11 @@ use crate::{
     auth::AuthUser,
     error::{AppError, AppResult},
     routes::{
+        communities,
         friends::{self, ListDto},
-        posts::AuthorDto,
+        posts::{AuthorDto, visible_post_author},
         profiles::user_id_by_username,
+        topics,
     },
 };
 
@@ -142,6 +144,10 @@ const REASONS: &[&str] = &[
 pub enum ReportTarget {
     Post { post_id: Uuid },
     User { username: String },
+    Comment { comment_id: Uuid },
+    Topic { topic_id: Uuid },
+    Reply { reply_id: Uuid },
+    Community { slug: String },
 }
 
 #[derive(Debug, Deserialize)]
@@ -169,7 +175,8 @@ pub async fn report(
     }
 
     // Resolve o alvo e guarda uma cópia do conteúdo (evidência para moderação).
-    let (kind, target_id, snapshot) = match &req.target {
+    // Só se denuncia o que se consegue ver.
+    let (kind, target_id, snapshot, target_user) = match &req.target {
         ReportTarget::Post { post_id } => {
             let post = sqlx::query!(
                 "SELECT author_id, body FROM posts WHERE id = $1 AND deleted_at IS NULL",
@@ -178,20 +185,13 @@ pub async fn report(
             .fetch_optional(&state.db)
             .await?
             .ok_or(AppError::NotFound)?;
-            if post.author_id == me {
-                return Err(AppError::Validation("cannot_report_self"));
-            }
-            // Só denuncia o que consegue ver.
             if !friends::can_see_content(&state.db, me, post.author_id).await? {
                 return Err(AppError::NotFound);
             }
-            ("post", *post_id, post.body)
+            ("post", *post_id, post.body, post.author_id)
         }
         ReportTarget::User { username } => {
             let id = user_id_by_username(&state, username).await?;
-            if id == me {
-                return Err(AppError::Validation("cannot_report_self"));
-            }
             let profile = sqlx::query!(
                 "SELECT username, coalesce(display_name, '') AS \"display_name!\", bio FROM users WHERE id = $1",
                 id
@@ -202,9 +202,66 @@ pub async fn report(
                 "@{} | {} | {}",
                 profile.username, profile.display_name, profile.bio
             );
-            ("user", id, snap)
+            ("user", id, snap, id)
+        }
+        ReportTarget::Comment { comment_id } => {
+            let c = sqlx::query!(
+                "SELECT post_id, author_id, body FROM comments WHERE id = $1 AND deleted_at IS NULL",
+                comment_id
+            )
+            .fetch_optional(&state.db)
+            .await?
+            .ok_or(AppError::NotFound)?;
+            visible_post_author(&state, me, c.post_id).await?;
+            if is_blocked_either_way(&state.db, me, c.author_id).await? {
+                return Err(AppError::NotFound);
+            }
+            ("comment", *comment_id, c.body, c.author_id)
+        }
+        ReportTarget::Topic { topic_id } => {
+            let t = topics::get(State(state.clone()), user.clone(), Path(*topic_id))
+                .await?
+                .0;
+            (
+                "topic",
+                *topic_id,
+                format!("{}\n\n{}", t.title, t.body),
+                t.author.id,
+            )
+        }
+        ReportTarget::Reply { reply_id } => {
+            let r = sqlx::query!(
+                "SELECT topic_id, author_id, body FROM topic_replies WHERE id = $1 AND deleted_at IS NULL",
+                reply_id
+            )
+            .fetch_optional(&state.db)
+            .await?
+            .ok_or(AppError::NotFound)?;
+            // Garante que quem denuncia consegue ler o tópico.
+            topics::ensure_readable(&state, &user, r.topic_id).await?;
+            if is_blocked_either_way(&state.db, me, r.author_id).await? {
+                return Err(AppError::NotFound);
+            }
+            ("reply", *reply_id, r.body, r.author_id)
+        }
+        ReportTarget::Community { slug } => {
+            let c = communities::load_by_slug(&state, slug).await?;
+            let owner = sqlx::query_scalar!(
+                "SELECT user_id FROM community_members WHERE community_id = $1 AND role = 'owner'",
+                c.id
+            )
+            .fetch_one(&state.db)
+            .await?;
+            let snap = format!(
+                "{} ({})\n\n{}\n\nRegras: {}",
+                c.name, c.slug, c.description, c.rules
+            );
+            ("community", c.id, snap, owner)
         }
     };
+    if target_user == me {
+        return Err(AppError::Validation("cannot_report_self"));
+    }
 
     let recent = sqlx::query_scalar!(
         r#"SELECT count(*) AS "n!" FROM reports
@@ -220,8 +277,9 @@ pub async fn report(
     let snapshot: String = snapshot.chars().take(5000).collect();
     sqlx::query!(
         r#"
-        INSERT INTO reports (id, reporter_id, target_kind, target_id, snapshot, reason, details)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO reports (id, reporter_id, target_kind, target_id, snapshot, reason, details,
+                             target_user_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         ON CONFLICT (reporter_id, target_kind, target_id) WHERE status = 'open' DO NOTHING
         "#,
         Uuid::now_v7(),
@@ -231,6 +289,7 @@ pub async fn report(
         snapshot,
         req.reason,
         details,
+        target_user,
     )
     .execute(&state.db)
     .await?;

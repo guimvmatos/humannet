@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT r.id, r.target_kind AS kind, r.target_id,\n               tu.username AS \"target_username?\",\n               (tu.suspended_at IS NOT NULL) AS \"target_suspended!\",\n               r.snapshot, r.reason, r.details,\n               ru.username AS \"reporter_username?\",\n               r.status, r.created_at\n        FROM reports r\n        LEFT JOIN posts p ON r.target_kind = 'post' AND p.id = r.target_id\n        LEFT JOIN users tu ON tu.id = CASE WHEN r.target_kind = 'user' THEN r.target_id ELSE p.author_id END\n        LEFT JOIN users ru ON ru.id = r.reporter_id\n        WHERE r.status = $1\n        ORDER BY r.created_at ASC\n        LIMIT 200\n        ",
+  "query": "\n        SELECT r.id, r.target_kind AS kind, r.target_id,\n               tu.username AS \"target_username?\",\n               (tu.suspended_at IS NOT NULL) AS \"target_suspended!\",\n               r.snapshot, r.reason, r.details,\n               ru.username AS \"reporter_username?\",\n               r.status, r.created_at\n        FROM reports r\n        LEFT JOIN users tu ON tu.id = r.target_user_id\n        LEFT JOIN users ru ON ru.id = r.reporter_id\n        WHERE r.status = $1\n        ORDER BY r.created_at ASC\n        LIMIT 200\n        ",
   "describe": {
     "columns": [
       {
@@ -139,5 +139,5 @@
       false
     ]
   },
-  "hash": "b99d694c42339ee0eeff44391c9551b6ea1a8d877c6126b43c0b27d5b275c2f7"
+  "hash": "8135ad11f45708878e2842672a69809efdd392b0552d6f7db998a435128a25dd"
 }

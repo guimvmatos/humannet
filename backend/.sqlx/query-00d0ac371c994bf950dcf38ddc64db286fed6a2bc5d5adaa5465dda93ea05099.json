@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE community_members SET status = 'active', created_at = now()\n                 WHERE community_id = $1 AND user_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "00d0ac371c994bf950dcf38ddc64db286fed6a2bc5d5adaa5465dda93ea05099"
+}

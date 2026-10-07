@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE topic_replies SET deleted_at = now(), body = '[removido]' WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a00069eff19235af480940b0946a22619901ee5fa1db36dda94a6409db5cd243"
+}

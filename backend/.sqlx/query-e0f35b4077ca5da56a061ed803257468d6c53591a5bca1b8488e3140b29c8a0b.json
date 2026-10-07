@@ -1,0 +1,115 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT c.id, c.slug, c.name, c.description, c.theme, c.visibility,\n               m.role AS \"my_role?\", m.status AS \"my_status?\"\n        FROM communities c\n        LEFT JOIN community_members m ON m.community_id = c.id AND m.user_id = $1\n        WHERE c.deleted_at IS NULL\n          AND ($2::text IS NULL OR c.name ILIKE $2 ESCAPE '\\' OR c.slug ILIKE $2 ESCAPE '\\')\n          AND ($3::text IS NULL OR c.theme = $3)\n          AND (NOT $4 OR m.status IN ('active', 'pending'))\n        ORDER BY lower(c.name), c.id\n        LIMIT 100\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "communities",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "slug",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "communities",
+            "name": "slug"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "communities",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "communities",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "theme",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "communities",
+            "name": "theme"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "visibility",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "communities",
+            "name": "visibility"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "my_role?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "community_members",
+            "name": "role"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "my_status?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "community_members",
+            "name": "status"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e0f35b4077ca5da56a061ed803257468d6c53591a5bca1b8488e3140b29c8a0b"
+}

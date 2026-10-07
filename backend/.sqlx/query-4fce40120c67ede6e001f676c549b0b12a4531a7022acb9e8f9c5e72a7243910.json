@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT community_id FROM community_members WHERE user_id = $1 AND role = 'owner'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "community_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "community_members",
+            "name": "community_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "4fce40120c67ede6e001f676c549b0b12a4531a7022acb9e8f9c5e72a7243910"
+}

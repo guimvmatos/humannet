@@ -1,16 +1,16 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT author_id FROM posts WHERE id = $1",
+  "query": "SELECT user_id FROM community_members WHERE community_id = $1 AND role = 'owner'",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "author_id",
+        "name": "user_id",
         "type_info": "Uuid",
         "origin": {
           "Table": {
-            "table": "posts",
-            "name": "author_id"
+            "table": "community_members",
+            "name": "user_id"
           }
         }
       }
@@ -24,5 +24,5 @@
       false
     ]
   },
-  "hash": "18565baea94af56976f7e0e6e9ff6c0a3f65b00207ee428cfc63b46293e07c1d"
+  "hash": "8c30dece5885d8c18120015417c0c463fb00b0413843b0c798814541e1addefb"
 }

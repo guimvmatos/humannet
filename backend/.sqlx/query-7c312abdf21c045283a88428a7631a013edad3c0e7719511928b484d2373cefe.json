@@ -1,33 +1,34 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT target_kind, target_id FROM reports WHERE id = $1",
+  "query": "SELECT role, status FROM community_members WHERE community_id = $1 AND user_id = $2",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "target_kind",
+        "name": "role",
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "reports",
-            "name": "target_kind"
+            "table": "community_members",
+            "name": "role"
           }
         }
       },
       {
         "ordinal": 1,
-        "name": "target_id",
-        "type_info": "Uuid",
+        "name": "status",
+        "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "reports",
-            "name": "target_id"
+            "table": "community_members",
+            "name": "status"
           }
         }
       }
     ],
     "parameters": {
       "Left": [
+        "Uuid",
         "Uuid"
       ]
     },
@@ -36,5 +37,5 @@
       false
     ]
   },
-  "hash": "5e5d6a289a24eceb45eb24f5b8e10ec3eec37a55530bba9f3204325cd4e46a13"
+  "hash": "7c312abdf21c045283a88428a7631a013edad3c0e7719511928b484d2373cefe"
 }

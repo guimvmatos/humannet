@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM community_members\n         WHERE community_id = $1 AND user_id = $2 AND status <> 'banned'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e7b4ceedcc1ddcce139073172f1ac18fbd82846b758954c8dae198300991bb67"
+}

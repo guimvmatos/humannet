@@ -70,7 +70,7 @@ pub struct AdminReportDto {
     pub id: Uuid,
     pub kind: String,
     pub target_id: Uuid,
-    /// Perfil denunciado, ou autor do post denunciado.
+    /// Perfil denunciado, ou autor do conteúdo (dono, se for comunidade).
     pub target_username: Option<String>,
     pub target_suspended: bool,
     pub snapshot: String,
@@ -99,8 +99,7 @@ pub async fn list_reports(
                ru.username AS "reporter_username?",
                r.status, r.created_at
         FROM reports r
-        LEFT JOIN posts p ON r.target_kind = 'post' AND p.id = r.target_id
-        LEFT JOIN users tu ON tu.id = CASE WHEN r.target_kind = 'user' THEN r.target_id ELSE p.author_id END
+        LEFT JOIN users tu ON tu.id = r.target_user_id
         LEFT JOIN users ru ON ru.id = r.reporter_id
         WHERE r.status = $1
         ORDER BY r.created_at ASC
@@ -115,7 +114,7 @@ pub async fn list_reports(
 
 #[derive(Debug, Deserialize)]
 pub struct Resolve {
-    /// dismiss | remove_post | suspend_user
+    /// dismiss | remove_content (ou remove_post) | suspend_user
     pub action: String,
 }
 
@@ -128,7 +127,7 @@ pub async fn resolve_report(
     Json(req): Json<Resolve>,
 ) -> AppResult<StatusCode> {
     let report = sqlx::query!(
-        "SELECT target_kind, target_id FROM reports WHERE id = $1",
+        "SELECT target_kind, target_id, target_user_id FROM reports WHERE id = $1",
         id
     )
     .fetch_optional(&state.db)
@@ -137,31 +136,12 @@ pub async fn resolve_report(
 
     let new_status = match req.action.as_str() {
         "dismiss" => "dismissed",
-        "remove_post" => {
-            if report.target_kind != "post" {
-                return Err(AppError::Validation("invalid_moderation_action"));
-            }
-            sqlx::query!(
-                "UPDATE posts SET deleted_at = now(), body = '[removido pela moderação]'
-                 WHERE id = $1 AND deleted_at IS NULL",
-                report.target_id
-            )
-            .execute(&state.db)
-            .await?;
+        "remove_content" | "remove_post" => {
+            remove_content(&state.db, &report.target_kind, report.target_id).await?;
             "actioned"
         }
         "suspend_user" => {
-            let user_id = if report.target_kind == "user" {
-                report.target_id
-            } else {
-                sqlx::query_scalar!(
-                    "SELECT author_id FROM posts WHERE id = $1",
-                    report.target_id
-                )
-                .fetch_optional(&state.db)
-                .await?
-                .ok_or(AppError::NotFound)?
-            };
+            let user_id = report.target_user_id.ok_or(AppError::NotFound)?;
             suspend(&state.db, user_id).await?;
             "actioned"
         }
@@ -187,6 +167,60 @@ pub async fn resolve_report(
     )
     .await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Remove (apaga o texto de) o conteúdo denunciado. Perfil não é "removível":
+/// para isso existe a suspensão.
+async fn remove_content(db: &sqlx::PgPool, kind: &str, id: Uuid) -> AppResult<()> {
+    const REMOVED: &str = "[removido pela moderação]";
+    match kind {
+        "post" => {
+            sqlx::query!(
+                "UPDATE posts SET deleted_at = now(), body = $2 WHERE id = $1 AND deleted_at IS NULL",
+                id,
+                REMOVED
+            )
+            .execute(db)
+            .await?;
+        }
+        "comment" => {
+            sqlx::query!(
+                "UPDATE comments SET deleted_at = now(), body = $2 WHERE id = $1 AND deleted_at IS NULL",
+                id,
+                REMOVED
+            )
+            .execute(db)
+            .await?;
+        }
+        "topic" => {
+            sqlx::query!(
+                "UPDATE topics SET deleted_at = now(), title = $2, body = '' WHERE id = $1 AND deleted_at IS NULL",
+                id,
+                REMOVED
+            )
+            .execute(db)
+            .await?;
+        }
+        "reply" => {
+            sqlx::query!(
+                "UPDATE topic_replies SET deleted_at = now(), body = $2 WHERE id = $1 AND deleted_at IS NULL",
+                id,
+                REMOVED
+            )
+            .execute(db)
+            .await?;
+        }
+        "community" => {
+            sqlx::query!(
+                "UPDATE communities SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL",
+                id
+            )
+            .execute(db)
+            .await?;
+        }
+        _ => return Err(AppError::Validation("invalid_moderation_action")),
+    }
+    Ok(())
 }
 
 async fn suspend(db: &sqlx::PgPool, user_id: Uuid) -> sqlx::Result<()> {

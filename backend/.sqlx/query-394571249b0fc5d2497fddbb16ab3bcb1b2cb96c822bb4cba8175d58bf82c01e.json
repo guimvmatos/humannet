@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO community_members (community_id, user_id, role, status)\n        VALUES ($1, $2, 'member', $3)\n        ON CONFLICT (community_id, user_id) DO UPDATE SET status = community_members.status\n        RETURNING status\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "community_members",
+            "name": "status"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "394571249b0fc5d2497fddbb16ab3bcb1b2cb96c822bb4cba8175d58bf82c01e"
+}

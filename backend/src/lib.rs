@@ -100,7 +100,44 @@ pub fn app(state: AppState) -> Router {
             get(routes::comments::list).post(routes::comments::create),
         )
         .route("/comments/{id}", delete(routes::comments::delete))
-        .route("/feed", get(routes::posts::feed));
+        .route("/feed", get(routes::posts::feed))
+        .route(
+            "/communities",
+            get(routes::communities::list).post(routes::communities::create),
+        )
+        .route(
+            "/communities/{slug}",
+            get(routes::communities::get)
+                .patch(routes::communities::update)
+                .delete(routes::communities::delete),
+        )
+        .route(
+            "/communities/{slug}/membership",
+            put(routes::communities::join).delete(routes::communities::leave),
+        )
+        .route(
+            "/communities/{slug}/members",
+            get(routes::communities::members),
+        )
+        .route(
+            "/communities/{slug}/members/{username}",
+            post(routes::communities::member_action),
+        )
+        .route(
+            "/communities/{slug}/topics",
+            get(routes::topics::list).post(routes::topics::create),
+        )
+        .route(
+            "/topics/{id}",
+            get(routes::topics::get)
+                .patch(routes::topics::update)
+                .delete(routes::topics::delete),
+        )
+        .route(
+            "/topics/{id}/replies",
+            get(routes::topics::replies).post(routes::topics::reply),
+        )
+        .route("/replies/{id}", delete(routes::topics::delete_reply));
 
     Router::new()
         .route("/health", get(routes::health::health))

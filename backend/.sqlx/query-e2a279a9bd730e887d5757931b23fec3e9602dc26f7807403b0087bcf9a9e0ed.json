@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE topics SET deleted_at = now(), title = $2, body = '' WHERE id = $1 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e2a279a9bd730e887d5757931b23fec3e9602dc26f7807403b0087bcf9a9e0ed"
+}

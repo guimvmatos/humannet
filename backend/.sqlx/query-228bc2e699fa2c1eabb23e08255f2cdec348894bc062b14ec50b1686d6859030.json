@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE community_members SET role = 'moderator' WHERE community_id = $1 AND user_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "228bc2e699fa2c1eabb23e08255f2cdec348894bc062b14ec50b1686d6859030"
+}

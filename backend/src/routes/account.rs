@@ -86,9 +86,12 @@ pub async fn delete_account(
     Json(req): Json<DeleteAccount>,
 ) -> AppResult<StatusCode> {
     check_password(&state, &user, req.password).await?;
+    let mut tx = state.db.begin().await?;
+    crate::routes::communities::hand_over_owned(&mut tx, user.user_id).await?;
     sqlx::query!("DELETE FROM users WHERE id = $1", user.user_id)
-        .execute(&state.db)
+        .execute(&mut *tx)
         .await?;
+    tx.commit().await?;
     tracing::info!(user_id = %user.user_id, "account deleted");
     Ok(StatusCode::NO_CONTENT)
 }

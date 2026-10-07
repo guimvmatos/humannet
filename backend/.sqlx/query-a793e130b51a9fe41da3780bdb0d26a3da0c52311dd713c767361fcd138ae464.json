@@ -1,0 +1,137 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT t.author_id, t.locked,\n               c.id AS cid, c.slug, c.name, c.description, c.rules, c.theme,\n               c.visibility, c.created_at AS c_created\n        FROM topics t JOIN communities c ON c.id = t.community_id\n        WHERE t.id = $1 AND t.deleted_at IS NULL AND c.deleted_at IS NULL\n          AND NOT EXISTS (\n            SELECT 1 FROM blocks b\n            WHERE (b.blocker_id = $2 AND b.blocked_id = t.author_id)\n               OR (b.blocker_id = t.author_id AND b.blocked_id = $2))\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "author_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "topics",
+            "name": "author_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "locked",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "topics",
+            "name": "locked"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "cid",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "communities",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "slug",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "communities",
+            "name": "slug"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "communities",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "communities",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "rules",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "communities",
+            "name": "rules"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "theme",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "communities",
+            "name": "theme"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "visibility",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "communities",
+            "name": "visibility"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "c_created",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "communities",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a793e130b51a9fe41da3780bdb0d26a3da0c52311dd713c767361fcd138ae464"
+}

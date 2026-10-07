@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO community_members (community_id, user_id, role, status)\n                VALUES ($1, $2, 'member', 'banned')\n                ON CONFLICT (community_id, user_id)\n                DO UPDATE SET role = 'member', status = 'banned', created_at = now()\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e68e6e5543882478f3fd7712c6945272c7d3e25e40f74cb204a150fab0a51cb2"
+}
