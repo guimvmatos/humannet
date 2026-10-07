@@ -66,10 +66,22 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           if [ -n "$KS_B64" ]; then
-            echo "$KS_B64" | base64 -d > android/app/upload-keystore.jks
+            # Tolera espaços/quebras de linha coladas junto no segredo.
+            printf '%s' "$KS_B64" | tr -d ' \r\n\t' | base64 -d > android/app/upload-keystore.jks
+            KS_PASS=$(printf '%s' "$KS_PASS" | tr -d '\r\n')
+            KEY_ALIAS=$(printf '%s' "$KEY_ALIAS" | tr -d ' \r\n')
+            # Confere chave + senha + alias antes do build (erro claro e público).
+            if ! keytool -list -keystore android/app/upload-keystore.jks \
+                 -storepass "$KS_PASS" -alias "$KEY_ALIAS" >/dev/null 2>&1; then
+              echo "::error title=assinatura::Segredos ANDROID_* não conferem (chave, senha ou alias errados)."
+              exit 1
+            fi
             printf 'storeFile=upload-keystore.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
               "$KS_PASS" "$KEY_ALIAS" "$KS_PASS" > android/key.properties
             echo "SIGNED=1" >> "$GITHUB_ENV"
+            echo "::notice title=assinatura::APK/AAB assinados com a chave de upload."
+          else
+            echo "::warning title=assinatura::Sem segredos ANDROID_*: build com chave de debug, sem AAB."
           fi
       - name: build APK (release, arm64)
         # URL da API embutida no APK. Defina a variável de repositório
