@@ -13,7 +13,12 @@ class FakeBackend {
   final List<Map<String, Object?>> posts = [
     _post('01a10000-0000-7000-8000-000000000001', 'Primeiro post da Alice'),
   ];
-  bool followingBob = false;
+  /// Relação de alice com bob: none | request_sent | request_received | friends.
+  String bobRelation = 'none';
+
+  /// Carol pediu amizade à alice.
+  bool carolRequested = true;
+  bool carolFriend = false;
   String? displayName;
   String bio = '';
   int _seq = 2;
@@ -41,17 +46,49 @@ class FakeBackend {
       case 'GET /v1/users/alice/posts':
         return _json(200, {'items': posts, 'next_cursor': null});
       case 'GET /v1/users/alice':
-        return _json(200, _profile('alice', isSelf: true));
+        return _json(200, _profile('alice', relation: 'self'));
       case 'GET /v1/users/bob':
-        return _json(200, _profile('bob', isSelf: false));
+        return _json(200, _profile('bob', relation: bobRelation));
       case 'GET /v1/users/bob/posts':
+        if (bobRelation != 'friends') {
+          return _json(403, {'error': 'forbidden'});
+        }
         return _json(200, {'items': <Object>[], 'next_cursor': null});
-      case 'PUT /v1/users/bob/follow':
-        followingBob = true;
+      case 'PUT /v1/users/bob/friend':
+        bobRelation = bobRelation == 'request_received' || bobRelation == 'friends'
+            ? 'friends'
+            : 'request_sent';
+        return _json(200, {'relation': bobRelation});
+      case 'DELETE /v1/users/bob/friend':
+        bobRelation = 'none';
         return http.Response('', 204);
-      case 'DELETE /v1/users/bob/follow':
-        followingBob = false;
+      case 'PUT /v1/users/carol/friend':
+        carolRequested = false;
+        carolFriend = true;
+        return _json(200, {'relation': 'friends'});
+      case 'DELETE /v1/users/carol/friend':
+        carolRequested = false;
+        carolFriend = false;
         return http.Response('', 204);
+      case 'GET /v1/friend-requests':
+        return _json(200, {
+          'items': [
+            if (carolRequested)
+              {
+                'user': {'id': 'u-carol', 'username': 'carol', 'display_name': 'Carol'},
+                'created_at': '2026-10-07T12:00:00Z',
+              },
+          ],
+        });
+      case 'GET /v1/friends':
+        return _json(200, {
+          'items': [
+            if (bobRelation == 'friends')
+              {'id': 'u-bob', 'username': 'bob', 'display_name': null},
+            if (carolFriend)
+              {'id': 'u-carol', 'username': 'carol', 'display_name': 'Carol'},
+          ],
+        });
       case 'PATCH /v1/me/profile':
         final patch = jsonDecode(request.body) as Map<String, dynamic>;
         final name = patch['display_name'] as String?;
@@ -80,17 +117,24 @@ class FakeBackend {
     'created_at': '2026-10-03T05:27:07Z',
   };
 
-  Map<String, Object?> _profile(String name, {required bool isSelf}) => {
-    'id': 'u-$name',
-    'username': name,
-    'display_name': isSelf ? displayName : null,
-    'bio': isSelf ? bio : '',
-    'created_at': '2026-10-03T05:27:07Z',
-    'is_self': isSelf,
-    'is_following': !isSelf && followingBob,
-    if (isSelf)
-      'stats': {'followers': 0, 'following': followingBob ? 1 : 0, 'posts': posts.length},
-  };
+  Map<String, Object?> _profile(String name, {required String relation}) {
+    final isSelf = relation == 'self';
+    return {
+      'id': 'u-$name',
+      'username': name,
+      'display_name': isSelf ? displayName : null,
+      'bio': isSelf ? bio : '',
+      'created_at': '2026-10-03T05:27:07Z',
+      'is_self': isSelf,
+      'relation': relation,
+      if (isSelf)
+        'stats': {
+          'friends': (bobRelation == 'friends' ? 1 : 0) + (carolFriend ? 1 : 0),
+          'posts': posts.length,
+          'pending_requests': carolRequested ? 1 : 0,
+        },
+    };
+  }
 
   static Map<String, Object?> _post(String id, String body) => {
     'id': id,

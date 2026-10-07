@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT p.id, p.body, p.created_at, p.edited_at,\n               u.id AS author_id, u.username AS author_username,\n               u.display_name AS author_display_name\n        FROM posts p JOIN users u ON u.id = p.author_id\n        WHERE p.deleted_at IS NULL\n          AND (p.author_id = $1\n               OR p.author_id IN (SELECT followee_id FROM follows WHERE follower_id = $1))\n          AND ($2::uuid IS NULL OR p.id < $2)\n        ORDER BY p.id DESC\n        LIMIT $3\n        ",
+  "query": "\n        SELECT p.id, p.body, p.created_at, p.edited_at,\n               u.id AS author_id, u.username AS author_username,\n               u.display_name AS author_display_name\n        FROM posts p JOIN users u ON u.id = p.author_id\n        WHERE p.deleted_at IS NULL\n          AND (p.author_id = $1\n               OR p.author_id IN (SELECT friend_id FROM friends WHERE user_id = $1))\n          AND ($2::uuid IS NULL OR p.id < $2)\n        ORDER BY p.id DESC\n        LIMIT $3\n        ",
   "describe": {
     "columns": [
       {
@@ -98,5 +98,5 @@
       true
     ]
   },
-  "hash": "39106a0c61ce589655134695fc398eb52a5398868b084f1cec9f77e1c915e17c"
+  "hash": "5d4c5e865e15f09124a8028586383de0761293b459439428eca05525e212a281"
 }

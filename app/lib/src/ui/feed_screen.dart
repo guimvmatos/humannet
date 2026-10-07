@@ -6,7 +6,7 @@ import 'compose_screen.dart';
 import 'post_list.dart';
 import 'profile_screen.dart';
 
-/// Feed cronológico: quem você segue + você. Sem algoritmo (R2).
+/// Feed cronológico: seus amigos + você. Sem algoritmo (R2).
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key, required this.session});
 
@@ -85,7 +85,7 @@ class _FeedScreenState extends State<FeedScreen> {
         session: widget.session,
         loader: (before) => widget.session.api.feed(token, before: before),
         emptyText:
-            'Seu feed está vazio. Siga pessoas que você conhece '
+            'Seu feed está vazio. Adicione amigos (lupa, acima) '
             'ou escreva o primeiro post.',
       ),
       floatingActionButton: FloatingActionButton.extended(

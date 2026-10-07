@@ -109,23 +109,43 @@ class PostPage {
   final String? nextCursor;
 }
 
+/// Relação entre quem vê e o dono do perfil (ADR-0006: amizade mútua).
+enum Relation {
+  self,
+  none,
+  friends,
+  requestSent,
+  requestReceived;
+
+  static Relation parse(String? v) => switch (v) {
+    'self' => Relation.self,
+    'friends' => Relation.friends,
+    'request_sent' => Relation.requestSent,
+    'request_received' => Relation.requestReceived,
+    _ => Relation.none,
+  };
+
+  /// Posts do perfil só aparecem para o próprio e para amigos.
+  bool get canSeePosts => this == Relation.self || this == Relation.friends;
+}
+
 /// Contagens do próprio perfil (privadas, R3).
 class ProfileStats {
   const ProfileStats({
-    required this.followers,
-    required this.following,
+    required this.friends,
     required this.posts,
+    required this.pendingRequests,
   });
 
   factory ProfileStats.fromJson(Map<String, dynamic> json) => ProfileStats(
-    followers: json['followers'] as int,
-    following: json['following'] as int,
+    friends: json['friends'] as int,
     posts: json['posts'] as int,
+    pendingRequests: (json['pending_requests'] as int?) ?? 0,
   );
 
-  final int followers;
-  final int following;
+  final int friends;
   final int posts;
+  final int pendingRequests;
 }
 
 class Profile {
@@ -134,8 +154,7 @@ class Profile {
     required this.username,
     required this.bio,
     required this.createdAt,
-    required this.isSelf,
-    required this.isFollowing,
+    required this.relation,
     this.displayName,
     this.stats,
   });
@@ -148,8 +167,7 @@ class Profile {
       displayName: json['display_name'] as String?,
       bio: (json['bio'] as String?) ?? '',
       createdAt: DateTime.parse(json['created_at'] as String),
-      isSelf: json['is_self'] as bool,
-      isFollowing: json['is_following'] as bool,
+      relation: Relation.parse(json['relation'] as String?),
       stats: stats == null ? null : ProfileStats.fromJson(stats),
     );
   }
@@ -159,18 +177,31 @@ class Profile {
   final String? displayName;
   final String bio;
   final DateTime createdAt;
-  final bool isSelf;
-  final bool isFollowing;
+  final Relation relation;
   final ProfileStats? stats;
 
-  Profile copyWith({bool? isFollowing}) => Profile(
+  bool get isSelf => relation == Relation.self;
+
+  Profile copyWith({Relation? relation}) => Profile(
     id: id,
     username: username,
     displayName: displayName,
     bio: bio,
     createdAt: createdAt,
-    isSelf: isSelf,
-    isFollowing: isFollowing ?? this.isFollowing,
+    relation: relation ?? this.relation,
     stats: stats,
   );
+}
+
+/// Pedido de amizade recebido.
+class FriendRequest {
+  const FriendRequest({required this.user, required this.createdAt});
+
+  factory FriendRequest.fromJson(Map<String, dynamic> json) => FriendRequest(
+    user: Author.fromJson(json['user'] as Map<String, dynamic>),
+    createdAt: DateTime.parse(json['created_at'] as String),
+  );
+
+  final Author user;
+  final DateTime createdAt;
 }

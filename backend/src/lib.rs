@@ -44,9 +44,11 @@ pub fn app(state: AppState) -> Router {
         .route("/invites", post(routes::invites::create))
         .route("/users/{username}", get(routes::profiles::get))
         .route(
-            "/users/{username}/follow",
-            put(routes::profiles::follow).delete(routes::profiles::unfollow),
+            "/users/{username}/friend",
+            put(routes::friends::request_or_accept).delete(routes::friends::remove),
         )
+        .route("/friends", get(routes::friends::list))
+        .route("/friend-requests", get(routes::friends::incoming))
         .route("/users/{username}/posts", get(routes::posts::list_by_user))
         .route("/posts", post(routes::posts::create))
         .route(

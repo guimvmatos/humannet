@@ -12,6 +12,7 @@ use crate::{
     auth::AuthUser,
     error::{AppError, AppResult},
     routes::{
+        friends,
         pagination::{Page, PageQuery},
         profiles::user_id_by_username,
     },
@@ -102,10 +103,11 @@ pub async fn create(
     Ok((StatusCode::CREATED, Json(row.into())))
 }
 
-/// GET /v1/posts/{id}
+/// GET /v1/posts/{id} — só o autor e os amigos dele. Para os demais, 404
+/// (não revela que o post existe).
 pub async fn get(
     State(state): State<AppState>,
-    _user: AuthUser,
+    user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<PostDto>> {
     let row = sqlx::query_as!(
@@ -122,6 +124,9 @@ pub async fn get(
     .fetch_optional(&state.db)
     .await?
     .ok_or(AppError::NotFound)?;
+    if !friends::can_see_content(&state.db, user.user_id, row.author_id).await? {
+        return Err(AppError::NotFound);
+    }
     Ok(Json(row.into()))
 }
 
@@ -153,14 +158,17 @@ pub async fn delete(
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// GET /v1/users/{username}/posts
+/// GET /v1/users/{username}/posts — só para o próprio e amigos (ADR-0006).
 pub async fn list_by_user(
     State(state): State<AppState>,
-    _viewer: AuthUser,
+    viewer: AuthUser,
     Path(username): Path<String>,
     Query(q): Query<PageQuery>,
 ) -> AppResult<Json<Page<PostDto>>> {
     let author = user_id_by_username(&state, &username).await?;
+    if !friends::can_see_content(&state.db, viewer.user_id, author).await? {
+        return Err(AppError::Forbidden);
+    }
     let limit = q.limit();
     let rows = sqlx::query_as!(
         PostRow,
@@ -184,7 +192,7 @@ pub async fn list_by_user(
     Ok(Json(page(rows, limit)))
 }
 
-/// GET /v1/feed — modo cronológico (padrão, R2): quem eu sigo + eu.
+/// GET /v1/feed — modo cronológico (padrão, R2): meus amigos + eu.
 /// Sem ranking. A ordem é a de publicação.
 pub async fn feed(
     State(state): State<AppState>,
@@ -201,7 +209,7 @@ pub async fn feed(
         FROM posts p JOIN users u ON u.id = p.author_id
         WHERE p.deleted_at IS NULL
           AND (p.author_id = $1
-               OR p.author_id IN (SELECT followee_id FROM follows WHERE follower_id = $1))
+               OR p.author_id IN (SELECT friend_id FROM friends WHERE user_id = $1))
           AND ($2::uuid IS NULL OR p.id < $2)
         ORDER BY p.id DESC
         LIMIT $3

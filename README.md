@@ -4,7 +4,7 @@ Uma rede social ética, humana e autêntica, feita a partir do Brasil.
 
 > Sem algoritmos ocultos. Sem bots. Sem métricas de vaidade. Uma pessoa, uma conta.
 
-**Status:** Fase 1 em andamento. Já funcionam convites, login, perfis, seguir, posts de texto e feed cronológico.
+**Status:** Fase 1 em andamento. Já funcionam convites, login, perfis, amizade mútua, posts de texto e feed cronológico.
 
 ## Documentação
 
@@ -71,12 +71,15 @@ cd app && flutter test
 | GET | `/v1/me` | Bearer | Dados do próprio usuário |
 | POST | `/v1/invites` | Bearer | Gera um convite (até 5 ativos) |
 | PATCH | `/v1/me/profile` | Bearer | `{display_name?, bio?}` (`""` em display_name remove) |
-| GET | `/v1/users/{username}` | Bearer | Perfil; `stats` só no próprio perfil (R3) |
-| PUT / DELETE | `/v1/users/{username}/follow` | Bearer | Seguir / deixar de seguir (idempotente) |
-| GET | `/v1/users/{username}/posts` | Bearer | Posts do usuário (paginado) |
+| GET | `/v1/users/{username}` | Bearer | Perfil + `relation` (`self`, `none`, `friends`, `request_sent`, `request_received`); `stats` só no próprio perfil (R3) |
+| PUT | `/v1/users/{username}/friend` | Bearer | Pede amizade, ou aceita se a pessoa já pediu → `{relation}` |
+| DELETE | `/v1/users/{username}/friend` | Bearer | Desfaz amizade, cancela ou recusa o pedido (idempotente) |
+| GET | `/v1/friend-requests` | Bearer | Pedidos recebidos |
+| GET | `/v1/friends` | Bearer | Meus amigos |
+| GET | `/v1/users/{username}/posts` | Bearer | Posts do usuário (só para o próprio e amigos; senão 403) |
 | POST | `/v1/posts` | Bearer | `{body}` (1–5000 caracteres) |
-| GET / DELETE | `/v1/posts/{id}` | Bearer | Ler / apagar (só o autor; o texto é removido do banco) |
-| GET | `/v1/feed` | Bearer | Cronológico: quem você segue + você |
+| GET / DELETE | `/v1/posts/{id}` | Bearer | Ler (autor e amigos; senão 404) / apagar (só o autor; o texto é removido do banco) |
+| GET | `/v1/feed` | Bearer | Cronológico: amigos + você |
 
 Paginação: `?limit=1..50&before=<id>`. A resposta é `{items, next_cursor}`, e `next_cursor: null` marca o fim da lista (sem rolagem infinita, R6).
 

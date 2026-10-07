@@ -52,25 +52,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _toggleFollow() async {
+  /// Ação principal do botão de amizade, conforme a relação atual.
+  Future<void> _friendAction({bool decline = false}) async {
     final p = _profile;
     final token = _token;
     if (p == null || token == null) return;
+
+    if (p.relation == Relation.friends) {
+      final ok = await _confirm(
+        'Desfazer amizade?',
+        'Vocês deixam de ver os posts um do outro. @${p.username} não é avisado.',
+        'Desfazer',
+      );
+      if (!ok) return;
+    }
+
     setState(() => _busy = true);
     try {
-      if (p.isFollowing) {
-        await widget.session.api.unfollow(token, p.username);
+      final api = widget.session.api;
+      final Relation next;
+      if (decline ||
+          p.relation == Relation.friends ||
+          p.relation == Relation.requestSent) {
+        await api.removeFriend(token, p.username);
+        next = Relation.none;
       } else {
-        await widget.session.api.follow(token, p.username);
+        next = await api.requestFriend(token, p.username);
       }
-      if (mounted) {
-        setState(() => _profile = p.copyWith(isFollowing: !p.isFollowing));
-      }
+      if (mounted) setState(() => _profile = p.copyWith(relation: next));
     } catch (e) {
       _snack(errorMessage(e));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<bool> _confirm(String title, String body, String action) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            key: const Key('confirm_button'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(action),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
   }
 
   Future<void> _editProfile() async {
@@ -150,33 +186,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
         ],
       ),
-      body: _error != null && p == null
-          ? Center(child: Text(_error!))
-          : PagedPostList(
-                key: _listKey,
-                onRefresh: _loadProfile,
-                session: widget.session,
-                loader: (before) => widget.session.api.userPosts(
-                  _token ?? '',
-                  widget.username,
-                  before: before,
-                ),
-                header: p == null
-                    ? const Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    : _Header(
-                        profile: p,
-                        busy: _busy,
-                        onToggleFollow: _toggleFollow,
-                        onEdit: _editProfile,
-                        onInvite: _createInvite,
-                      ),
-                emptyText: isSelf
-                    ? 'Você ainda não publicou nada.'
-                    : 'Nenhum post ainda.',
+      body: _body(p, isSelf),
+    );
+  }
+
+  Widget _body(Profile? p, bool isSelf) {
+    if (_error != null && p == null) return Center(child: Text(_error!));
+    if (p == null) return const Center(child: CircularProgressIndicator());
+
+    final header = _Header(
+      profile: p,
+      busy: _busy,
+      onFriendAction: () => _friendAction(),
+      onDecline: () => _friendAction(decline: true),
+      onEdit: _editProfile,
+      onInvite: _createInvite,
+    );
+
+    // Posts só para o próprio e amigos (ADR-0006). Sem chamar a API.
+    if (!p.relation.canSeePosts) {
+      return RefreshIndicator(
+        onRefresh: _loadProfile,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            header,
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                'Os posts de @${p.username} aparecem só para amigos.',
+                key: const Key('friends_only'),
+                textAlign: TextAlign.center,
               ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return PagedPostList(
+      key: _listKey,
+      onRefresh: _loadProfile,
+      session: widget.session,
+      loader: (before) => widget.session.api.userPosts(
+        _token ?? '',
+        widget.username,
+        before: before,
+      ),
+      header: header,
+      emptyText: isSelf ? 'Você ainda não publicou nada.' : 'Nenhum post ainda.',
     );
   }
 }
@@ -185,16 +243,62 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.profile,
     required this.busy,
-    required this.onToggleFollow,
+    required this.onFriendAction,
+    required this.onDecline,
     required this.onEdit,
     required this.onInvite,
   });
 
   final Profile profile;
   final bool busy;
-  final VoidCallback onToggleFollow;
+  final VoidCallback onFriendAction;
+  final VoidCallback onDecline;
   final VoidCallback onEdit;
   final VoidCallback onInvite;
+
+  List<Widget> _friendButtons() {
+    final onTap = busy ? null : onFriendAction;
+    return switch (profile.relation) {
+      Relation.self => const [],
+      Relation.none => [
+        FilledButton.icon(
+          key: const Key('friend_button'),
+          onPressed: onTap,
+          icon: const Icon(Icons.person_add_alt_1),
+          label: const Text('Adicionar'),
+        ),
+      ],
+      Relation.requestSent => [
+        OutlinedButton.icon(
+          key: const Key('friend_button'),
+          onPressed: onTap,
+          icon: const Icon(Icons.schedule),
+          label: const Text('Pedido enviado · cancelar'),
+        ),
+      ],
+      Relation.requestReceived => [
+        FilledButton.icon(
+          key: const Key('friend_button'),
+          onPressed: onTap,
+          icon: const Icon(Icons.check),
+          label: const Text('Aceitar amizade'),
+        ),
+        OutlinedButton(
+          key: const Key('decline_button'),
+          onPressed: busy ? null : onDecline,
+          child: const Text('Recusar'),
+        ),
+      ],
+      Relation.friends => [
+        OutlinedButton.icon(
+          key: const Key('friend_button'),
+          onPressed: onTap,
+          icon: const Icon(Icons.people),
+          label: const Text('Amigos'),
+        ),
+      ],
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -216,11 +320,17 @@ class _Header extends StatelessWidget {
             const SizedBox(height: 12),
             Text(profile.bio),
           ],
+          if (profile.relation == Relation.requestReceived) ...[
+            const SizedBox(height: 12),
+            Text(
+              '@${profile.username} quer ser seu amigo.',
+              style: theme.textTheme.bodyMedium,
+            ),
+          ],
           if (stats != null) ...[
             const SizedBox(height: 12),
             Text(
-              '${stats.posts} posts · ${stats.followers} seguidores · '
-              '${stats.following} seguindo',
+              '${stats.posts} posts · ${stats.friends} amigos',
               style: theme.textTheme.bodySmall,
             ),
             Text(
@@ -248,19 +358,7 @@ class _Header extends StatelessWidget {
                       label: const Text('Gerar convite'),
                     ),
                   ]
-                : [
-                    profile.isFollowing
-                        ? OutlinedButton(
-                            key: const Key('follow_button'),
-                            onPressed: busy ? null : onToggleFollow,
-                            child: const Text('Seguindo'),
-                          )
-                        : FilledButton(
-                            key: const Key('follow_button'),
-                            onPressed: busy ? null : onToggleFollow,
-                            child: const Text('Seguir'),
-                          ),
-                  ],
+                : _friendButtons(),
           ),
           const Divider(height: 32),
         ],

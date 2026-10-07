@@ -103,20 +103,39 @@ class ApiClient {
     return User.fromJson(json!);
   }
 
-  Future<void> follow(String token, String username) async {
-    await _send(
+  // ------------------------------------------------------------ amizade
+
+  /// Pede amizade, ou aceita se a outra pessoa já pediu. Devolve a relação.
+  Future<Relation> requestFriend(String token, String username) async {
+    final json = await _send(
       'PUT',
-      '/v1/users/${Uri.encodeComponent(username)}/follow',
+      '/v1/users/${Uri.encodeComponent(username)}/friend',
+      token: token,
+    );
+    return Relation.parse(json?['relation'] as String?);
+  }
+
+  /// Desfaz amizade, cancela o pedido enviado ou recusa o recebido.
+  Future<void> removeFriend(String token, String username) async {
+    await _send(
+      'DELETE',
+      '/v1/users/${Uri.encodeComponent(username)}/friend',
       token: token,
     );
   }
 
-  Future<void> unfollow(String token, String username) async {
-    await _send(
-      'DELETE',
-      '/v1/users/${Uri.encodeComponent(username)}/follow',
-      token: token,
-    );
+  Future<List<FriendRequest>> friendRequests(String token) async {
+    final json = await _send('GET', '/v1/friend-requests', token: token);
+    return (json!['items'] as List<dynamic>)
+        .map((e) => FriendRequest.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<Author>> friends(String token) async {
+    final json = await _send('GET', '/v1/friends', token: token);
+    return (json!['items'] as List<dynamic>)
+        .map((e) => Author.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   // ------------------------------------------------------------ posts
@@ -135,7 +154,7 @@ class ApiClient {
     await _send('DELETE', '/v1/posts/${Uri.encodeComponent(id)}', token: token);
   }
 
-  /// Feed cronológico: quem você segue + você.
+  /// Feed cronológico: seus amigos + você.
   Future<PostPage> feed(String token, {String? before}) async {
     final json = await _send(
       'GET',

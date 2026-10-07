@@ -86,7 +86,7 @@ void main() {
     expect(backend.calls, contains('POST /v1/posts'));
   });
 
-  testWidgets('seguir e deixar de seguir outro perfil', (tester) async {
+  testWidgets('pedir amizade, cancelar; posts só para amigos', (tester) async {
     final backend = FakeBackend();
     final session = _session(backend, InMemoryTokenStore());
     await session.restore();
@@ -99,18 +99,63 @@ void main() {
     await tester.tap(find.text('Abrir'));
     await tester.pumpAndSettle();
 
-    expect(find.text('@bob'), findsWidgets);
+    expect(find.byKey(const Key('friends_only')), findsOneWidget);
     expect(find.text('Só você vê esses números.'), findsNothing);
-    expect(find.text('Seguir'), findsOneWidget);
+    expect(find.text('Adicionar'), findsOneWidget);
+    expect(backend.calls, isNot(contains('GET /v1/users/bob/posts')));
 
-    await tester.tap(find.byKey(const Key('follow_button')));
+    await tester.tap(find.byKey(const Key('friend_button')));
     await tester.pumpAndSettle();
-    expect(backend.followingBob, isTrue);
-    expect(find.text('Seguindo'), findsOneWidget);
+    expect(backend.bobRelation, 'request_sent');
+    expect(find.text('Pedido enviado · cancelar'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('follow_button')));
+    await tester.tap(find.byKey(const Key('friend_button')));
     await tester.pumpAndSettle();
-    expect(backend.followingBob, isFalse);
+    expect(backend.bobRelation, 'none');
+    expect(find.text('Adicionar'), findsOneWidget);
+  });
+
+  testWidgets('aceitar pedido de amizade na aba Amigos', (tester) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byKey(const Key('nav_friends')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('request_carol')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('accept_carol')));
+    await tester.pumpAndSettle();
+
+    expect(backend.carolFriend, isTrue);
+    expect(find.byKey(const Key('request_carol')), findsNothing);
+    expect(find.byKey(const Key('friend_carol')), findsOneWidget);
+  });
+
+  testWidgets('desfazer amizade pede confirmação', (tester) async {
+    final backend = FakeBackend()..bobRelation = 'friends';
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byTooltip('Encontrar pessoa'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('find_person_field')), 'bob');
+    await tester.tap(find.text('Abrir'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('friends_only')), findsNothing);
+    await tester.tap(find.byKey(const Key('friend_button')));
+    await tester.pumpAndSettle();
+    expect(find.text('Desfazer amizade?'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('confirm_button')));
+    await tester.pumpAndSettle();
+    expect(backend.bobRelation, 'none');
+    expect(find.byKey(const Key('friends_only')), findsOneWidget);
   });
 
   testWidgets('editar perfil atualiza o nome exibido', (tester) async {

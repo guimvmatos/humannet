@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM follows WHERE follower_id = $1 AND followee_id = $2",
+  "query": "INSERT INTO friendships (user_a, user_b) VALUES ($1, $2) ON CONFLICT DO NOTHING",
   "describe": {
     "columns": [],
     "parameters": {
@@ -11,5 +11,5 @@
     },
     "nullable": []
   },
-  "hash": "bafae26a0819980f4c0f94089364062660c10993d36d2de4c761685ec3b27102"
+  "hash": "241b8cfa83241c843dfea668a746a57d7eef2f6567c4ed3ab3b69158821dba55"
 }

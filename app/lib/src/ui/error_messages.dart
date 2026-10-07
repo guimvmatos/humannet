@@ -18,7 +18,9 @@ String errorMessage(Object error) {
     'invalid_display_name' => 'Nome de exibição deve ter até 50 caracteres.',
     'invalid_bio' => 'A bio deve ter até 300 caracteres.',
     'invalid_post_body' => 'O post deve ter entre 1 e 5.000 caracteres.',
-    'cannot_follow_self' => 'Você não pode seguir a si mesmo.',
+    'cannot_befriend_self' => 'Você não pode adicionar a si mesmo.',
+    'friend_request_limit' =>
+      'Você tem muitos pedidos de amizade pendentes. Espere algumas respostas.',
     'not_found' => 'Não encontrado.',
     'forbidden' => 'Você não tem permissão para isso.',
     'network_error' =>

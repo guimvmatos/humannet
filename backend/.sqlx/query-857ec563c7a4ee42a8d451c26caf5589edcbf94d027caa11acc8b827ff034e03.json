@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT u.id, u.username, u.display_name, u.bio, u.created_at,\n               EXISTS (SELECT 1 FROM follows f\n                       WHERE f.follower_id = $2 AND f.followee_id = u.id) AS \"is_following!\"\n        FROM users u\n        WHERE u.id = $1\n        ",
+  "query": "\n        SELECT u.id, u.username, u.display_name, u.bio, u.created_at\n        FROM users u\n        WHERE u.id = $1\n        ",
   "describe": {
     "columns": [
       {
@@ -57,17 +57,10 @@
             "name": "created_at"
           }
         }
-      },
-      {
-        "ordinal": 5,
-        "name": "is_following!",
-        "type_info": "Bool",
-        "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid",
         "Uuid"
       ]
     },
@@ -76,9 +69,8 @@
       false,
       true,
       false,
-      false,
-      null
+      false
     ]
   },
-  "hash": "0976b4b71383a812e513b54d8d4b0eadc8f70d090f1294147d8c1d73ba1fc52f"
+  "hash": "857ec563c7a4ee42a8d451c26caf5589edcbf94d027caa11acc8b827ff034e03"
 }

@@ -1,7 +1,6 @@
 use axum::{
     Json,
     extract::{Path, State},
-    http::StatusCode,
 };
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
@@ -11,7 +10,10 @@ use crate::{
     AppState,
     auth::AuthUser,
     error::{AppError, AppResult},
-    routes::me::UserDto,
+    routes::{
+        friends::{self, Relation},
+        me::UserDto,
+    },
     validation,
 };
 
@@ -25,7 +27,8 @@ pub struct ProfileDto {
     #[serde(with = "time::serde::rfc3339")]
     pub created_at: OffsetDateTime,
     pub is_self: bool,
-    pub is_following: bool,
+    /// self | none | friends | request_sent | request_received (ADR-0006).
+    pub relation: Relation,
     /// Contagens são privadas (R3): só presentes no próprio perfil.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stats: Option<ProfileStats>,
@@ -33,9 +36,10 @@ pub struct ProfileDto {
 
 #[derive(Debug, Serialize)]
 pub struct ProfileStats {
-    pub followers: i64,
-    pub following: i64,
+    pub friends: i64,
     pub posts: i64,
+    /// Pedidos de amizade recebidos e ainda não respondidos.
+    pub pending_requests: i64,
 }
 
 /// Resolve um username (normalizado) para id. Username inválido = não encontrado.
@@ -57,28 +61,26 @@ pub async fn get(
 
     let row = sqlx::query!(
         r#"
-        SELECT u.id, u.username, u.display_name, u.bio, u.created_at,
-               EXISTS (SELECT 1 FROM follows f
-                       WHERE f.follower_id = $2 AND f.followee_id = u.id) AS "is_following!"
+        SELECT u.id, u.username, u.display_name, u.bio, u.created_at
         FROM users u
         WHERE u.id = $1
         "#,
-        id,
-        viewer.user_id
+        id
     )
     .fetch_one(&state.db)
     .await?;
 
-    let is_self = row.id == viewer.user_id;
+    let relation = friends::relation(&state.db, viewer.user_id, row.id).await?;
+    let is_self = relation == Relation::Myself;
     let stats = if is_self {
         Some(
             sqlx::query_as!(
                 ProfileStats,
                 r#"
                 SELECT
-                  (SELECT count(*) FROM follows WHERE followee_id = $1) AS "followers!",
-                  (SELECT count(*) FROM follows WHERE follower_id = $1) AS "following!",
-                  (SELECT count(*) FROM posts WHERE author_id = $1 AND deleted_at IS NULL) AS "posts!"
+                  (SELECT count(*) FROM friends WHERE user_id = $1) AS "friends!",
+                  (SELECT count(*) FROM posts WHERE author_id = $1 AND deleted_at IS NULL) AS "posts!",
+                  (SELECT count(*) FROM friend_requests WHERE to_id = $1) AS "pending_requests!"
                 "#,
                 row.id
             )
@@ -96,7 +98,7 @@ pub async fn get(
         bio: row.bio,
         created_at: row.created_at,
         is_self,
-        is_following: row.is_following,
+        relation,
         stats,
     }))
 }
@@ -140,41 +142,4 @@ pub async fn update(
     .await?;
 
     Ok(Json(me))
-}
-
-/// PUT /v1/users/{username}/follow — idempotente.
-pub async fn follow(
-    State(state): State<AppState>,
-    user: AuthUser,
-    Path(username): Path<String>,
-) -> AppResult<StatusCode> {
-    let target = user_id_by_username(&state, &username).await?;
-    if target == user.user_id {
-        return Err(AppError::Validation("cannot_follow_self"));
-    }
-    sqlx::query!(
-        "INSERT INTO follows (follower_id, followee_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-        user.user_id,
-        target
-    )
-    .execute(&state.db)
-    .await?;
-    Ok(StatusCode::NO_CONTENT)
-}
-
-/// DELETE /v1/users/{username}/follow — idempotente.
-pub async fn unfollow(
-    State(state): State<AppState>,
-    user: AuthUser,
-    Path(username): Path<String>,
-) -> AppResult<StatusCode> {
-    let target = user_id_by_username(&state, &username).await?;
-    sqlx::query!(
-        "DELETE FROM follows WHERE follower_id = $1 AND followee_id = $2",
-        user.user_id,
-        target
-    )
-    .execute(&state.db)
-    .await?;
-    Ok(StatusCode::NO_CONTENT)
 }

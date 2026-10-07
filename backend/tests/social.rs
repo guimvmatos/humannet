@@ -17,16 +17,28 @@ async fn post(app: &Router, token: &str, body: &str) -> Value {
     res
 }
 
-async fn follow(app: &Router, token: &str, username: &str) {
-    let (s, _) = call(
+/// `a` pede amizade a `b_name` e `b` aceita.
+async fn befriend(app: &Router, a: &str, a_name: &str, b: &str, b_name: &str) {
+    let (s, r) = call(
         app,
         Method::PUT,
-        &format!("/v1/users/{username}/follow"),
-        Some(token),
+        &format!("/v1/users/{b_name}/friend"),
+        Some(a),
         None,
     )
     .await;
-    assert_eq!(s, StatusCode::NO_CONTENT);
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(r["relation"], "request_sent");
+    let (s, r) = call(
+        app,
+        Method::PUT,
+        &format!("/v1/users/{a_name}/friend"),
+        Some(b),
+        None,
+    )
+    .await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(r["relation"], "friends");
 }
 
 fn bodies(page: &Value) -> Vec<&str> {
@@ -45,19 +57,20 @@ async fn profile_counts_are_private(db: PgPool) {
     let app = test_app(db.clone());
     let alice = signup(&app, &db, "alice").await;
     let bob = signup(&app, &db, "bob").await;
-    follow(&app, &bob, "alice").await;
+    befriend(&app, &bob, "bob", &alice, "alice").await;
 
     // Alice vê as próprias contagens.
     let (s, me) = call(&app, Method::GET, "/v1/users/alice", Some(&alice), None).await;
     assert_eq!(s, StatusCode::OK);
     assert_eq!(me["is_self"], true);
-    assert_eq!(me["stats"]["followers"], 1);
+    assert_eq!(me["relation"], "self");
+    assert_eq!(me["stats"]["friends"], 1);
 
     // Bob vê o perfil da Alice sem contagens e sem e-mail (R3).
     let (_, other) = call(&app, Method::GET, "/v1/users/ALICE", Some(&bob), None).await;
     assert_eq!(other["username"], "alice");
     assert_eq!(other["is_self"], false);
-    assert_eq!(other["is_following"], true);
+    assert_eq!(other["relation"], "friends");
     assert!(other.get("stats").is_none());
     assert!(other.get("email").is_none());
 }
@@ -124,43 +137,6 @@ async fn update_profile_partial(db: PgPool) {
     .await;
     assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
     assert_eq!(err["error"], "invalid_display_name");
-}
-
-// ---------------------------------------------------------------- seguir
-
-#[sqlx::test]
-async fn follow_is_idempotent_and_not_self(db: PgPool) {
-    let app = test_app(db.clone());
-    let alice = signup(&app, &db, "alice").await;
-    signup(&app, &db, "bob").await;
-
-    follow(&app, &alice, "bob").await;
-    follow(&app, &alice, "bob").await;
-
-    let (s, err) = call(
-        &app,
-        Method::PUT,
-        "/v1/users/alice/follow",
-        Some(&alice),
-        None,
-    )
-    .await;
-    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY);
-    assert_eq!(err["error"], "cannot_follow_self");
-
-    for _ in 0..2 {
-        let (s, _) = call(
-            &app,
-            Method::DELETE,
-            "/v1/users/bob/follow",
-            Some(&alice),
-            None,
-        )
-        .await;
-        assert_eq!(s, StatusCode::NO_CONTENT);
-    }
-    let (_, bob) = call(&app, Method::GET, "/v1/users/bob", Some(&alice), None).await;
-    assert_eq!(bob["is_following"], false);
 }
 
 // ---------------------------------------------------------------- posts
@@ -252,17 +228,25 @@ async fn invalid_post_id_is_rejected(db: PgPool) {
 // ---------------------------------------------------------------- feed
 
 #[sqlx::test]
-async fn feed_is_chronological_from_follows_and_self(db: PgPool) {
+async fn feed_is_chronological_from_friends_and_self(db: PgPool) {
     let app = test_app(db.clone());
     let alice = signup(&app, &db, "alice").await;
     let bob = signup(&app, &db, "bob").await;
     let carol = signup(&app, &db, "carol").await;
 
     post(&app, &bob, "bob 1").await;
-    post(&app, &carol, "carol 1").await; // Alice não segue Carol
+    post(&app, &carol, "carol 1").await; // Carol só tem pedido pendente
     post(&app, &alice, "alice 1").await;
     post(&app, &bob, "bob 2").await;
-    follow(&app, &alice, "bob").await;
+    befriend(&app, &alice, "alice", &bob, "bob").await;
+    call(
+        &app,
+        Method::PUT,
+        "/v1/users/carol/friend",
+        Some(&alice),
+        None,
+    )
+    .await;
 
     let (s, feed) = call(&app, Method::GET, "/v1/feed", Some(&alice), None).await;
     assert_eq!(s, StatusCode::OK);
@@ -306,11 +290,11 @@ async fn feed_pagination_has_explicit_end(db: PgPool) {
 }
 
 #[sqlx::test]
-async fn feed_excludes_deleted_and_unfollowed(db: PgPool) {
+async fn feed_excludes_deleted_and_unfriended(db: PgPool) {
     let app = test_app(db.clone());
     let alice = signup(&app, &db, "alice").await;
     let bob = signup(&app, &db, "bob").await;
-    follow(&app, &alice, "bob").await;
+    befriend(&app, &alice, "alice", &bob, "bob").await;
     let p = post(&app, &bob, "vai sumir").await;
     post(&app, &bob, "fica").await;
 
@@ -329,7 +313,7 @@ async fn feed_excludes_deleted_and_unfollowed(db: PgPool) {
     call(
         &app,
         Method::DELETE,
-        "/v1/users/bob/follow",
+        "/v1/users/bob/friend",
         Some(&alice),
         None,
     )
@@ -347,8 +331,37 @@ async fn user_posts_listing(db: PgPool) {
     post(&app, &bob, "b2").await;
     post(&app, &alice, "a1").await;
 
-    // Não precisa seguir para ver os posts no perfil.
+    // Sem amizade: posts do perfil são privados.
+    let (s, _) = call(&app, Method::GET, "/v1/users/bob/posts", Some(&alice), None).await;
+    assert_eq!(s, StatusCode::FORBIDDEN);
+
+    // O próprio sempre vê.
+    let (s, page) = call(&app, Method::GET, "/v1/users/bob/posts", Some(&bob), None).await;
+    assert_eq!(s, StatusCode::OK);
+    assert_eq!(bodies(&page), ["b2", "b1"]);
+
+    befriend(&app, &alice, "alice", &bob, "bob").await;
     let (s, page) = call(&app, Method::GET, "/v1/users/bob/posts", Some(&alice), None).await;
     assert_eq!(s, StatusCode::OK);
     assert_eq!(bodies(&page), ["b2", "b1"]);
+}
+
+#[sqlx::test]
+async fn single_post_hidden_from_non_friends(db: PgPool) {
+    let app = test_app(db.clone());
+    let alice = signup(&app, &db, "alice").await;
+    let bob = signup(&app, &db, "bob").await;
+    let id = post(&app, &bob, "só amigos").await["id"]
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let uri = format!("/v1/posts/{id}");
+
+    // 404, não 403: não revela que o post existe.
+    let (s, _) = call(&app, Method::GET, &uri, Some(&alice), None).await;
+    assert_eq!(s, StatusCode::NOT_FOUND);
+
+    befriend(&app, &alice, "alice", &bob, "bob").await;
+    let (s, _) = call(&app, Method::GET, &uri, Some(&alice), None).await;
+    assert_eq!(s, StatusCode::OK);
 }
