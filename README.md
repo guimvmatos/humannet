@@ -13,6 +13,8 @@ Uma rede social ética, humana e autêntica, feita a partir do Brasil.
 | [`docs/SPEC.md`](docs/SPEC.md) | Visão, regras de produto (R1–R8), fases, requisitos, modelo de dados |
 | [`docs/adr/`](docs/adr/) | Decisões técnicas (stack, identidade, privacidade, autenticação) |
 | [`docs/BACKLOG.md`](docs/BACKLOG.md) | Ideias futuras com fase, dependências e riscos |
+| [`docs/SETUP-BETA.md`](docs/SETUP-BETA.md) | Passo a passo: Neon, Render, assinatura, Google Play, convites |
+| [`docs/PRIVACIDADE.md`](docs/PRIVACIDADE.md) | Política de privacidade do beta |
 | [`CLAUDE.md`](CLAUDE.md) | Convenções do repo (para pessoas e agentes de IA) |
 
 ## Estrutura

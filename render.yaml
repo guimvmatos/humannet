@@ -1,6 +1,6 @@
 # Blueprint do Render (https://render.com/docs/blueprint-spec).
 # Ambiente de TESTE: planos gratuitos. O serviço "dorme" sem uso (a primeira
-# requisição depois disso demora ~1 min) e o Postgres gratuito expira.
+# requisição depois disso demora ~1 min). Para uso com amigos: plan: starter.
 services:
   - type: web
     name: humannet-api
@@ -16,10 +16,11 @@ services:
       paths:
         - backend/**
     envVars:
+      # Banco no Neon (gratuito e permanente). O valor é colado no painel do
+      # Render; ver docs/SETUP-BETA.md. `sync: false` impede o Blueprint de
+      # sobrescrevê-lo.
       - key: DATABASE_URL
-        fromDatabase:
-          name: humannet-db
-          property: connectionString
+        sync: false
       # Código do primeiro convite (16+ caracteres). O Render pede o valor
       # na criação. Só vale enquanto o banco não tem nenhum usuário.
       - key: BOOTSTRAP_INVITE_CODE
@@ -32,6 +33,8 @@ services:
       - key: RUST_LOG
         value: humannet_api=info,tower_http=info
 
+# Postgres gratuito do Render: expira em 30 dias. Substituído pelo Neon;
+# este bloco sai do arquivo depois da migração (docs/SETUP-BETA.md, passo 2).
 databases:
   - name: humannet-db
     plan: free
