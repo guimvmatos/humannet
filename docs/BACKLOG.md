@@ -207,3 +207,8 @@ Conversar com outras redes abertas (Mastodon, Bluesky). Tensão com R1: contas d
 - Lugares (bar, restaurante, casa de show…) têm uma **página** (perfil de lugar), administrada por uma ou mais pessoas.
 - A página cria **eventos**. Quem vê registra **interesse** ("tenho interesse / vou"), **sem venda de ingresso** e sem pagamento no app.
 - Pessoas acompanham páginas de lugares (única relação unilateral permitida, ADR-0006).
+
+## Decisão 2026-10-08: CPF
+
+- **Agora (feito, lote 11):** convite + CPF obrigatório, uma conta por CPF. O servidor guarda só HMAC-SHA256 (chave `CPF_HMAC_KEY`, nunca trocar). Não prova que o CPF é da pessoa; a administração libera CPF usado indevidamente.
+- **Depois:** verificação real (documento + selfie) por serviço pago (Unico, idwall…), com selo "verificado" no perfil.
