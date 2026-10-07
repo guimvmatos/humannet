@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../api/models.dart';
 import '../auth/session_controller.dart';
+import 'appearance_screen.dart';
 import 'error_messages.dart';
 import 'moderation_screen.dart';
 
@@ -33,6 +34,15 @@ class SettingsScreen extends StatelessWidget {
             ),
             const Divider(),
           ],
+          ListTile(
+            key: const Key('appearance_tile'),
+            leading: const Icon(Icons.palette_outlined),
+            title: const Text('Aparência'),
+            subtitle: const Text('Tema e modo claro/escuro'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const AppearanceScreen()),
+            ),
+          ),
           ListTile(
             key: const Key('change_password_tile'),
             leading: const Icon(Icons.lock_outline),

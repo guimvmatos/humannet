@@ -4,6 +4,7 @@ import 'src/api/api_client.dart';
 import 'src/auth/session_controller.dart';
 import 'src/auth/token_store.dart';
 import 'src/config.dart';
+import 'src/theme/theme_controller.dart';
 import 'src/ui/app.dart';
 
 void main() {
@@ -15,7 +16,10 @@ void main() {
     api: api,
     tokenStore: SecureTokenStore(),
   );
-  runApp(HumanNetApp(session: session));
+  final themes = ThemeController(SecurePrefsStore());
+  // Carrega o tema salvo; até lá, mostra o padrão.
+  themes.load().ignore();
+  runApp(HumanNetApp(session: session, themes: themes));
   // Restaura a sessão em segundo plano; a UI mostra um carregando até lá.
   session.restore().ignore();
 }

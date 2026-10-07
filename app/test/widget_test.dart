@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:humannet/src/api/api_client.dart';
 import 'package:humannet/src/auth/session_controller.dart';
 import 'package:humannet/src/auth/token_store.dart';
+import 'package:humannet/src/theme/theme_controller.dart';
 import 'package:humannet/src/ui/app.dart';
 
 import 'fake_backend.dart';
@@ -596,5 +597,37 @@ void main() {
     await tester.pumpAndSettle();
     final after = tester.widgetList<Badge>(find.byType(Badge)).toList();
     expect(after.where((b) => b.isLabelVisible).length, 2);
+  });
+
+  testWidgets('trocar o tema do app', (tester) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    final store = InMemoryPrefsStore();
+    final themes = ThemeController(store);
+    await tester.pumpWidget(HumanNetApp(session: session, themes: themes));
+    await _login(tester);
+
+    await tester.tap(find.byKey(const Key('nav_profile')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('appearance_tile')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('palette_rosa')));
+    await tester.pumpAndSettle();
+    expect(themes.palette.id, 'rosa');
+    expect(store.values['theme_palette'], 'rosa');
+
+    await tester.tap(find.text('Escuro'));
+    await tester.pumpAndSettle();
+    expect(themes.mode, ThemeMode.dark);
+
+    // Recarregar lê a preferência salva.
+    final again = ThemeController(store);
+    await again.load();
+    expect(again.palette.id, 'rosa');
+    expect(again.mode, ThemeMode.dark);
   });
 }
