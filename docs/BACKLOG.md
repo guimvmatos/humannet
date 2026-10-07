@@ -26,6 +26,37 @@ Para cada ideia: **fase prevista**, **dependências** e **riscos**.
   - API de LLM: melhor qualidade, mas tem custo e envia dados para fora. Só com opt-in.
 - **Riscos:** custo, privacidade e o tom paternalista incomodar parte dos usuários. A feature precisa poder ser desligada.
 
+## Linha do tempo pessoal e reencontros
+
+**Ideia:** no começo, a pessoa conta um pouco da própria história: cidade onde nasceu, ano de nascimento, cidades onde morou, escolas e faculdades, trabalhos, cada item com um **período** (ex.: Escola X, 1998–2005). A partir disso, a HumanNet sugere **pessoas da mesma época e do mesmo lugar**: colegas de escola, da faculdade, da cidade antiga ou da nova. É o "reencontro" do Orkut e do Facebook antigo.
+
+- **Fase:** 1c. Logo depois da amizade mútua e da 1b, porque é o principal jeito de **encontrar amigos** num modelo só de amizade.
+- **Por que encaixa:**
+  - "Identidade real" e "construir relações" (manifesto).
+  - Resolve como achar pessoas sem algoritmo de engajamento: a sugestão vem de **fatos que você mesmo informou**.
+- **Desenho proposto:**
+  - **Opcional**, com "pular" e "completar depois" (R5: dados mínimos). O app incentiva, mas não obriga.
+  - **Dados estruturados, não texto livre:**
+    - cidades da lista oficial do IBGE;
+    - escolas do Censo Escolar (INEP);
+    - faculdades do e-MEC;
+    - entrada livre só quando o lugar não está na lista.
+    - Sem isso, "Col. São José" e "Colégio São José" não casam.
+  - **Períodos em ano**, nunca data exata. Do nascimento, guardar só o **ano**.
+  - **Sugestão transparente (R2):** "Sugerido porque vocês estudaram na Escola X na mesma época". Sem pontuação oculta.
+  - **Casamento:** mesmo lugar **e** períodos que se sobrepõem, com margem de ±2 anos para escolas e cidades da infância.
+  - **Visibilidade por item:** "visível para amigos", "só para sugestões, nunca exibido" ou "só eu".
+  - **Consentimento dos dois lados:** só aparece como sugestão quem ativou "quero ser encontrado por este item". A razão da sugestão só é mostrada se o item for visível para quem recebe a sugestão.
+  - Sugestão ≠ amizade: continua sendo preciso pedir e aceitar (R9).
+- **Riscos:**
+  - **Perguntas de segurança.** "Nome da primeira escola" e "cidade onde nasceu" são perguntas clássicas de recuperação de conta em bancos. Expor isso ajuda golpes. Por padrão, esses itens **nunca são exibidos publicamente**.
+  - **Menores de idade:** a escola **atual** de um menor é informação sensível (perseguição). Para menores, escola atual nunca é exibida nem usada em sugestões. Depende da verificação de idade (Fase 4).
+  - **Perseguição:** um ex-parceiro ou agressor pode reencontrar a vítima. Bloqueio impede sugestões nos dois sentidos, e a pessoa pode desligar "ser encontrado" a qualquer momento.
+  - **Perfilamento:** a linha do tempo de alguém é um dossiê. Ela nunca vai para anúncios nem para terceiros (R5), e o usuário pode apagar tudo.
+  - **LGPD:** finalidade específica ("sugerir pessoas") e consentimento explícito.
+- **Dependências:** amizade mútua (ADR-0006), bloqueio (1b), importação das bases IBGE/INEP/e-MEC (dados públicos).
+- **Extensão futura:** a mesma linha do tempo pode alimentar "lembranças" ("há 10 anos você se formava na Faculdade Y"), ligada à "memória digital" da Proposta.
+
 ## Posts e feed regionais
 
 **Ideia:** quem ativa a opção publica posts que só aparecem para pessoas dentro de um raio, e passa a ver posts dessa mesma região, no estilo Tinder.
