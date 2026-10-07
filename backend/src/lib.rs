@@ -2,6 +2,7 @@ pub mod auth;
 pub mod config;
 pub mod crypto;
 pub mod error;
+pub mod ratelimit;
 pub mod routes;
 pub mod validation;
 
@@ -30,6 +31,17 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
 pub struct AppState {
     pub db: PgPool,
     pub policy: Policy,
+    pub auth_limits: std::sync::Arc<ratelimit::AuthLimits>,
+}
+
+impl AppState {
+    pub fn new(db: PgPool, policy: Policy) -> Self {
+        Self {
+            db,
+            policy,
+            auth_limits: std::sync::Arc::default(),
+        }
+    }
 }
 
 pub fn app(state: AppState) -> Router {

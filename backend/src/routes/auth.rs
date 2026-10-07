@@ -121,9 +121,16 @@ pub async fn register(
 /// POST /v1/auth/login
 pub async fn login(
     State(state): State<AppState>,
+    headers: axum::http::HeaderMap,
     Json(req): Json<LoginRequest>,
 ) -> AppResult<Json<AuthResponse>> {
     let login = req.login.trim().to_lowercase();
+    let limits = &state.auth_limits;
+    let login_key = format!("login:{login}");
+    let ip_key = format!("ip:{}", crate::ratelimit::client_ip(&headers));
+    if limits.per_login.is_blocked(&login_key) || limits.per_ip.is_blocked(&ip_key) {
+        return Err(AppError::TooManyAttempts);
+    }
     if login.is_empty() || login.len() > 254 || req.password.len() > 4 * validation::PASSWORD_MAX {
         return Err(AppError::InvalidCredentials);
     }
@@ -152,8 +159,13 @@ pub async fn login(
 
     let user = match (ok, user) {
         (true, Some(u)) => u,
-        _ => return Err(AppError::InvalidCredentials),
+        _ => {
+            limits.per_login.record_failure(&login_key);
+            limits.per_ip.record_failure(&ip_key);
+            return Err(AppError::InvalidCredentials);
+        }
     };
+    limits.per_login.clear(&login_key);
     if user.suspended_at.is_some() {
         return Err(AppError::Suspended);
     }

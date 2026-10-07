@@ -54,21 +54,52 @@ jobs:
       # Enquanto android/ não estiver commitado, gera e ajusta aqui.
       - name: preparar android/
         run: ./tool/setup_android.sh
-      - name: build APK (debug)
+      # Assinatura própria (necessária para a Play Store e para instalar
+      # atualizações por cima). Vem dos segredos ANDROID_*; sem eles, usa a
+      # chave de debug do CI (cada build exige desinstalar o anterior).
+      - name: chave de assinatura (se configurada)
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > android/app/upload-keystore.jks
+            printf 'storeFile=upload-keystore.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+              "$KS_PASS" "$KEY_ALIAS" "$KS_PASS" > android/key.properties
+            echo "SIGNED=1" >> "$GITHUB_ENV"
+          fi
+      - name: build APK (release, arm64)
         # URL da API embutida no APK. Defina a variável de repositório
         # API_BASE_URL (Settings → Secrets and variables → Actions → Variables)
-        # para trocar; sem ela, usa a API de teste no Render.
+        # para trocar; sem ela, usa a API no Render.
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL || 'https://humannet-api.onrender.com' }}
         run: >-
-          flutter build apk --debug
+          flutter build apk --release --target-platform android-arm64
+          --build-number=${{ github.run_number }}
+          --dart-define=API_BASE_URL="$API_BASE_URL"
+          --dart-define=GIT_SHA="${GITHUB_SHA::7}"
+      - name: build AAB (Play Store)
+        if: env.SIGNED == '1'
+        env:
+          API_BASE_URL: ${{ vars.API_BASE_URL || 'https://humannet-api.onrender.com' }}
+        run: >-
+          flutter build appbundle --release
+          --build-number=${{ github.run_number }}
           --dart-define=API_BASE_URL="$API_BASE_URL"
           --dart-define=GIT_SHA="${GITHUB_SHA::7}"
       - uses: actions/upload-artifact@v7
         with:
-          name: humannet-debug-apk
-          path: app/build/app/outputs/flutter-apk/app-debug.apk
+          name: humannet-apk
+          path: app/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 14
+      - uses: actions/upload-artifact@v7
+        if: env.SIGNED == '1'
+        with:
+          name: humannet-aab
+          path: app/build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
 
   # Publica o APK da main como pré-release fixa "dev-latest", para baixar
   # direto no celular (link estável, sem login, sem zip).
@@ -81,7 +112,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         with:
-          name: humannet-debug-apk
+          name: humannet-apk
       # `--clobber` substitui o APK antigo (o mesmo nome era mantido antes).
       - name: publicar APK na release dev-latest
         working-directory: .
@@ -89,7 +120,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          mv app-debug.apk humannet-dev.apk
+          mv app-release.apk humannet-dev.apk
           if ! gh release view dev-latest >/dev/null 2>&1; then
             gh release create dev-latest --prerelease --title "HumanNet (dev)" \
               --notes "Build de desenvolvimento da main. Baixe humannet-dev.apk e instale."

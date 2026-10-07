@@ -15,10 +15,7 @@ use tower::ServiceExt;
 pub const PASSWORD: &str = "senha-bem-longa-123";
 
 pub fn test_app(db: PgPool) -> Router {
-    app(AppState {
-        db,
-        policy: Policy::default(),
-    })
+    app(AppState::new(db, Policy::default()))
 }
 
 pub async fn call(

@@ -80,10 +80,7 @@ async fn main() -> Result<()> {
 }
 
 async fn serve(config: Config, db: sqlx::PgPool) -> Result<()> {
-    let state = AppState {
-        db,
-        policy: Policy::from(&config),
-    };
+    let state = AppState::new(db, Policy::from(&config));
     let listener = tokio::net::TcpListener::bind(config.bind_addr).await?;
     tracing::info!(addr = %config.bind_addr, "HumanNet API ouvindo");
     axum::serve(listener, app(state))

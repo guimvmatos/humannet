@@ -277,8 +277,13 @@ pub struct ResetPassword {
 /// encerra todas as sessões. Erros não revelam se o usuário existe.
 pub async fn reset_password(
     State(state): State<AppState>,
+    headers: axum::http::HeaderMap,
     Json(req): Json<ResetPassword>,
 ) -> AppResult<StatusCode> {
+    let ip_key = format!("reset-ip:{}", crate::ratelimit::client_ip(&headers));
+    if state.auth_limits.per_ip.is_blocked(&ip_key) {
+        return Err(AppError::TooManyAttempts);
+    }
     validation::password(&req.new_password)?;
     let invalid = AppError::Validation("invalid_reset_code");
     let Ok(username) = validation::username(&req.username) else {
@@ -319,6 +324,7 @@ pub async fn reset_password(
             .await?;
         }
         tx.commit().await?;
+        state.auth_limits.per_ip.record_failure(&ip_key);
         return Err(invalid);
     }
 

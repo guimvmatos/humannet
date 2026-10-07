@@ -327,3 +327,77 @@ async fn bootstrap_invite_only_on_empty_db(db: PgPool) {
     assert_eq!(status, StatusCode::BAD_REQUEST);
     assert_eq!(body["error"], "invalid_invite");
 }
+
+// ---------------------------------------------------------------- limite de tentativas
+
+#[sqlx::test]
+async fn login_is_rate_limited_per_account(db: PgPool) {
+    let app = test_app(db.clone());
+    signup(&app, &db, "alice").await;
+    signup(&app, &db, "bob").await;
+    let attempt = |login: &'static str, pw: &'static str| {
+        let app = app.clone();
+        async move {
+            call(
+                &app,
+                Method::POST,
+                "/v1/auth/login",
+                None,
+                Some(json!({ "login": login, "password": pw })),
+            )
+            .await
+        }
+    };
+
+    for _ in 0..10 {
+        let (s, _) = attempt("alice", "senha-errada-123").await;
+        assert_eq!(s, StatusCode::UNAUTHORIZED);
+    }
+    // Bloqueada: nem a senha certa entra durante a janela.
+    let (s, body) = attempt("alice", PASSWORD).await;
+    assert_eq!(s, StatusCode::TOO_MANY_REQUESTS);
+    assert_eq!(body["error"], "too_many_attempts");
+
+    // Outra conta não é afetada.
+    let (s, _) = attempt("bob", PASSWORD).await;
+    assert_eq!(s, StatusCode::OK);
+}
+
+#[sqlx::test]
+async fn successful_login_resets_counter(db: PgPool) {
+    let app = test_app(db.clone());
+    signup(&app, &db, "alice").await;
+    for _ in 0..9 {
+        call(
+            &app,
+            Method::POST,
+            "/v1/auth/login",
+            None,
+            Some(json!({ "login": "alice", "password": "senha-errada-123" })),
+        )
+        .await;
+    }
+    let ok = json!({ "login": "alice", "password": PASSWORD });
+    assert_eq!(
+        call(&app, Method::POST, "/v1/auth/login", None, Some(ok.clone()))
+            .await
+            .0,
+        StatusCode::OK
+    );
+    for _ in 0..9 {
+        call(
+            &app,
+            Method::POST,
+            "/v1/auth/login",
+            None,
+            Some(json!({ "login": "alice", "password": "senha-errada-123" })),
+        )
+        .await;
+    }
+    assert_eq!(
+        call(&app, Method::POST, "/v1/auth/login", None, Some(ok))
+            .await
+            .0,
+        StatusCode::OK
+    );
+}

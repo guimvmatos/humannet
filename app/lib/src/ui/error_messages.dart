@@ -27,6 +27,8 @@ String errorMessage(Object error) {
     'invalid_report_details' => 'Os detalhes devem ter até 1.000 caracteres.',
     'report_limit' => 'Você fez muitas denúncias hoje. Tente amanhã.',
     'invalid_comment_body' => 'O comentário deve ter entre 1 e 2.000 caracteres.',
+    'too_many_attempts' =>
+      'Muitas tentativas erradas. Espere 15 minutos e tente de novo.',
     'account_suspended' =>
       'Esta conta está suspensa. Fale com a administração da HumanNet.',
     'invalid_reset_code' =>

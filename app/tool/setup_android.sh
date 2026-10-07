@@ -48,6 +48,39 @@ for name in ("build.gradle.kts", "build.gradle"):
         g = g.replace("minSdk = flutter.minSdkVersion", "minSdk = maxOf(24, flutter.minSdkVersion)")
         g = g.replace("minSdkVersion flutter.minSdkVersion", "minSdkVersion Math.max(24, flutter.minSdkVersion)")
         f.write_text(g)
+
+# 4) Assinatura de release com chave própria, se android/key.properties existir
+#    (o CI cria a partir dos segredos ANDROID_*). Sem ela, usa a chave de debug.
+kts = app / "build.gradle.kts"
+if kts.exists():
+    g = kts.read_text()
+    if 'create("release")' not in g:
+        g = g.replace("    buildTypes {", '''    signingConfigs {
+        create("release") {
+            val ks = rootProject.file("key.properties")
+            if (ks.exists()) {
+                val p = java.util.Properties().apply { ks.inputStream().use { load(it) } }
+                keyAlias = p.getProperty("keyAlias")
+                keyPassword = p.getProperty("keyPassword")
+                storeFile = file(p.getProperty("storeFile"))
+                storePassword = p.getProperty("storePassword")
+            }
+        }
+    }
+
+    buildTypes {''', 1)
+        g = g.replace(
+            'signingConfig = signingConfigs.getByName("debug")',
+            'signingConfig = if (rootProject.file("key.properties").exists()) '
+            'signingConfigs.getByName("release") else signingConfigs.getByName("debug")',
+        )
+        kts.write_text(g)
+
+# 5) Nome exibido no Android.
+main_manifest = app / "src/main/AndroidManifest.xml"
+m = main_manifest.read_text()
+m = m.replace('android:label="humannet"', 'android:label="HumanNet"')
+main_manifest.write_text(m)
 PY
 
 echo "android/ pronto."

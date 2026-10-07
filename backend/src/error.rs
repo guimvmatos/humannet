@@ -25,6 +25,8 @@ pub enum AppError {
     Suspended,
     #[error("conflict: {0}")]
     Conflict(&'static str),
+    #[error("too many attempts")]
+    TooManyAttempts,
     #[error("limit reached: {0}")]
     LimitReached(&'static str),
     #[error(transparent)]
@@ -47,6 +49,7 @@ impl AppError {
             Self::Forbidden => (StatusCode::FORBIDDEN, "forbidden"),
             Self::Suspended => (StatusCode::FORBIDDEN, "account_suspended"),
             Self::Conflict(code) => (StatusCode::CONFLICT, code),
+            Self::TooManyAttempts => (StatusCode::TOO_MANY_REQUESTS, "too_many_attempts"),
             Self::LimitReached(code) => (StatusCode::TOO_MANY_REQUESTS, code),
             Self::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "internal_error"),
         }
