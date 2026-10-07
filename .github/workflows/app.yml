@@ -60,7 +60,10 @@ jobs:
         # para trocar; sem ela, usa a API de teste no Render.
         env:
           API_BASE_URL: ${{ vars.API_BASE_URL || 'https://humannet-api.onrender.com' }}
-        run: flutter build apk --debug --dart-define=API_BASE_URL="$API_BASE_URL"
+        run: >-
+          flutter build apk --debug
+          --dart-define=API_BASE_URL="$API_BASE_URL"
+          --dart-define=GIT_SHA="${GITHUB_SHA::7}"
       - uses: actions/upload-artifact@v7
         with:
           name: humannet-debug-apk
@@ -79,16 +82,17 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: humannet-debug-apk
-      - name: renomear
+      # `--clobber` substitui o APK antigo (o mesmo nome era mantido antes).
+      - name: publicar APK na release dev-latest
         working-directory: .
-        run: mv app-debug.apk humannet-dev.apk
-      - uses: softprops/action-gh-release@v3
-        with:
-          tag_name: dev-latest
-          name: HumanNet (dev)
-          prerelease: true
-          make_latest: false
-          body: |
-            Build de desenvolvimento da branch main (${{ github.sha }}).
-            Baixe `humannet-dev.apk` no celular Android e instale.
-          files: humannet-dev.apk
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mv app-debug.apk humannet-dev.apk
+          if ! gh release view dev-latest >/dev/null 2>&1; then
+            gh release create dev-latest --prerelease --title "HumanNet (dev)" \
+              --notes "Build de desenvolvimento da main. Baixe humannet-dev.apk e instale."
+          fi
+          gh release upload dev-latest humannet-dev.apk --clobber
+          gh release edit dev-latest --notes "Build de desenvolvimento da main, commit ${GITHUB_SHA::7}. Baixe humannet-dev.apk e instale."

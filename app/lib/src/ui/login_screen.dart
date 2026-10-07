@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../auth/session_controller.dart';
+import '../config.dart';
 import 'error_messages.dart';
 import 'register_screen.dart';
 
@@ -124,6 +125,14 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                       child: const Text('Tenho um convite'),
+                    ),
+                    const SizedBox(height: 24),
+                    // Diagnóstico durante o beta: qual API e qual versão.
+                    Text(
+                      'API: $apiBaseUrl\nversão: $gitSha',
+                      key: const Key('build_info'),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall,
                     ),
                   ],
                 ),
