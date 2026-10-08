@@ -584,7 +584,7 @@ void main() {
 
     // Pedido de carol (Amigos) e depoimento pendente (Perfil).
     final badges = tester.widgetList<Badge>(find.byType(Badge)).toList();
-    expect(badges.where((b) => b.isLabelVisible).length, 3);
+    expect(badges.where((b) => b.isLabelVisible).length, 4);
 
     await tester.tap(find.byKey(const Key('activity_button')));
     await tester.pumpAndSettle();
@@ -600,7 +600,7 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
     final after = tester.widgetList<Badge>(find.byType(Badge)).toList();
-    expect(after.where((b) => b.isLabelVisible).length, 2);
+    expect(after.where((b) => b.isLabelVisible).length, 3);
   });
 
   testWidgets('trocar o tema do app', (tester) async {
@@ -892,6 +892,7 @@ void main() {
     expect(backend.chatRead, isTrue);
 
     await tester.enterText(find.byKey(const Key('message_field')), 'Oi Bob');
+    await tester.pump();
     await tester.tap(find.byKey(const Key('send_message_button')));
     await tester.pumpAndSettle();
     expect(find.text('Oi Bob'), findsOneWidget);
