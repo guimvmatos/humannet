@@ -43,6 +43,9 @@ services:
       # Chave do CPF (uma conta por CPF). Gerada uma vez; NUNCA trocar.
       - key: CPF_HMAC_KEY
         sync: false
+      # Push: conteúdo inteiro do JSON da conta de serviço do Firebase.
+      - key: FCM_SERVICE_ACCOUNT_JSON
+        sync: false
       - key: LOG_FORMAT
         value: json
       - key: RUST_LOG

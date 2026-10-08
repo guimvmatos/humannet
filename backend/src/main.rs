@@ -90,7 +90,29 @@ async fn serve(mut config: Config, db: sqlx::PgPool) -> Result<()> {
             humannet_api::media::MediaStore::Disabled
         }
     };
-    let state = AppState::new(db.clone(), Policy::from(&config)).with_media(media.clone());
+    let push = match config.fcm_service_account.take() {
+        Some(sa) => {
+            let json = String::from_utf8(sa.0).unwrap_or_default();
+            match humannet_api::push::Fcm::from_service_account(&json) {
+                Ok(fcm) => {
+                    tracing::info!(?fcm, "push ligado");
+                    humannet_api::push::Push::Fcm(std::sync::Arc::new(fcm))
+                }
+                // Push é um extra: configuração errada não derruba a API.
+                Err(e) => {
+                    tracing::error!(error = %e, "push desligado: FCM_SERVICE_ACCOUNT_JSON inválido");
+                    humannet_api::push::Push::Disabled
+                }
+            }
+        }
+        None => {
+            tracing::warn!("push desligado: falta FCM_SERVICE_ACCOUNT_JSON");
+            humannet_api::push::Push::Disabled
+        }
+    };
+    let state = AppState::new(db.clone(), Policy::from(&config))
+        .with_media(media.clone())
+        .with_push(push);
     // Faxina de hora em hora: fotos enviadas e nunca usadas.
     tokio::spawn(async move {
         let mut tick = tokio::time::interval(std::time::Duration::from_secs(3600));

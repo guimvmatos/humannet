@@ -45,7 +45,7 @@ pub async fn create(
     Json(req): Json<CreateComment>,
 ) -> AppResult<(StatusCode, Json<CommentDto>)> {
     let body = validation::comment_body(&req.body)?;
-    visible_post_author(&state, user.user_id, post_id).await?;
+    let post_author = visible_post_author(&state, user.user_id, post_id).await?;
     let r = sqlx::query!(
         r#"
         WITH c AS (
@@ -62,6 +62,12 @@ pub async fn create(
     )
     .fetch_one(&state.db)
     .await?;
+    state.push.notify(
+        &state.db,
+        user.user_id,
+        vec![post_author],
+        crate::push::Kind::Comment { post: post_id },
+    );
     Ok((
         StatusCode::CREATED,
         Json(CommentDto {

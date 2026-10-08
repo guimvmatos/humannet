@@ -80,7 +80,16 @@ if kts.exists():
             g = "import java.util.Properties\n\n" + g
         kts.write_text(g)
 
-# 5) Nome exibido no Android.
+# 5) Android 13+: permissão para mostrar notificações (push).
+main = app / "src/main/AndroidManifest.xml"
+s = main.read_text()
+if "android.permission.POST_NOTIFICATIONS" not in s:
+    s = re.sub(r"(<manifest[^>]*>)",
+               r'\1\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>',
+               s, count=1)
+    main.write_text(s)
+
+# 6) Nome exibido no Android.
 main_manifest = app / "src/main/AndroidManifest.xml"
 m = main_manifest.read_text()
 m = m.replace('android:label="humannet"', 'android:label="HumanNet"')

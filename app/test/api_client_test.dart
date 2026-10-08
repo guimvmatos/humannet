@@ -105,5 +105,22 @@ void main() {
         throwsA(isA<ApiException>().having((e) => e.code, 'code', 'http_502')),
       );
     });
+
+    test('registra e remove o aparelho do push', () async {
+      final seen = <String>[];
+      final client = ApiClient(
+        baseUrl: 'http://api.test',
+        httpClient: MockClient((req) async {
+          seen.add('${req.method} ${req.url.path} ${req.body}');
+          return http.Response('', 204);
+        }),
+      );
+      await client.registerDevice('t', 'abc-123');
+      await client.unregisterDevice('t', 'abc-123');
+      expect(seen, [
+        'PUT /v1/me/devices {"token":"abc-123"}',
+        'DELETE /v1/me/devices/abc-123 ',
+      ]);
+    });
   });
 }

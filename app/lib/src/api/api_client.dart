@@ -1068,6 +1068,25 @@ class ApiClient {
     return Counts.fromJson(json!);
   }
 
+  /// Este aparelho passa a receber notificações push desta conta.
+  Future<void> registerDevice(String token, String deviceToken) async {
+    await _send(
+      'PUT',
+      '/v1/me/devices',
+      token: token,
+      body: {'token': deviceToken},
+    );
+  }
+
+  /// Ao sair da conta: o aparelho para de receber avisos dela.
+  Future<void> unregisterDevice(String token, String deviceToken) async {
+    await _send(
+      'DELETE',
+      '/v1/me/devices/${Uri.encodeComponent(deviceToken)}',
+      token: token,
+    );
+  }
+
   Future<List<ActivityItem>> activity(String token) async {
     final json = await _send('GET', '/v1/me/activity', token: token);
     return (json!['items'] as List<dynamic>)

@@ -3,6 +3,7 @@ pub mod config;
 pub mod crypto;
 pub mod error;
 pub mod media;
+pub mod push;
 pub mod ratelimit;
 pub mod routes;
 pub mod validation;
@@ -34,6 +35,7 @@ pub struct AppState {
     pub policy: Policy,
     pub auth_limits: std::sync::Arc<ratelimit::AuthLimits>,
     pub media: media::MediaStore,
+    pub push: push::Push,
 }
 
 impl AppState {
@@ -44,11 +46,18 @@ impl AppState {
             auth_limits: std::sync::Arc::default(),
             // Testes: em memória. Produção: `with_media` (main.rs).
             media: media::MediaStore::memory(),
+            // Testes: guarda os avisos. Produção: `with_push` (main.rs).
+            push: push::Push::memory(),
         }
     }
 
     pub fn with_media(mut self, media: media::MediaStore) -> Self {
         self.media = media;
+        self
+    }
+
+    pub fn with_push(mut self, push: push::Push) -> Self {
+        self.push = push;
         self
     }
 }
@@ -85,6 +94,8 @@ pub fn app(state: AppState) -> Router {
             post(routes::admin::release_cpf),
         )
         .route("/me/counts", get(routes::activity::counts))
+        .route("/me/devices", put(routes::devices::register))
+        .route("/me/devices/{token}", delete(routes::devices::unregister))
         .route("/me/status", put(routes::scraps::set_status))
         .route(
             "/conversations",

@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 
 import '../api/models.dart';
 import '../auth/session_controller.dart';
+import '../push/push_controller.dart';
+import 'activity_screen.dart';
+import 'chat_ui.dart';
 import 'communities_screen.dart';
 import 'feed_screen.dart';
 import 'friends_screen.dart';
@@ -29,6 +32,11 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   final _agendaKey = GlobalKey<AgendaScreenState>();
   final _counts = ValueNotifier<Counts>(const Counts());
   Timer? _timer;
+  late final PushController _push = PushController(
+    session: widget.session,
+    onForeground: () => unawaited(_refreshCounts()),
+    onOpen: (kind, id) => unawaited(_openFromPush(kind, id)),
+  );
 
   @override
   void initState() {
@@ -39,12 +47,14 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       const Duration(minutes: 1),
       (_) => _refreshCounts(),
     );
+    unawaited(_push.start());
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
+    _push.dispose();
     _counts.dispose();
     super.dispose();
   }
@@ -63,6 +73,40 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     } catch (_) {
       // Bolinhas são um extra: falha de rede não atrapalha o resto.
     }
+  }
+
+  /// Tocou numa notificação: abre a tela certa.
+  Future<void> _openFromPush(String kind, String id) async {
+    final token = widget.session.token;
+    if (!mounted || token == null) return;
+    switch (kind) {
+      case 'message' when id.isNotEmpty:
+        try {
+          final c = await widget.session.api.conversation(token, id);
+          if (!mounted) return;
+          await Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => ChatScreen(session: widget.session, conversation: c),
+            ),
+          );
+        } catch (_) {
+          // Conversa apagada ou saiu do grupo: fica no app.
+        }
+      case 'friend_request':
+        _select(1);
+      case 'testimonial' || 'scrap' || 'friend_accepted':
+        _select(4);
+      case 'comment':
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => ActivityScreen(
+              session: widget.session,
+              onSeen: () => unawaited(_refreshCounts()),
+            ),
+          ),
+        );
+    }
+    await _refreshCounts();
   }
 
   void _select(int i) {

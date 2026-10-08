@@ -99,6 +99,21 @@ jobs:
           else
             echo "::warning title=assinatura::Sem segredos ANDROID_*: build com chave de debug, sem AAB."
           fi
+      # Push (Firebase): o google-services.json vem do segredo
+      # GOOGLE_SERVICES_JSON (conteúdo inteiro do arquivo). Sem ele, o app sai
+      # sem push (as bolinhas continuam atualizando a cada minuto).
+      - name: firebase (se configurado)
+        env:
+          GS_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GS_JSON" ]; then
+            python3 tool/firebase_values.py
+            echo "PUSH=true" >> "$GITHUB_ENV"
+            echo "::notice title=push::Notificações push ligadas."
+          else
+            echo "PUSH=false" >> "$GITHUB_ENV"
+            echo "::warning title=push::Sem segredo GOOGLE_SERVICES_JSON: build sem push."
+          fi
       - name: build APK (release, arm64)
         # URL da API embutida no APK. Defina a variável de repositório
         # API_BASE_URL (Settings → Secrets and variables → Actions → Variables)
@@ -110,7 +125,8 @@ jobs:
           flutter build apk --release --target-platform android-arm64 \
             --build-number=${{ github.run_number }} \
             --dart-define=API_BASE_URL="$API_BASE_URL" \
-            --dart-define=GIT_SHA="${GITHUB_SHA::7}" 2>&1 | tee -a /tmp/build.log
+            --dart-define=GIT_SHA="${GITHUB_SHA::7}" \
+            --dart-define=PUSH="$PUSH" 2>&1 | tee -a /tmp/build.log
       - name: build AAB (Play Store)
         if: env.SIGNED == '1'
         env:
@@ -120,7 +136,8 @@ jobs:
           flutter build appbundle --release \
             --build-number=${{ github.run_number }} \
             --dart-define=API_BASE_URL="$API_BASE_URL" \
-            --dart-define=GIT_SHA="${GITHUB_SHA::7}" 2>&1 | tee -a /tmp/build.log
+            --dart-define=GIT_SHA="${GITHUB_SHA::7}" \
+            --dart-define=PUSH="$PUSH" 2>&1 | tee -a /tmp/build.log
       # Repositório público: anotações de erro são visíveis sem login, então o
       # trecho relevante do log de build vira uma anotação quando algo falha.
       - name: resumo do erro de build

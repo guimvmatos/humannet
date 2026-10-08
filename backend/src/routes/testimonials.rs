@@ -187,6 +187,12 @@ pub async fn write(
     let row = fetch(&state, id).await?.ok_or(AppError::NotFound)?;
     let mut dto = row.into_dto(me);
     crate::routes::posts::fill_avatars(&state, [&mut dto.author]).await?;
+    state.push.notify(
+        &state.db,
+        me,
+        vec![recipient],
+        crate::push::Kind::Testimonial,
+    );
     Ok((StatusCode::OK, Json(dto)))
 }
 

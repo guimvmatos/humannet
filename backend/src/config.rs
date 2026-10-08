@@ -19,6 +19,8 @@ pub struct Config {
     pub cpf_key: Option<SecretKey>,
     /// Armazenamento de fotos (S3). `None` = fotos desligadas.
     pub s3: Option<crate::media::S3Config>,
+    /// JSON da conta de serviço do Firebase. `None` = push desligado.
+    pub fcm_service_account: Option<SecretKey>,
 }
 
 impl Config {
@@ -46,6 +48,11 @@ impl Config {
                 .filter(|v| v.len() >= 16)
                 .map(SecretKey),
             s3: s3_from_env(),
+            fcm_service_account: env::var("FCM_SERVICE_ACCOUNT_JSON")
+                .ok()
+                .map(|v| v.trim().as_bytes().to_vec())
+                .filter(|v| !v.is_empty())
+                .map(SecretKey),
         })
     }
 }

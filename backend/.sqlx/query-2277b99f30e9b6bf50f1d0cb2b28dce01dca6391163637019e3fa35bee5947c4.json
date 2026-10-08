@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT d.token FROM push_devices d JOIN users u ON u.id = d.user_id\n            WHERE d.user_id = ANY($1) AND u.suspended_at IS NULL\n              AND NOT EXISTS (\n                SELECT 1 FROM blocks b\n                WHERE (b.blocker_id = d.user_id AND b.blocked_id = $2)\n                   OR (b.blocker_id = $2 AND b.blocked_id = d.user_id))\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "token",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "push_devices",
+            "name": "token"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2277b99f30e9b6bf50f1d0cb2b28dce01dca6391163637019e3fa35bee5947c4"
+}

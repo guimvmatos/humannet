@@ -174,6 +174,14 @@ pub async fn request_or_accept(
         Relation::Myself => unreachable!("tratado acima"),
     };
     tx.commit().await?;
+    let push = match (current, result) {
+        (Relation::RequestReceived, Relation::Friends) => Some(crate::push::Kind::FriendAccepted),
+        (Relation::None, Relation::RequestSent) => Some(crate::push::Kind::FriendRequest),
+        _ => None,
+    };
+    if let Some(kind) = push {
+        state.push.notify(&state.db, me, vec![other], kind);
+    }
     Ok(Json(RelationDto { relation: result }))
 }
 

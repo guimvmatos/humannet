@@ -160,6 +160,9 @@ pub async fn create(
         can_delete: true,
     };
     fill_avatars(&state, [&mut dto.author]).await?;
+    state
+        .push
+        .notify(&state.db, me, vec![owner], crate::push::Kind::Scrap);
     Ok((StatusCode::CREATED, Json(dto)))
 }
 

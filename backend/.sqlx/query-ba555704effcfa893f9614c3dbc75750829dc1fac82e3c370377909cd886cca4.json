@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO push_devices (token, user_id) VALUES ($1, $2)\n         ON CONFLICT (token) DO UPDATE SET user_id = EXCLUDED.user_id, updated_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ba555704effcfa893f9614c3dbc75750829dc1fac82e3c370377909cd886cca4"
+}

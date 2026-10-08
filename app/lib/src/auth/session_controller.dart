@@ -71,9 +71,21 @@ class SessionController extends ChangeNotifier {
     await _signIn(result);
   }
 
+  /// Chamado antes de sair (ex.: o push desliga este aparelho da conta).
+  Future<void> Function()? beforeLogout;
+
   /// Desloga localmente mesmo se a chamada à API falhar.
   Future<void> logout() async {
     final token = _token;
+    final hook = beforeLogout;
+    beforeLogout = null;
+    if (hook != null) {
+      try {
+        await hook();
+      } catch (_) {
+        // Sair nunca depende do push.
+      }
+    }
     if (token != null) {
       try {
         await _api.logout(token);

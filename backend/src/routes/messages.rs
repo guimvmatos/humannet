@@ -579,6 +579,31 @@ pub async fn send(
         deleted: false,
     };
     fill_avatars(&state, dto.author.as_mut()).await?;
+    let others = sqlx::query_scalar!(
+        "SELECT user_id FROM conversation_members WHERE conversation_id = $1 AND user_id <> $2",
+        id,
+        me
+    )
+    .fetch_all(&state.db)
+    .await?;
+    let group = if kind == "direct" {
+        None
+    } else {
+        Some(
+            sqlx::query_scalar!("SELECT title FROM conversations WHERE id = $1", id)
+                .fetch_one(&state.db)
+                .await?,
+        )
+    };
+    state.push.notify(
+        &state.db,
+        me,
+        others,
+        crate::push::Kind::Message {
+            conversation: id,
+            group,
+        },
+    );
     Ok((StatusCode::CREATED, Json(dto)))
 }
 

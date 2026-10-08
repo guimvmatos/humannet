@@ -8,3 +8,7 @@ const String apiBaseUrl = String.fromEnvironment(
 
 /// Commit do build (preenchido pelo CI). Mostrado na tela de login.
 const String gitSha = String.fromEnvironment('GIT_SHA', defaultValue: 'local');
+
+/// Notificações push (Firebase). O CI liga com `--dart-define=PUSH=true` quando
+/// o segredo GOOGLE_SERVICES_JSON existe; sem ele (testes, dev), fica desligado.
+const bool pushEnabled = bool.fromEnvironment('PUSH');

@@ -157,6 +157,13 @@ cd app && flutter test
 | DELETE | `/v1/conversations/{id}/members/me` | Sair do grupo |
 | DELETE | `/v1/messages/{id}` | Apagar mensagem própria |
 
+**Notificações push** (Firebase Cloud Messaging): pedido e aceite de amizade, depoimento, recado, comentário no seu post e mensagem. O aviso diz quem fez e o quê, nunca o conteúdo. Respeita bloqueio.
+
+| Método | Rota | Descrição |
+|---|---|---|
+| PUT | `/v1/me/devices` | `{token}`: este aparelho recebe os avisos desta conta (até 10 aparelhos) |
+| DELETE | `/v1/me/devices/{token}` | Ao sair da conta |
+
 **Administração** (papel `admin`, definido pela variável `ADMIN_USERNAMES` no servidor):
 
 | Método | Rota | Descrição |

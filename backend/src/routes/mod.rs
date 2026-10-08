@@ -4,6 +4,7 @@ pub mod admin;
 pub mod auth;
 pub mod comments;
 pub mod communities;
+pub mod devices;
 pub mod events;
 pub mod friends;
 pub mod health;
