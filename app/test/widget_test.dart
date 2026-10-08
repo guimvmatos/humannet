@@ -797,4 +797,74 @@ void main() {
     expect(backend.cpfSent, '529.982.247-25');
     expect(find.byKey(const Key('feed_screen')), findsOneWidget);
   });
+
+  testWidgets('agenda: acompanhar um lugar e marcar "vou"', (tester) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byKey(const Key('nav_agenda')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('empty_agenda')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('places_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('place_bar-do-ze')));
+    await tester.pumpAndSettle();
+    expect(find.text('CNPJ 11.222.333/0001-81'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('follow_place_button')));
+    await tester.pumpAndSettle();
+    expect(backend.followingBar, isTrue);
+    expect(find.text('Acompanhando'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('event_e1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('event_screen')), findsOneWidget);
+    expect(find.text('1 amigo marcou interesse'), findsOneWidget);
+    await tester.tap(find.text('Vou'));
+    await tester.pumpAndSettle();
+    expect(backend.interest, 'going');
+
+    // Volta para a agenda: o evento aparece.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('event_e1')), findsOneWidget);
+  });
+
+  testWidgets('criar página de lugar com CNPJ', (tester) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byKey(const Key('nav_agenda')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('places_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('create_place_button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('place_name_field')), 'Meu Bar');
+    await tester.tap(find.byKey(const Key('place_category_field')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Bar').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('place_cnpj_field')),
+      '11.222.333/0001-81',
+    );
+    await tester.ensureVisible(find.byKey(const Key('save_place_button')));
+    await tester.tap(find.byKey(const Key('save_place_button')));
+    await tester.pumpAndSettle();
+
+    expect(backend.createdPlaces.single['cnpj'], '11.222.333/0001-81');
+    expect(find.byKey(const Key('place_screen')), findsOneWidget);
+    expect(find.byKey(const Key('new_event_button')), findsOneWidget);
+  });
 }

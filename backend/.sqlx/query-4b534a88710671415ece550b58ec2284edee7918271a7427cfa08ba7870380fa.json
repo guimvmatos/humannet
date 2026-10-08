@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE page_admins a SET role = 'owner'\n        FROM (SELECT DISTINCT ON (page_id) page_id, user_id FROM page_admins\n              WHERE page_id IN (SELECT page_id FROM page_admins WHERE user_id = $1)\n                AND user_id <> $1\n              ORDER BY page_id, created_at) h\n        WHERE a.page_id = h.page_id AND a.user_id = h.user_id\n          AND NOT EXISTS (SELECT 1 FROM page_admins o WHERE o.page_id = h.page_id AND o.role = 'owner')\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4b534a88710671415ece550b58ec2284edee7918271a7427cfa08ba7870380fa"
+}

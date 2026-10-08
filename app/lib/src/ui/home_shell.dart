@@ -7,9 +7,10 @@ import '../auth/session_controller.dart';
 import 'communities_screen.dart';
 import 'feed_screen.dart';
 import 'friends_screen.dart';
+import 'places_ui.dart';
 import 'profile_screen.dart';
 
-/// Navegação principal após o login: Feed, Amigos, Comunidades e Perfil.
+/// Navegação principal após o login: Feed, Amigos, Comunidades, Agenda e Perfil.
 /// Mantém os contadores das bolinhas (atualizados ao trocar de aba, ao voltar
 /// para o app e a cada minuto com o app aberto; sem notificações push).
 class HomeShell extends StatefulWidget {
@@ -25,6 +26,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   int _index = 0;
   final _friendsKey = GlobalKey<FriendsScreenState>();
   final _communitiesKey = GlobalKey<CommunitiesScreenState>();
+  final _agendaKey = GlobalKey<AgendaScreenState>();
   final _counts = ValueNotifier<Counts>(const Counts());
   Timer? _timer;
 
@@ -68,6 +70,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
     // Abas recarregam ao serem abertas (pedidos novos).
     if (i == 1) _friendsKey.currentState?.refresh();
     if (i == 2) _communitiesKey.currentState?.refresh();
+    if (i == 3) _agendaKey.currentState?.refresh();
     unawaited(_refreshCounts());
   }
 
@@ -91,6 +94,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           ),
           FriendsScreen(key: _friendsKey, session: widget.session),
           CommunitiesScreen(key: _communitiesKey, session: widget.session),
+          AgendaScreen(key: _agendaKey, session: widget.session),
           ProfileScreen(
             session: widget.session,
             username: username,
@@ -121,6 +125,12 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               icon: _badge(c.communityRequests, Icons.forum_outlined),
               selectedIcon: _badge(c.communityRequests, Icons.forum),
               label: 'Comunidades',
+            ),
+            const NavigationDestination(
+              key: Key('nav_agenda'),
+              icon: Icon(Icons.event_outlined),
+              selectedIcon: Icon(Icons.event),
+              label: 'Agenda',
             ),
             NavigationDestination(
               key: const Key('nav_profile'),

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO event_interests (event_id, user_id, status) VALUES ($1, $2, $3)\n         ON CONFLICT (event_id, user_id) DO UPDATE SET status = EXCLUDED.status",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1b5d548ecec77e93a2ff25cd5734eb8e435237c2193672c9be6b14e6497c1d67"
+}

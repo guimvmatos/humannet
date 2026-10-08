@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\" FROM page_admins a JOIN pages p ON p.id = a.page_id\n           WHERE a.user_id = $1 AND a.role = 'owner' AND p.deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "fce0527c5da13a1e509f61e8411fc73e497b42a1229a33202ab1ad415761c1e2"
+}

@@ -74,6 +74,19 @@ String errorMessage(Object error) {
     'cpf_taken' =>
       'Esse CPF já tem uma conta. Se não foi você, fale com a administração.',
     'cpf_already_set' => 'Seu CPF já está cadastrado.',
+    'invalid_cnpj' => 'CNPJ inválido. Confira os números.',
+    'cnpj_taken' => 'Esse CNPJ já tem uma página. Fale com a administração.',
+    'invalid_page_name' => 'O nome deve ter entre 2 e 80 caracteres.',
+    'invalid_page_category' => 'Escolha uma categoria.',
+    'invalid_page_description' => 'A descrição deve ter até 2.000 caracteres.',
+    'invalid_address' => 'O endereço deve ter até 200 caracteres.',
+    'page_limit' => 'Você já é dono de 3 páginas.',
+    'invalid_event_title' => 'O título deve ter entre 3 e 120 caracteres.',
+    'invalid_event_description' => 'A descrição deve ter até 3.000 caracteres.',
+    'invalid_event_time' =>
+      'Confira a data: o evento não pode ser no passado e o fim vem depois do começo.',
+    'event_limit' => 'Muitos eventos criados hoje. Tente amanhã.',
+    'event_cancelled' => 'Este evento foi cancelado.',
     'not_found' => 'Não encontrado.',
     'forbidden' => 'Você não tem permissão para isso.',
     'network_error' =>

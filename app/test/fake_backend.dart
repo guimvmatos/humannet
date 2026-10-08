@@ -63,6 +63,11 @@ class FakeBackend {
 
   String? status;
   bool needsCpf = false;
+
+  /// Lugar "bar-do-ze" e um evento.
+  bool followingBar = false;
+  String? interest;
+  final List<Map<String, dynamic>> createdPlaces = [];
   String? cpfSent;
   int? statusHours;
   final List<Map<String, Object?>> bobScraps = [];
@@ -239,6 +244,89 @@ class FakeBackend {
           'width': 10,
           'height': 10,
         });
+      case 'GET /v1/events':
+        return _json(200, {
+          'items': [if (followingBar || interest != null) _event()],
+        });
+      case 'GET /v1/pages':
+        return _json(200, {
+          'items': [
+            {
+              'slug': 'bar-do-ze',
+              'name': 'Bar do Zé',
+              'category': 'bar',
+              'city': 'São Paulo',
+              'verified': true,
+              'following': followingBar,
+              'my_role': null,
+            },
+          ],
+        });
+      case 'GET /v1/pages/bar-do-ze':
+        return _json(200, {
+          'id': 'p1',
+          'slug': 'bar-do-ze',
+          'name': 'Bar do Zé',
+          'category': 'bar',
+          'description': 'Samba toda sexta.',
+          'address': 'Rua Augusta, 100',
+          'city': 'São Paulo',
+          'cnpj': '11.222.333/0001-81',
+          'verified': true,
+          'my_role': null,
+          'following': followingBar,
+          'follower_count': null,
+        });
+      case 'PUT /v1/pages/bar-do-ze/follow':
+        followingBar = true;
+        return http.Response('', 204);
+      case 'DELETE /v1/pages/bar-do-ze/follow':
+        followingBar = false;
+        return http.Response('', 204);
+      case 'GET /v1/pages/bar-do-ze/events':
+        return _json(200, {'items': [_event()]});
+      case 'GET /v1/events/e1':
+        return _json(200, _event());
+      case 'PUT /v1/events/e1/interest':
+        interest = (jsonDecode(request.body) as Map<String, dynamic>)['status'] as String;
+        return _json(200, _event());
+      case 'DELETE /v1/events/e1/interest':
+        interest = null;
+        return http.Response('', 204);
+      case 'POST /v1/pages':
+        final b = jsonDecode(request.body) as Map<String, dynamic>;
+        createdPlaces.add(b);
+        return _json(201, {
+          'id': 'p2',
+          'slug': 'meu-bar',
+          'name': b['name'],
+          'category': b['category'],
+          'description': '',
+          'address': '',
+          'city': '',
+          'cnpj': b['cnpj'],
+          'verified': false,
+          'my_role': 'owner',
+          'following': false,
+          'follower_count': 0,
+        });
+      case 'GET /v1/pages/meu-bar':
+        return _json(200, {
+          'id': 'p2',
+          'slug': 'meu-bar',
+          'name': createdPlaces.single['name'],
+          'category': 'bar',
+          'description': '',
+          'address': '',
+          'city': '',
+          'cnpj': '11.222.333/0001-81',
+          'verified': false,
+          'my_role': 'owner',
+          'following': false,
+          'follower_count': 0,
+        });
+      case 'GET /v1/pages/meu-bar/events':
+        return _json(200, {'items': <Object>[]});
       case 'PUT /v1/me/cpf':
         cpfSent = (jsonDecode(request.body) as Map<String, dynamic>)['cpf'] as String;
         needsCpf = false;
@@ -423,6 +511,25 @@ class FakeBackend {
         },
     };
   }
+
+  Map<String, Object?> _event() => {
+    'id': 'e1',
+    'page': {'slug': 'bar-do-ze', 'name': 'Bar do Zé'},
+    'title': 'Samba de sexta',
+    'description': 'Roda de samba',
+    'starts_at': '2030-10-10T23:00:00Z',
+    'ends_at': null,
+    'location': 'Rua Augusta, 100',
+    'cancelled': false,
+    'my_interest': interest,
+    'friends': [
+      {'id': 'u-bob', 'username': 'bob', 'display_name': 'Bob'},
+    ],
+    'friends_count': 1,
+    'interested_count': null,
+    'going_count': null,
+    'can_edit': false,
+  };
 
   Map<String, Object?> _testimonial() => {
     'id': 'd1',

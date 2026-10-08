@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE page_admins SET role = 'admin' WHERE user_id = $1 AND role = 'owner'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c94a4d540d7b59ce1d006b6f92d31d8bf2cee4f67dd2acbacdfe718925685654"
+}

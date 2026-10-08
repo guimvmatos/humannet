@@ -223,6 +223,22 @@ async fn remove_content(db: &sqlx::PgPool, kind: &str, id: Uuid) -> AppResult<()
                 .execute(db)
                 .await?;
         }
+        "page" => {
+            sqlx::query!(
+                "UPDATE pages SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL",
+                id
+            )
+            .execute(db)
+            .await?;
+        }
+        "event" => {
+            sqlx::query!(
+                "UPDATE events SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL",
+                id
+            )
+            .execute(db)
+            .await?;
+        }
         "community" => {
             sqlx::query!(
                 "UPDATE communities SET deleted_at = now() WHERE id = $1 AND deleted_at IS NULL",

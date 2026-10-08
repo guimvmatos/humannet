@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM page_admins WHERE page_id = $1 AND user_id = $2 AND role = 'admin'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "dc3928dcc708076afe32f48563f56c16bc4a6a28e59a68f4545c935d55fa8c66"
+}

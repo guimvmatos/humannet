@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO page_admins (page_id, user_id, role) VALUES ($1, $2, 'admin')\n         ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "859a564d3c5def7ec5cd0d5c21d537d074bfbe8233ca2e940b35f6e4ebca8197"
+}

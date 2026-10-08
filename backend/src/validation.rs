@@ -257,6 +257,55 @@ pub fn cpf(raw: &str) -> Result<String, AppError> {
         .collect())
 }
 
+/// CNPJ: aceita com ou sem pontuação; confere os dígitos verificadores.
+pub fn cnpj(raw: &str) -> Result<String, AppError> {
+    let d: Vec<u32> = raw
+        .chars()
+        .filter(|c| !matches!(c, '.' | '-' | '/' | ' '))
+        .map(|c| c.to_digit(10))
+        .collect::<Option<_>>()
+        .ok_or(AppError::Validation("invalid_cnpj"))?;
+    if d.len() != 14 || d.iter().all(|x| *x == d[0]) {
+        return Err(AppError::Validation("invalid_cnpj"));
+    }
+    let check = |n: usize| {
+        let weights: &[u32] = if n == 12 {
+            &[5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+        } else {
+            &[6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+        };
+        let sum: u32 = (0..n).map(|i| d[i] * weights[i]).sum();
+        let r = sum % 11;
+        if r < 2 { 0 } else { 11 - r }
+    };
+    if check(12) != d[12] || check(13) != d[13] {
+        return Err(AppError::Validation("invalid_cnpj"));
+    }
+    Ok(d.iter()
+        .map(|x| char::from_digit(*x, 10).unwrap_or('0'))
+        .collect())
+}
+
+/// Texto curto de uma linha (nome, endereço, cidade). Junta espaços.
+pub fn line(raw: &str, min: usize, max: usize, code: &'static str) -> Result<String, AppError> {
+    let v = raw.split_whitespace().collect::<Vec<_>>().join(" ");
+    let n = v.chars().count();
+    if n < min || n > max || v.chars().any(char::is_control) {
+        return Err(AppError::Validation(code));
+    }
+    Ok(v)
+}
+
+/// Texto longo com quebras de linha.
+pub fn long_text(raw: &str, max: usize, code: &'static str) -> Result<String, AppError> {
+    let v = normalize_newlines(raw);
+    let v = v.trim();
+    if v.chars().count() > max || has_forbidden_control(v) {
+        return Err(AppError::Validation(code));
+    }
+    Ok(v.to_owned())
+}
+
 pub const TESTIMONIAL_MAX: usize = 1000;
 
 /// Depoimento: 1–1000 caracteres, com quebras de linha.
@@ -282,6 +331,14 @@ fn has_forbidden_control(v: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn cnpj_check_digits() {
+        assert_eq!(super::cnpj("11.222.333/0001-81").unwrap(), "11222333000181");
+        assert!(super::cnpj("11.222.333/0001-82").is_err());
+        assert!(super::cnpj("00.000.000/0000-00").is_err());
+        assert!(super::cnpj("123").is_err());
+    }
+
     #[test]
     fn cpf_check_digits() {
         assert_eq!(super::cpf("529.982.247-25").unwrap(), "52998224725");

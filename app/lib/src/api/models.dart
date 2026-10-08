@@ -763,3 +763,167 @@ class Scrap {
   final DateTime createdAt;
   final bool canDelete;
 }
+
+// ---------------------------------------------------------------- lugares e eventos
+
+const placeCategories = <String, String>{
+  'bar': 'Bar',
+  'restaurante': 'Restaurante',
+  'cafe': 'Café',
+  'casa_de_show': 'Casa de show',
+  'balada': 'Balada',
+  'teatro': 'Teatro',
+  'cinema': 'Cinema',
+  'espaco_cultural': 'Espaço cultural',
+  'livraria': 'Livraria',
+  'esporte': 'Esporte',
+  'outro': 'Outro',
+};
+
+/// Página de lugar na lista.
+class PlaceItem {
+  const PlaceItem({
+    required this.slug,
+    required this.name,
+    required this.category,
+    required this.city,
+    required this.verified,
+    required this.following,
+    this.myRole,
+  });
+
+  factory PlaceItem.fromJson(Map<String, dynamic> json) => PlaceItem(
+    slug: json['slug'] as String,
+    name: json['name'] as String,
+    category: json['category'] as String,
+    city: (json['city'] as String?) ?? '',
+    verified: (json['verified'] as bool?) ?? false,
+    following: (json['following'] as bool?) ?? false,
+    myRole: json['my_role'] as String?,
+  );
+
+  final String slug;
+  final String name;
+  final String category;
+  final String city;
+  final bool verified;
+  final bool following;
+  final String? myRole;
+
+  String get categoryLabel => placeCategories[category] ?? category;
+}
+
+/// Página de lugar completa.
+class Place {
+  const Place({
+    required this.slug,
+    required this.name,
+    required this.category,
+    required this.description,
+    required this.address,
+    required this.city,
+    required this.cnpj,
+    required this.verified,
+    required this.following,
+    this.myRole,
+    this.followerCount,
+  });
+
+  factory Place.fromJson(Map<String, dynamic> json) => Place(
+    slug: json['slug'] as String,
+    name: json['name'] as String,
+    category: json['category'] as String,
+    description: (json['description'] as String?) ?? '',
+    address: (json['address'] as String?) ?? '',
+    city: (json['city'] as String?) ?? '',
+    cnpj: (json['cnpj'] as String?) ?? '',
+    verified: (json['verified'] as bool?) ?? false,
+    following: (json['following'] as bool?) ?? false,
+    myRole: json['my_role'] as String?,
+    followerCount: json['follower_count'] as int?,
+  );
+
+  final String slug;
+  final String name;
+  final String category;
+  final String description;
+  final String address;
+  final String city;
+  final String cnpj;
+  final bool verified;
+  final bool following;
+
+  /// owner | admin | null
+  final String? myRole;
+
+  /// Só para quem administra (R3).
+  final int? followerCount;
+
+  bool get canManage => myRole != null;
+  bool get isOwner => myRole == 'owner';
+  String get categoryLabel => placeCategories[category] ?? category;
+}
+
+class PlaceEvent {
+  const PlaceEvent({
+    required this.id,
+    required this.placeSlug,
+    required this.placeName,
+    required this.title,
+    required this.description,
+    required this.startsAt,
+    required this.location,
+    required this.cancelled,
+    required this.friends,
+    required this.friendsCount,
+    required this.canEdit,
+    this.endsAt,
+    this.myInterest,
+    this.interestedCount,
+    this.goingCount,
+  });
+
+  factory PlaceEvent.fromJson(Map<String, dynamic> json) {
+    final page = json['page'] as Map<String, dynamic>;
+    final ends = json['ends_at'] as String?;
+    return PlaceEvent(
+      id: json['id'] as String,
+      placeSlug: page['slug'] as String,
+      placeName: page['name'] as String,
+      title: json['title'] as String,
+      description: (json['description'] as String?) ?? '',
+      startsAt: DateTime.parse(json['starts_at'] as String),
+      endsAt: ends == null ? null : DateTime.parse(ends),
+      location: (json['location'] as String?) ?? '',
+      cancelled: (json['cancelled'] as bool?) ?? false,
+      myInterest: json['my_interest'] as String?,
+      friends: ((json['friends'] as List<dynamic>?) ?? const [])
+          .map((e) => Author.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      friendsCount: (json['friends_count'] as int?) ?? 0,
+      interestedCount: json['interested_count'] as int?,
+      goingCount: json['going_count'] as int?,
+      canEdit: (json['can_edit'] as bool?) ?? false,
+    );
+  }
+
+  final String id;
+  final String placeSlug;
+  final String placeName;
+  final String title;
+  final String description;
+  final DateTime startsAt;
+  final DateTime? endsAt;
+  final String location;
+  final bool cancelled;
+
+  /// interested | going | null
+  final String? myInterest;
+  final List<Author> friends;
+  final int friendsCount;
+
+  /// Só para quem administra a página (R3).
+  final int? interestedCount;
+  final int? goingCount;
+  final bool canEdit;
+}

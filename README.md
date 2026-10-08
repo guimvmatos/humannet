@@ -93,7 +93,7 @@ cd app && flutter test
 | GET | `/v1/friends` | Bearer | Meus amigos |
 | PUT / DELETE | `/v1/users/{username}/block` | Bearer | Bloquear / desbloquear (bloqueio invisível: 404 nos dois sentidos) |
 | GET | `/v1/blocks` | Bearer | Quem eu bloqueei |
-| POST | `/v1/reports` | Bearer | `{kind, <alvo>, reason, details?}` → 202. Alvos: `post` + `post_id`, `user` + `username`, `comment` + `comment_id`, `topic` + `topic_id`, `reply` + `reply_id`, `community` + `slug`, `testimonial` + `testimonial_id`, `scrap` + `scrap_id` |
+| POST | `/v1/reports` | Bearer | `{kind, <alvo>, reason, details?}` → 202. Alvos: `post` + `post_id`, `user` + `username`, `comment` + `comment_id`, `topic` + `topic_id`, `reply` + `reply_id`, `community` + `slug`, `testimonial` + `testimonial_id`, `scrap` + `scrap_id`, `page` + `slug`, `event` + `event_id` |
 | GET | `/v1/users/{username}/posts` | Bearer | Posts do usuário (só para o próprio e amigos; senão 403) |
 | POST | `/v1/media?kind=post\|avatar\|daily` | Bearer | Corpo = bytes da imagem (JPEG/PNG/WebP, até 10 MB). O servidor recodifica em JPEG **sem metadados** (tira GPS), reduz (1600 px; avatar 512×512) e devolve `{id, url, width, height}`. Fotos não usadas em 24 h são apagadas |
 | POST | `/v1/posts` | Bearer | `{body, media_ids?}`: texto (até 5000) e/ou até 4 fotos (`kind=post`). Posts trazem `images` |
@@ -114,6 +114,20 @@ cd app && flutter test
 | GET | `/v1/me/testimonials/pending` | Esperando minha aprovação (contagem em `stats.pending_testimonials`) |
 | POST | `/v1/testimonials/{id}/approve` | Aprovar (dono do perfil) |
 | DELETE | `/v1/testimonials/{id}` | Recusar/remover (dono do perfil) ou apagar (autor) |
+
+**Lugares e eventos** (lote 12). Página de lugar com CNPJ (uma por CNPJ); quem administra cria eventos; as pessoas marcam "tenho interesse" ou "vou" (sem ingresso). Números totais só para quem administra (R3); os outros veem quais amigos vão.
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET / POST | `/v1/pages?q=&mine=true` | Buscar / criar `{name, category, cnpj, address?, city?, description?}` (até 3 por pessoa) |
+| GET / PATCH / DELETE | `/v1/pages/{slug}` | Ver / editar (administradores) / apagar (dono) |
+| PUT / DELETE | `/v1/pages/{slug}/follow` | Acompanhar (única relação unilateral, ADR-0006) |
+| POST / DELETE | `/v1/pages/{slug}/admins[/{username}]` | Dono adiciona/remove administrador |
+| GET / POST | `/v1/pages/{slug}/events?past=` | Eventos da página / criar `{title, starts_at, ends_at?, location?, description?}` |
+| GET | `/v1/events` | Agenda: próximos eventos dos lugares que acompanho e dos que marquei |
+| GET / PATCH / DELETE | `/v1/events/{id}` | Ver / editar ou `{cancelled}` / apagar |
+| PUT / DELETE | `/v1/events/{id}/interest` | `{status: interested\|going}` / tirar |
+| POST | `/v1/admin/pages/{slug}/verify` | Administração marca a página como verificada |
 
 **Comunidades** (SPEC 4.5). Pública: qualquer pessoa lê e entra. Fechada: só membros leem; entrar exige aprovação. Administradores moderam qualquer comunidade.
 

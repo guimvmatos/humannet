@@ -186,9 +186,13 @@ class ApiClient {
     String? communitySlug,
     String? testimonialId,
     String? scrapId,
+    String? placeSlug,
+    String? eventId,
     String details = '',
   }) async {
     final targets = <String, String?>{
+      'page': placeSlug,
+      'event': eventId,
       'scrap': scrapId,
       'testimonial': testimonialId,
       'post': postId,
@@ -211,7 +215,8 @@ class ApiClient {
         'comment_id': ?commentId,
         'topic_id': ?topicId,
         'reply_id': ?replyId,
-        'slug': ?communitySlug,
+        'slug': ?(communitySlug ?? placeSlug),
+        'event_id': ?eventId,
         'testimonial_id': ?testimonialId,
         'scrap_id': ?scrapId,
         'reason': reason,
@@ -710,6 +715,193 @@ class ApiClient {
       '/v1/testimonials/${Uri.encodeComponent(id)}',
       token: token,
     );
+  }
+
+  // ------------------------------------------------------------ lugares e eventos
+
+  String _p(String slug) => '/v1/pages/${Uri.encodeComponent(slug)}';
+  String _e(String id) => '/v1/events/${Uri.encodeComponent(id)}';
+
+  List<PlaceEvent> _events(Map<String, dynamic>? json) =>
+      (json!['items'] as List<dynamic>)
+          .map((e) => PlaceEvent.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+  Future<List<PlaceItem>> places(
+    String token, {
+    String? query,
+    bool mine = false,
+  }) async {
+    final json = await _send(
+      'GET',
+      '/v1/pages',
+      token: token,
+      query: {
+        if (query != null && query.trim().isNotEmpty) 'q': query.trim(),
+        if (mine) 'mine': 'true',
+      },
+    );
+    return (json!['items'] as List<dynamic>)
+        .map((e) => PlaceItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<Place> place(String token, String slug) async =>
+      Place.fromJson((await _send('GET', _p(slug), token: token))!);
+
+  Future<Place> createPlace(
+    String token, {
+    required String name,
+    required String category,
+    required String cnpj,
+    String description = '',
+    String address = '',
+    String city = '',
+  }) async {
+    final json = await _send(
+      'POST',
+      '/v1/pages',
+      token: token,
+      body: {
+        'name': name,
+        'category': category,
+        'cnpj': cnpj,
+        'description': description,
+        'address': address,
+        'city': city,
+      },
+    );
+    return Place.fromJson(json!);
+  }
+
+  Future<Place> updatePlace(
+    String token,
+    String slug, {
+    String? name,
+    String? category,
+    String? description,
+    String? address,
+    String? city,
+  }) async {
+    final json = await _send(
+      'PATCH',
+      _p(slug),
+      token: token,
+      body: {
+        'name': ?name,
+        'category': ?category,
+        'description': ?description,
+        'address': ?address,
+        'city': ?city,
+      },
+    );
+    return Place.fromJson(json!);
+  }
+
+  Future<void> deletePlace(String token, String slug) async {
+    await _send('DELETE', _p(slug), token: token);
+  }
+
+  Future<void> followPlace(String token, String slug, {bool follow = true}) async {
+    await _send(follow ? 'PUT' : 'DELETE', '${_p(slug)}/follow', token: token);
+  }
+
+  Future<void> addPlaceAdmin(String token, String slug, String username) async {
+    await _send(
+      'POST',
+      '${_p(slug)}/admins',
+      token: token,
+      body: {'username': username},
+    );
+  }
+
+  Future<List<PlaceEvent>> placeEvents(
+    String token,
+    String slug, {
+    bool past = false,
+  }) async => _events(
+    await _send(
+      'GET',
+      '${_p(slug)}/events',
+      token: token,
+      query: {if (past) 'past': 'true'},
+    ),
+  );
+
+  /// Agenda: próximos eventos dos lugares que acompanho e dos que marquei.
+  Future<List<PlaceEvent>> agenda(String token) async =>
+      _events(await _send('GET', '/v1/events', token: token));
+
+  Future<PlaceEvent> event(String token, String id) async =>
+      PlaceEvent.fromJson((await _send('GET', _e(id), token: token))!);
+
+  Future<PlaceEvent> createEvent(
+    String token,
+    String slug, {
+    required String title,
+    required DateTime startsAt,
+    DateTime? endsAt,
+    String description = '',
+    String location = '',
+  }) async {
+    final json = await _send(
+      'POST',
+      '${_p(slug)}/events',
+      token: token,
+      body: {
+        'title': title,
+        'description': description,
+        'location': location,
+        'starts_at': startsAt.toUtc().toIso8601String(),
+        'ends_at': ?endsAt?.toUtc().toIso8601String(),
+      },
+    );
+    return PlaceEvent.fromJson(json!);
+  }
+
+  Future<PlaceEvent> updateEvent(
+    String token,
+    String id, {
+    String? title,
+    String? description,
+    String? location,
+    DateTime? startsAt,
+    DateTime? endsAt,
+    bool? cancelled,
+  }) async {
+    final json = await _send(
+      'PATCH',
+      _e(id),
+      token: token,
+      body: {
+        'title': ?title,
+        'description': ?description,
+        'location': ?location,
+        'starts_at': ?startsAt?.toUtc().toIso8601String(),
+        'ends_at': ?endsAt?.toUtc().toIso8601String(),
+        'cancelled': ?cancelled,
+      },
+    );
+    return PlaceEvent.fromJson(json!);
+  }
+
+  Future<void> deleteEvent(String token, String id) async {
+    await _send('DELETE', _e(id), token: token);
+  }
+
+  /// `status`: interested | going | null (tira o interesse).
+  Future<PlaceEvent?> setInterest(String token, String id, String? status) async {
+    if (status == null) {
+      await _send('DELETE', '${_e(id)}/interest', token: token);
+      return null;
+    }
+    final json = await _send(
+      'PUT',
+      '${_e(id)}/interest',
+      token: token,
+      body: {'status': status},
+    );
+    return PlaceEvent.fromJson(json!);
   }
 
   // ------------------------------------------------------------ recados e status

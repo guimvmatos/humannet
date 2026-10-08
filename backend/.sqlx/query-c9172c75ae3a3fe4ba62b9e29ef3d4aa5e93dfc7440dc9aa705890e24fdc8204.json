@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE pages SET deleted_at = now()\n         WHERE deleted_at IS NULL AND id IN (SELECT page_id FROM page_admins WHERE user_id = $1)\n           AND NOT EXISTS (SELECT 1 FROM page_admins o WHERE o.page_id = pages.id AND o.user_id <> $1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c9172c75ae3a3fe4ba62b9e29ef3d4aa5e93dfc7440dc9aa705890e24fdc8204"
+}

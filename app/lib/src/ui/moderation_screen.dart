@@ -303,5 +303,7 @@ String _kindLabel(String kind) => switch (kind) {
   'community' => 'Comunidade (dono)',
   'testimonial' => 'Depoimento',
   'scrap' => 'Recado',
+  'page' => 'Página de lugar (dono)',
+  'event' => 'Evento',
   _ => 'Perfil',
 };

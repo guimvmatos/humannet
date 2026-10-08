@@ -157,6 +157,8 @@ pub enum ReportTarget {
     Community { slug: String },
     Testimonial { testimonial_id: Uuid },
     Scrap { scrap_id: Uuid },
+    Page { slug: String },
+    Event { event_id: Uuid },
 }
 
 #[derive(Debug, Deserialize)]
@@ -300,6 +302,38 @@ pub async fn report(
             }
             ("scrap", *scrap_id, s.body, s.author_id)
         }
+        ReportTarget::Page { slug } => {
+            let p = crate::routes::pages::load(&state, slug).await?;
+            let owner = sqlx::query_scalar!(
+                "SELECT user_id FROM page_admins WHERE page_id = $1 AND role = 'owner'",
+                p.id
+            )
+            .fetch_optional(&state.db)
+            .await?
+            .unwrap_or(Uuid::nil());
+            let snap = format!(
+                "{} ({}) CNPJ {}\n\n{}",
+                p.name, p.slug, p.cnpj, p.description
+            );
+            ("page", p.id, snap, owner)
+        }
+        ReportTarget::Event { event_id } => {
+            let e = sqlx::query!(
+                "SELECT e.title, e.description, e.page_id, e.created_by FROM events e
+                 WHERE e.id = $1 AND e.deleted_at IS NULL",
+                event_id
+            )
+            .fetch_optional(&state.db)
+            .await?
+            .ok_or(AppError::NotFound)?;
+            let author = e.created_by.unwrap_or(Uuid::nil());
+            (
+                "event",
+                *event_id,
+                format!("{}\n\n{}", e.title, e.description),
+                author,
+            )
+        }
     };
     if target_user == me {
         return Err(AppError::Validation("cannot_report_self"));
@@ -331,7 +365,7 @@ pub async fn report(
         snapshot,
         req.reason,
         details,
-        target_user,
+        (!target_user.is_nil()).then_some(target_user),
     )
     .execute(&state.db)
     .await?;

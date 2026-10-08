@@ -87,6 +87,41 @@ pub fn app(state: AppState) -> Router {
         .route("/me/counts", get(routes::activity::counts))
         .route("/me/status", put(routes::scraps::set_status))
         .route(
+            "/pages",
+            get(routes::pages::list).post(routes::pages::create),
+        )
+        .route(
+            "/pages/{slug}",
+            get(routes::pages::get)
+                .patch(routes::pages::update)
+                .delete(routes::pages::delete),
+        )
+        .route(
+            "/pages/{slug}/follow",
+            put(routes::pages::follow).delete(routes::pages::unfollow),
+        )
+        .route("/pages/{slug}/admins", post(routes::pages::add_admin))
+        .route(
+            "/pages/{slug}/admins/{username}",
+            delete(routes::pages::remove_admin),
+        )
+        .route(
+            "/pages/{slug}/events",
+            get(routes::events::list_for_page).post(routes::events::create),
+        )
+        .route("/admin/pages/{slug}/verify", post(routes::pages::verify))
+        .route("/events", get(routes::events::agenda))
+        .route(
+            "/events/{id}",
+            get(routes::events::get)
+                .patch(routes::events::update)
+                .delete(routes::events::delete),
+        )
+        .route(
+            "/events/{id}/interest",
+            put(routes::events::set_interest).delete(routes::events::clear_interest),
+        )
+        .route(
             "/users/{username}/scraps",
             get(routes::scraps::list).post(routes::scraps::create),
         )

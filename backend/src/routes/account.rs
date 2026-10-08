@@ -88,6 +88,35 @@ pub async fn delete_account(
     check_password(&state, &user, req.password).await?;
     let mut tx = state.db.begin().await?;
     crate::routes::communities::hand_over_owned(&mut tx, user.user_id).await?;
+    // Páginas: passam para outro administrador; sem ninguém, saem do ar.
+    sqlx::query!(
+        "UPDATE page_admins SET role = 'admin' WHERE user_id = $1 AND role = 'owner'",
+        user.user_id
+    )
+    .execute(&mut *tx)
+    .await?;
+    sqlx::query!(
+        r#"
+        UPDATE page_admins a SET role = 'owner'
+        FROM (SELECT DISTINCT ON (page_id) page_id, user_id FROM page_admins
+              WHERE page_id IN (SELECT page_id FROM page_admins WHERE user_id = $1)
+                AND user_id <> $1
+              ORDER BY page_id, created_at) h
+        WHERE a.page_id = h.page_id AND a.user_id = h.user_id
+          AND NOT EXISTS (SELECT 1 FROM page_admins o WHERE o.page_id = h.page_id AND o.role = 'owner')
+        "#,
+        user.user_id
+    )
+    .execute(&mut *tx)
+    .await?;
+    sqlx::query!(
+        "UPDATE pages SET deleted_at = now()
+         WHERE deleted_at IS NULL AND id IN (SELECT page_id FROM page_admins WHERE user_id = $1)
+           AND NOT EXISTS (SELECT 1 FROM page_admins o WHERE o.page_id = pages.id AND o.user_id <> $1)",
+        user.user_id
+    )
+    .execute(&mut *tx)
+    .await?;
     // Fotos: os registros caem junto com a conta; os arquivos, logo depois.
     let keys = sqlx::query_scalar!("SELECT key FROM media WHERE owner_id = $1", user.user_id)
         .fetch_all(&mut *tx)
