@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO conversation_members (conversation_id, user_id)\n         SELECT $1, unnest($2::uuid[]) ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f3befafb07dee01be57cb10d3aa7544b1f6daee22b0f49ec7052f88fe68e8837"
+}

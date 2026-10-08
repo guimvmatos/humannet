@@ -27,6 +27,8 @@ pub struct CountsDto {
     pub community_requests: i64,
     /// Novidades (comentários e respostas) ainda não vistas.
     pub unread_activity: i64,
+    /// Conversas com mensagem nova.
+    pub unread_messages: i64,
 }
 
 /// GET /v1/me/counts
@@ -79,6 +81,7 @@ pub async fn counts(State(state): State<AppState>, user: AuthUser) -> AppResult<
         pending_testimonials: r.pending_testimonials,
         community_requests: r.community_requests,
         unread_activity: r.unread_activity,
+        unread_messages: crate::routes::messages::unread_conversations(&state, me).await?,
     }))
 }
 

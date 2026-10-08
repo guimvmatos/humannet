@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../api/models.dart';
 import '../auth/session_controller.dart';
+import 'chat_ui.dart';
 import 'edit_profile_screen.dart';
 import 'error_messages.dart';
 import 'photos.dart';
@@ -479,6 +480,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       busy: _busy,
       onFriendAction: () => _friendAction(),
       onDecline: () => _friendAction(decline: true),
+      onMessage: () =>
+          openDirectChat(context, widget.session, widget.username),
       onEdit: _editProfile,
       onInvite: _createInvite,
       onTestimonials: _openTestimonials,
@@ -531,6 +534,7 @@ class _Header extends StatelessWidget {
     required this.busy,
     required this.onFriendAction,
     required this.onDecline,
+    required this.onMessage,
     required this.onEdit,
     required this.onInvite,
     required this.onTestimonials,
@@ -545,6 +549,7 @@ class _Header extends StatelessWidget {
   final bool busy;
   final VoidCallback onFriendAction;
   final VoidCallback onDecline;
+  final VoidCallback onMessage;
   final VoidCallback onEdit;
   final VoidCallback onInvite;
   final VoidCallback onTestimonials;
@@ -599,6 +604,12 @@ class _Header extends StatelessWidget {
           onPressed: onTap,
           icon: const Icon(Icons.people),
           label: const Text('Amigos ✓'),
+        ),
+        FilledButton.icon(
+          key: const Key('message_button'),
+          onPressed: busy ? null : onMessage,
+          icon: const Icon(Icons.chat_bubble_outline),
+          label: const Text('Mensagem'),
         ),
       ],
     };

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../api/models.dart';
 import '../auth/session_controller.dart';
 import 'activity_screen.dart';
+import 'chat_ui.dart';
 import 'compose_screen.dart';
 import 'post_list.dart';
 import 'profile_screen.dart';
@@ -47,6 +48,15 @@ class _FeedScreenState extends State<FeedScreen> {
           session: widget.session,
           onSeen: () => widget.onCountsChanged?.call(),
         ),
+      ),
+    );
+    await widget.onCountsChanged?.call();
+  }
+
+  Future<void> _openMessages() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ConversationsScreen(session: widget.session),
       ),
     );
     await widget.onCountsChanged?.call();
@@ -109,6 +119,19 @@ class _FeedScreenState extends State<FeedScreen> {
                 isLabelVisible: c.unreadActivity > 0,
                 label: Text('${c.unreadActivity}'),
                 child: const Icon(Icons.notifications_outlined),
+              ),
+            ),
+          ),
+          ValueListenableBuilder<Counts>(
+            valueListenable: widget.counts ?? _noCounts,
+            builder: (context, c, _) => IconButton(
+              key: const Key('messages_button'),
+              tooltip: 'Mensagens',
+              onPressed: _openMessages,
+              icon: Badge(
+                isLabelVisible: c.unreadMessages > 0,
+                label: Text('${c.unreadMessages}'),
+                child: const Icon(Icons.chat_bubble_outline),
               ),
             ),
           ),

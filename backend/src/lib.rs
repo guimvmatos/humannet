@@ -87,6 +87,29 @@ pub fn app(state: AppState) -> Router {
         .route("/me/counts", get(routes::activity::counts))
         .route("/me/status", put(routes::scraps::set_status))
         .route(
+            "/conversations",
+            get(routes::messages::list).post(routes::messages::create_group),
+        )
+        .route("/conversations/direct", post(routes::messages::direct))
+        .route("/conversations/{id}", get(routes::messages::get))
+        .route(
+            "/conversations/{id}/messages",
+            get(routes::messages::messages).post(routes::messages::send),
+        )
+        .route(
+            "/conversations/{id}/read",
+            post(routes::messages::mark_read),
+        )
+        .route(
+            "/conversations/{id}/members",
+            get(routes::messages::members).post(routes::messages::add_members),
+        )
+        .route(
+            "/conversations/{id}/members/me",
+            delete(routes::messages::leave),
+        )
+        .route("/messages/{id}", delete(routes::messages::delete))
+        .route(
             "/pages",
             get(routes::pages::list).post(routes::pages::create),
         )

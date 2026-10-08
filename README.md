@@ -144,6 +144,19 @@ cd app && flutter test
 | GET / POST | `/v1/topics/{id}/replies?after=` | Respostas (mais antiga primeiro) / responder `{body}`; tópico trancado só aceita da moderação |
 | DELETE | `/v1/replies/{id}` | Apagar resposta (autor ou moderação) |
 
+**Mensagens diretas**: conversa 1:1 só entre amigos (e sem bloqueio); grupos de até 50 amigos de quem cria. Atualização por consulta (`after=`), sem push por enquanto.
+
+| Método | Rota | Descrição |
+|---|---|---|
+| GET / POST | `/v1/conversations` | Minhas conversas (mais recente primeiro, com `unread`) / criar grupo `{title, usernames}` |
+| POST | `/v1/conversations/direct` | `{username}`: abre ou cria a conversa 1:1 com um amigo |
+| GET | `/v1/conversations/{id}` | Ver conversa (só membros) |
+| GET / POST | `/v1/conversations/{id}/messages?before=&after=` | Mensagens em ordem cronológica / enviar `{body}` (até 30 por minuto) |
+| POST | `/v1/conversations/{id}/read` | Marca como lida |
+| GET / POST | `/v1/conversations/{id}/members` | Membros / adicionar amigos `{usernames}` (grupo) |
+| DELETE | `/v1/conversations/{id}/members/me` | Sair do grupo |
+| DELETE | `/v1/messages/{id}` | Apagar mensagem própria |
+
 **Administração** (papel `admin`, definido pela variável `ADMIN_USERNAMES` no servidor):
 
 | Método | Rota | Descrição |

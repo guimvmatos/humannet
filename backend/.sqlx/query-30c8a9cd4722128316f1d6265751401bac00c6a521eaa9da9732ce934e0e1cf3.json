@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO conversations (id, kind, direct_key, created_by)\n        VALUES ($1, 'direct', $2, $3)\n        ON CONFLICT (direct_key) DO UPDATE SET direct_key = EXCLUDED.direct_key\n        RETURNING id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "conversations",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "30c8a9cd4722128316f1d6265751401bac00c6a521eaa9da9732ce934e0e1cf3"
+}

@@ -305,5 +305,6 @@ String _kindLabel(String kind) => switch (kind) {
   'scrap' => 'Recado',
   'page' => 'Página de lugar (dono)',
   'event' => 'Evento',
+  'message' => 'Mensagem',
   _ => 'Perfil',
 };

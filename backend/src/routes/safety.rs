@@ -159,6 +159,7 @@ pub enum ReportTarget {
     Scrap { scrap_id: Uuid },
     Page { slug: String },
     Event { event_id: Uuid },
+    Message { message_id: Uuid },
 }
 
 #[derive(Debug, Deserialize)]
@@ -332,6 +333,24 @@ pub async fn report(
                 *event_id,
                 format!("{}\n\n{}", e.title, e.description),
                 author,
+            )
+        }
+        ReportTarget::Message { message_id } => {
+            let g = sqlx::query!(
+                "SELECT g.author_id, g.body FROM messages g
+                 JOIN conversation_members m ON m.conversation_id = g.conversation_id AND m.user_id = $2
+                 WHERE g.id = $1 AND g.deleted_at IS NULL",
+                message_id,
+                me
+            )
+            .fetch_optional(&state.db)
+            .await?
+            .ok_or(AppError::NotFound)?;
+            (
+                "message",
+                *message_id,
+                g.body,
+                g.author_id.unwrap_or(Uuid::nil()),
             )
         }
     };

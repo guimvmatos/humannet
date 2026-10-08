@@ -867,4 +867,58 @@ void main() {
     expect(find.byKey(const Key('place_screen')), findsOneWidget);
     expect(find.byKey(const Key('new_event_button')), findsOneWidget);
   });
+
+  testWidgets('mensagens: badge, abrir conversa e enviar', (tester) async {
+    final backend = FakeBackend()..bobRelation = 'friends';
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    final badge = find.descendant(
+      of: find.byKey(const Key('messages_button')),
+      matching: find.text('1'),
+    );
+    expect(badge, findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('messages_button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('conversations_screen')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('conversation_cv1')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('chat_screen')), findsOneWidget);
+    expect(find.text('Oi Alice!'), findsOneWidget);
+    expect(backend.chatRead, isTrue);
+
+    await tester.enterText(find.byKey(const Key('message_field')), 'Oi Bob');
+    await tester.tap(find.byKey(const Key('send_message_button')));
+    await tester.pumpAndSettle();
+    expect(find.text('Oi Bob'), findsOneWidget);
+    expect(backend.chat.last['body'], 'Oi Bob');
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(badge, findsNothing);
+  });
+
+  testWidgets('perfil de amigo tem botão Mensagem', (tester) async {
+    final backend = FakeBackend()..bobRelation = 'friends';
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byTooltip('Encontrar pessoa'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('find_person_field')), 'bob');
+    await tester.tap(find.text('Abrir'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('message_button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('chat_screen')), findsOneWidget);
+  });
 }

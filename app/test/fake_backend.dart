@@ -76,6 +76,32 @@ class FakeBackend {
   String bio = '';
   int _seq = 2;
 
+  /// Conversa 1:1 com bob (cv1): mensagens e se alice já leu.
+  final List<Map<String, Object?>> chat = [
+    {
+      'id': 'm1',
+      'author': {'id': 'u-bob', 'username': 'bob', 'display_name': 'Bob'},
+      'body': 'Oi Alice!',
+      'created_at': '2026-10-08T12:00:00Z',
+      'mine': false,
+      'deleted': false,
+    },
+  ];
+  bool chatRead = false;
+  int chatSeq = 1;
+
+  Map<String, Object?> _conversation() => {
+    'id': 'cv1',
+    'kind': 'direct',
+    'title': '',
+    'other': {'id': 'u-bob', 'username': 'bob', 'display_name': 'Bob'},
+    'member_count': 2,
+    'last_message': chat.last['body'],
+    'last_message_at': '2026-10-08T12:00:00Z',
+    'unread': chatRead ? 0 : 1,
+    'is_owner': false,
+  };
+
   late final http.Client client = MockClient((request) async {
     final route = '${request.method} ${request.url.path}';
     calls.add(route);
@@ -373,7 +399,39 @@ class FakeBackend {
           'pending_testimonials': carolTestimonial == 'pending' ? 1 : 0,
           'community_requests': 0,
           'unread_activity': activitySeen ? 0 : 1,
+          'unread_messages': chatRead ? 0 : 1,
         });
+      case 'GET /v1/conversations':
+        return _json(200, {
+          'items': [_conversation()],
+        });
+      case 'POST /v1/conversations/direct':
+        return _json(200, _conversation());
+      case 'GET /v1/conversations/cv1':
+        return _json(200, _conversation());
+      case 'GET /v1/conversations/cv1/messages':
+        final after = request.url.queryParameters['after'];
+        final idx = chat.indexWhere((m) => m['id'] == after);
+        return _json(200, {
+          'items': after == null ? chat : chat.sublist(idx + 1),
+          'next_cursor': null,
+        });
+      case 'POST /v1/conversations/cv1/messages':
+        final b = jsonDecode(request.body) as Map<String, dynamic>;
+        chatSeq++;
+        final msg = <String, Object?>{
+          'id': 'm$chatSeq',
+          'author': {'id': 'u-alice', 'username': username, 'display_name': null},
+          'body': (b['body'] as String).trim(),
+          'created_at': '2026-10-08T12:01:00Z',
+          'mine': true,
+          'deleted': false,
+        };
+        chat.add(msg);
+        return _json(201, msg);
+      case 'POST /v1/conversations/cv1/read':
+        chatRead = true;
+        return http.Response('', 204);
       case 'GET /v1/me/activity':
         return _json(200, {
           'items': [

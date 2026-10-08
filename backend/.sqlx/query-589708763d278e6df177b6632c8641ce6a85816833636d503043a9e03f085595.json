@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO conversation_members (conversation_id, user_id) VALUES ($1, $2), ($1, $3)\n         ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "589708763d278e6df177b6632c8641ce6a85816833636d503043a9e03f085595"
+}

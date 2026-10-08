@@ -188,9 +188,11 @@ class ApiClient {
     String? scrapId,
     String? placeSlug,
     String? eventId,
+    String? messageId,
     String details = '',
   }) async {
     final targets = <String, String?>{
+      'message': messageId,
       'page': placeSlug,
       'event': eventId,
       'scrap': scrapId,
@@ -217,6 +219,7 @@ class ApiClient {
         'reply_id': ?replyId,
         'slug': ?(communitySlug ?? placeSlug),
         'event_id': ?eventId,
+        'message_id': ?messageId,
         'testimonial_id': ?testimonialId,
         'scrap_id': ?scrapId,
         'reason': reason,
@@ -715,6 +718,103 @@ class ApiClient {
       '/v1/testimonials/${Uri.encodeComponent(id)}',
       token: token,
     );
+  }
+
+  // ------------------------------------------------------------ mensagens
+
+  String _c2(String id) => '/v1/conversations/${Uri.encodeComponent(id)}';
+
+  Future<List<Conversation>> conversations(String token) async {
+    final json = await _send('GET', '/v1/conversations', token: token);
+    return (json!['items'] as List<dynamic>)
+        .map((e) => Conversation.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<Conversation> conversation(String token, String id) async =>
+      Conversation.fromJson((await _send('GET', _c2(id), token: token))!);
+
+  /// Abre (ou cria) a conversa 1:1 com um amigo.
+  Future<Conversation> directConversation(String token, String username) async {
+    final json = await _send(
+      'POST',
+      '/v1/conversations/direct',
+      token: token,
+      body: {'username': username},
+    );
+    return Conversation.fromJson(json!);
+  }
+
+  Future<Conversation> createGroup(
+    String token,
+    String title,
+    List<String> usernames,
+  ) async {
+    final json = await _send(
+      'POST',
+      '/v1/conversations',
+      token: token,
+      body: {'title': title, 'usernames': usernames},
+    );
+    return Conversation.fromJson(json!);
+  }
+
+  Future<void> addToGroup(
+    String token,
+    String id,
+    List<String> usernames,
+  ) async {
+    await _send(
+      'POST',
+      '${_c2(id)}/members',
+      token: token,
+      body: {'usernames': usernames},
+    );
+  }
+
+  Future<List<Author>> conversationMembers(String token, String id) async {
+    final json = await _send('GET', '${_c2(id)}/members', token: token);
+    return (json!['items'] as List<dynamic>)
+        .map((e) => Author.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> leaveGroup(String token, String id) async {
+    await _send('DELETE', '${_c2(id)}/members/me', token: token);
+  }
+
+  /// Em ordem cronológica. `before`: mais antigas; `after`: só as novas.
+  Future<Paged<ChatMessage>> chatMessages(
+    String token,
+    String id, {
+    String? before,
+    String? after,
+  }) async {
+    final json = await _send(
+      'GET',
+      '${_c2(id)}/messages',
+      token: token,
+      query: {'before': ?before, 'after': ?after},
+    );
+    return Paged.fromJson(json!, ChatMessage.fromJson);
+  }
+
+  Future<ChatMessage> sendMessage(String token, String id, String body) async {
+    final json = await _send(
+      'POST',
+      '${_c2(id)}/messages',
+      token: token,
+      body: {'body': body},
+    );
+    return ChatMessage.fromJson(json!);
+  }
+
+  Future<void> markRead(String token, String id) async {
+    await _send('POST', '${_c2(id)}/read', token: token);
+  }
+
+  Future<void> deleteMessage(String token, String id) async {
+    await _send('DELETE', '/v1/messages/${Uri.encodeComponent(id)}', token: token);
   }
 
   // ------------------------------------------------------------ lugares e eventos

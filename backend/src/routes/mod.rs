@@ -9,6 +9,7 @@ pub mod friends;
 pub mod health;
 pub mod invites;
 pub mod me;
+pub mod messages;
 pub mod pages;
 pub mod pagination;
 pub mod photos;

@@ -32,6 +32,7 @@ Future<bool> showReportDialog(
   String? scrapId,
   String? placeSlug,
   String? eventId,
+  String? messageId,
 }) async {
   final sent = await showDialog<bool>(
     context: context,
@@ -47,6 +48,7 @@ Future<bool> showReportDialog(
       scrapId: scrapId,
       placeSlug: placeSlug,
       eventId: eventId,
+      messageId: messageId,
     ),
   );
   if (sent == true && context.mounted) {
@@ -72,6 +74,7 @@ class _ReportDialog extends StatefulWidget {
     this.scrapId,
     this.placeSlug,
     this.eventId,
+    this.messageId,
   });
 
   final SessionController session;
@@ -85,8 +88,10 @@ class _ReportDialog extends StatefulWidget {
   final String? scrapId;
   final String? placeSlug;
   final String? eventId;
+  final String? messageId;
 
   String get title {
+    if (messageId != null) return 'Denunciar mensagem';
     if (placeSlug != null) return 'Denunciar página';
     if (eventId != null) return 'Denunciar evento';
     if (scrapId != null) return 'Denunciar recado';
@@ -137,6 +142,7 @@ class _ReportDialogState extends State<_ReportDialog> {
         scrapId: widget.scrapId,
         placeSlug: widget.placeSlug,
         eventId: widget.eventId,
+        messageId: widget.messageId,
         details: _details.text.trim(),
       );
       if (mounted) Navigator.of(context).pop(true);

@@ -679,6 +679,7 @@ class Counts {
     this.pendingTestimonials = 0,
     this.communityRequests = 0,
     this.unreadActivity = 0,
+    this.unreadMessages = 0,
   });
 
   factory Counts.fromJson(Map<String, dynamic> json) => Counts(
@@ -686,12 +687,16 @@ class Counts {
     pendingTestimonials: (json['pending_testimonials'] as int?) ?? 0,
     communityRequests: (json['community_requests'] as int?) ?? 0,
     unreadActivity: (json['unread_activity'] as int?) ?? 0,
+    unreadMessages: (json['unread_messages'] as int?) ?? 0,
   );
 
   final int friendRequests;
   final int pendingTestimonials;
   final int communityRequests;
   final int unreadActivity;
+
+  /// Conversas com mensagem nova.
+  final int unreadMessages;
 }
 
 /// Novidade: comentário num post meu ou resposta num tópico em que participo.
@@ -926,4 +931,77 @@ class PlaceEvent {
   final int? interestedCount;
   final int? goingCount;
   final bool canEdit;
+}
+
+// ---------------------------------------------------------------- mensagens
+
+class Conversation {
+  const Conversation({
+    required this.id,
+    required this.kind,
+    required this.title,
+    required this.memberCount,
+    required this.lastMessageAt,
+    required this.unread,
+    required this.isOwner,
+    this.other,
+    this.lastMessage,
+  });
+
+  factory Conversation.fromJson(Map<String, dynamic> json) => Conversation(
+    id: json['id'] as String,
+    kind: json['kind'] as String,
+    title: json['title'] as String,
+    other: json['other'] == null
+        ? null
+        : Author.fromJson(json['other'] as Map<String, dynamic>),
+    memberCount: (json['member_count'] as int?) ?? 0,
+    lastMessage: json['last_message'] as String?,
+    lastMessageAt: DateTime.parse(json['last_message_at'] as String),
+    unread: (json['unread'] as int?) ?? 0,
+    isOwner: (json['is_owner'] as bool?) ?? false,
+  );
+
+  final String id;
+
+  /// direct | group
+  final String kind;
+  final String title;
+  final Author? other;
+  final int memberCount;
+  final String? lastMessage;
+  final DateTime lastMessageAt;
+  final int unread;
+  final bool isOwner;
+
+  bool get isGroup => kind == 'group';
+}
+
+class ChatMessage {
+  const ChatMessage({
+    required this.id,
+    required this.body,
+    required this.createdAt,
+    required this.mine,
+    required this.deleted,
+    this.author,
+  });
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
+    id: json['id'] as String,
+    author: json['author'] == null
+        ? null
+        : Author.fromJson(json['author'] as Map<String, dynamic>),
+    body: (json['body'] as String?) ?? '',
+    createdAt: DateTime.parse(json['created_at'] as String),
+    mine: (json['mine'] as bool?) ?? false,
+    deleted: (json['deleted'] as bool?) ?? false,
+  );
+
+  final String id;
+  final Author? author;
+  final String body;
+  final DateTime createdAt;
+  final bool mine;
+  final bool deleted;
 }
