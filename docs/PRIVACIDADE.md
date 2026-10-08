@@ -11,7 +11,7 @@ de forma direta, o que guardamos sobre você e por quê.
 ## Quem é o responsável
 
 Guilherme Matos, pessoa física, desenvolvedor do app.
-Contato: **CONTATO@EXEMPLO** (substituir pelo e-mail de contato).
+Contato: **guimvmatos@gmail.com** (provisório).
 
 ## O que guardamos
 
