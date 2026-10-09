@@ -46,8 +46,8 @@ jobs:
         run: |
           set -o pipefail
           flutter test --reporter expanded 2>&1 | tee /tmp/test.log || {
-            grep -E "\[E\]|Expected:|Actual:|Which:|EXCEPTION CAUGHT|The following|was:|Error:|Exception:" /tmp/test.log \
-              | head -n 30 | while IFS= read -r line; do
+            grep -E -A1 "\[E\]|Expected:|Actual:|Which:|The following|was:|Error:|Exception:|Bad state|test/[a-z_]+\.dart [0-9]+:[0-9]+|test/[a-z_]+\.dart:[0-9]+" /tmp/test.log \
+              | grep -v "^--$" | head -n 40 | while IFS= read -r line; do
               echo "::error title=teste::${line:0:400}"
             done
             exit 1
