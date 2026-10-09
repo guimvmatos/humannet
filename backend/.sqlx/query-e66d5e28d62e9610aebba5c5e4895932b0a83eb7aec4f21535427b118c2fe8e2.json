@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT p.id, p.body, p.created_at, p.edited_at,\n               u.id AS author_id, u.username AS author_username,\n               u.display_name AS author_display_name\n        FROM posts p JOIN users u ON u.id = p.author_id\n        WHERE p.author_id = $1\n          AND p.deleted_at IS NULL\n          AND ($2::uuid IS NULL OR p.id < $2)\n        ORDER BY p.id DESC\n        LIMIT $3\n        ",
+  "query": "\n        SELECT p.id, p.body, p.created_at, p.edited_at,\n               u.id AS author_id, u.username AS author_username,\n               u.display_name AS author_display_name,\n               pg.slug AS \"page_slug?\", pg.name AS \"page_name?\", lm.key AS \"page_logo_key?\"\n        FROM posts p JOIN users u ON u.id = p.author_id\n        LEFT JOIN pages pg ON pg.id = p.page_id\n        LEFT JOIN media lm ON lm.id = pg.logo_media_id\n        WHERE p.id = $1 AND p.deleted_at IS NULL\n        ",
   "describe": {
     "columns": [
       {
@@ -79,13 +79,44 @@
             "name": "display_name"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "page_slug?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "slug"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "page_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "page_logo_key?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "media",
+            "name": "key"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid",
-        "Uuid",
-        "Int8"
+        "Uuid"
       ]
     },
     "nullable": [
@@ -95,8 +126,11 @@
       true,
       false,
       false,
-      true
+      true,
+      false,
+      false,
+      false
     ]
   },
-  "hash": "0587a5540753244b50aa28621c04458d50775006bf9d10df71cb36b699c1618b"
+  "hash": "e66d5e28d62e9610aebba5c5e4895932b0a83eb7aec4f21535427b118c2fe8e2"
 }

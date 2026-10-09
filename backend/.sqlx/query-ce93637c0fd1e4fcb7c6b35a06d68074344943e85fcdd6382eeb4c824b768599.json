@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM conversation_members m USING conversations c\n         WHERE m.conversation_id = c.id AND c.page_id = $1 AND m.user_id = $2 AND m.role = 'page'\n           AND NOT EXISTS (SELECT 1 FROM page_admins a WHERE a.page_id = $1 AND a.user_id = $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ce93637c0fd1e4fcb7c6b35a06d68074344943e85fcdd6382eeb4c824b768599"
+}

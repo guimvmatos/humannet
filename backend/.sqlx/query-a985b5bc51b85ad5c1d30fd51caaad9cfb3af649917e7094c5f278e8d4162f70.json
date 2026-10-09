@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT p.id, p.body, p.created_at, p.edited_at,\n               u.id AS author_id, u.username AS author_username,\n               u.display_name AS author_display_name\n        FROM posts p JOIN users u ON u.id = p.author_id\n        WHERE p.id = $1 AND p.deleted_at IS NULL\n        ",
+  "query": "\n        SELECT g.id, g.body, g.created_at, g.deleted_at, g.as_page,\n               u.id AS \"author_id?\", u.username AS \"username?\", u.display_name\n        FROM messages g LEFT JOIN users u ON u.id = g.author_id\n        WHERE g.conversation_id = $1\n          AND ($2::uuid IS NULL OR g.id < $2)\n          AND ($3::uuid IS NULL OR g.id > $3)\n          AND NOT EXISTS (SELECT 1 FROM blocks b\n            WHERE (b.blocker_id = $4 AND b.blocked_id = g.author_id)\n               OR (b.blocker_id = g.author_id AND b.blocked_id = $4))\n        ORDER BY CASE WHEN $3::uuid IS NULL THEN g.id END DESC,\n                 CASE WHEN $3::uuid IS NOT NULL THEN g.id END ASC\n        LIMIT $5\n        ",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,7 @@
         "type_info": "Uuid",
         "origin": {
           "Table": {
-            "table": "posts",
+            "table": "messages",
             "name": "id"
           }
         }
@@ -20,7 +20,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "posts",
+            "table": "messages",
             "name": "body"
           }
         }
@@ -31,25 +31,36 @@
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
-            "table": "posts",
+            "table": "messages",
             "name": "created_at"
           }
         }
       },
       {
         "ordinal": 3,
-        "name": "edited_at",
+        "name": "deleted_at",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
-            "table": "posts",
-            "name": "edited_at"
+            "table": "messages",
+            "name": "deleted_at"
           }
         }
       },
       {
         "ordinal": 4,
-        "name": "author_id",
+        "name": "as_page",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "messages",
+            "name": "as_page"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "author_id?",
         "type_info": "Uuid",
         "origin": {
           "Table": {
@@ -59,8 +70,8 @@
         }
       },
       {
-        "ordinal": 5,
-        "name": "author_username",
+        "ordinal": 6,
+        "name": "username?",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -70,8 +81,8 @@
         }
       },
       {
-        "ordinal": 6,
-        "name": "author_display_name",
+        "ordinal": 7,
+        "name": "display_name",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -83,7 +94,11 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int8"
       ]
     },
     "nullable": [
@@ -93,8 +108,9 @@
       true,
       false,
       false,
+      false,
       true
     ]
   },
-  "hash": "91002bad9a9b0d8084f0758f9f98e777d5f04082005eb31b345ca30ffa1e0d89"
+  "hash": "a985b5bc51b85ad5c1d30fd51caaad9cfb3af649917e7094c5f278e8d4162f70"
 }

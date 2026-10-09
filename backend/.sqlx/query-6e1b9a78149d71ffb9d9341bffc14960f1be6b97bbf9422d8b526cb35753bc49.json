@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT p.slug, p.name, p.category, p.city,\n               (p.verified_at IS NOT NULL) AS \"verified!\",\n               (f.user_id IS NOT NULL) AS \"following!\",\n               a.role AS \"my_role?\"\n        FROM pages p\n        LEFT JOIN page_followers f ON f.page_id = p.id AND f.user_id = $1\n        LEFT JOIN page_admins a ON a.page_id = p.id AND a.user_id = $1\n        WHERE p.deleted_at IS NULL\n          AND ($2::text IS NULL OR p.name ILIKE $2 ESCAPE '\\' OR p.city ILIKE $2 ESCAPE '\\')\n          AND (NOT $3 OR f.user_id IS NOT NULL OR a.user_id IS NOT NULL)\n        ORDER BY lower(p.name), p.id\n        LIMIT 100\n        ",
+  "query": "\n        SELECT p.slug, p.name, p.category, p.city,\n               (p.verified_at IS NOT NULL) AS \"verified!\",\n               (f.user_id IS NOT NULL) AS \"following!\",\n               a.role AS \"my_role?\", lm.key AS \"logo_key?\"\n        FROM pages p\n        LEFT JOIN page_followers f ON f.page_id = p.id AND f.user_id = $1\n        LEFT JOIN page_admins a ON a.page_id = p.id AND a.user_id = $1\n        LEFT JOIN media lm ON lm.id = p.logo_media_id\n        WHERE p.deleted_at IS NULL\n          AND ($2::text IS NULL OR p.name ILIKE $2 ESCAPE '\\' OR p.city ILIKE $2 ESCAPE '\\')\n          AND (NOT $3 OR f.user_id IS NOT NULL OR a.user_id IS NOT NULL)\n        ORDER BY (a.user_id IS NULL), lower(p.name), p.id\n        LIMIT 100\n        ",
   "describe": {
     "columns": [
       {
@@ -69,6 +69,17 @@
             "name": "role"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "logo_key?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "media",
+            "name": "key"
+          }
+        }
       }
     ],
     "parameters": {
@@ -85,8 +96,9 @@
       false,
       null,
       null,
+      false,
       false
     ]
   },
-  "hash": "e6660f49b284267f2dfcb7e0013a23ac847ad93b96ff909c96b8b420728eb94b"
+  "hash": "6e1b9a78149d71ffb9d9341bffc14960f1be6b97bbf9422d8b526cb35753bc49"
 }

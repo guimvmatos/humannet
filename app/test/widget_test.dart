@@ -819,6 +819,8 @@ void main() {
     expect(backend.followingBar, isTrue);
     expect(find.text('Acompanhando'), findsOneWidget);
 
+    await tester.ensureVisible(find.byKey(const Key('event_e1')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('event_e1')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('event_screen')), findsOneWidget);
@@ -859,13 +861,67 @@ void main() {
       find.byKey(const Key('place_cnpj_field')),
       '11.222.333/0001-81',
     );
+    expect(find.byKey(const Key('place_rules_note')), findsOneWidget);
+    // CEP preenche rua, bairro e cidade.
+    await tester.ensureVisible(find.byKey(const Key('place_cep_field')));
+    await tester.enterText(find.byKey(const Key('place_cep_field')), '18035-000');
+    await tester.pumpAndSettle();
+    final address = tester.widget<TextField>(
+      find.byKey(const Key('place_address_field')),
+    );
+    expect(address.controller!.text, 'Rua XV de Novembro,  - Centro');
+    final city = tester.widget<TextField>(
+      find.byKey(const Key('place_city_field')),
+    );
+    expect(city.controller!.text, 'Sorocaba - SP');
     await tester.ensureVisible(find.byKey(const Key('save_place_button')));
     await tester.tap(find.byKey(const Key('save_place_button')));
     await tester.pumpAndSettle();
 
     expect(backend.createdPlaces.single['cnpj'], '11.222.333/0001-81');
+    expect(backend.createdPlaces.single['cep'], '18035-000');
     expect(find.byKey(const Key('place_screen')), findsOneWidget);
     expect(find.byKey(const Key('new_event_button')), findsOneWidget);
+    expect(find.byKey(const Key('place_role_note')), findsOneWidget);
+
+    // Publicar no mural.
+    await tester.tap(find.byKey(const Key('place_post_button')));
+    await tester.pumpAndSettle();
+    expect(find.text('Post como Meu Bar'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('compose_field')), 'Abrimos!');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('publish_button')));
+    await tester.pumpAndSettle();
+    expect(backend.pagePosts.single['body'], 'Abrimos!');
+    await tester.scrollUntilVisible(find.text('Abrimos!'), 200);
+    expect(find.textContaining('por @alice'), findsOneWidget);
+  });
+
+  testWidgets('mensagem para página exige acompanhar', (tester) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byKey(const Key('nav_agenda')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('places_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('place_bar-do-ze')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('place_message_button')));
+    await tester.pumpAndSettle();
+    expect(find.text('Acompanhe a página para mandar mensagem.'), findsOneWidget);
+    expect(backend.pageConversationOpened, isFalse);
+
+    await tester.tap(find.byKey(const Key('follow_place_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('place_message_button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('chat_screen')), findsOneWidget);
+    expect(backend.pageConversationOpened, isTrue);
   });
 
   testWidgets('mensagens: badge, abrir conversa e enviar', (tester) async {

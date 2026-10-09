@@ -9,9 +9,19 @@ import 'photos.dart';
 /// Escreve um post (texto e/ou até 4 fotos). Retorna o `Post` criado via
 /// Navigator.
 class ComposeScreen extends StatefulWidget {
-  const ComposeScreen({super.key, required this.session, this.pickPhotos});
+  const ComposeScreen({
+    super.key,
+    required this.session,
+    this.pickPhotos,
+    this.placeSlug,
+    this.placeName,
+  });
 
   final SessionController session;
+
+  /// Publicar no mural desta página (quem administra), em vez do perfil.
+  final String? placeSlug;
+  final String? placeName;
 
   /// Para testes: substitui a galeria.
   final Future<List<Uint8List>> Function(int limit)? pickPhotos;
@@ -73,7 +83,10 @@ class _ComposeScreenState extends State<ComposeScreen> {
         ids.add((await api.uploadMedia(token, 'post', bytes)).id);
       }
       setState(() => _status = 'Publicando…');
-      final post = await api.createPost(token, _text.text, mediaIds: ids);
+      final slug = widget.placeSlug;
+      final post = slug == null
+          ? await api.createPost(token, _text.text, mediaIds: ids)
+          : await api.postToPlace(token, slug, _text.text, mediaIds: ids);
       if (mounted) Navigator.of(context).pop(post);
     } catch (e) {
       if (mounted) setState(() => _error = errorMessage(e));
@@ -92,7 +105,11 @@ class _ComposeScreenState extends State<ComposeScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Novo post'),
+        title: Text(
+          widget.placeName == null
+              ? 'Novo post'
+              : 'Post como ${widget.placeName}',
+        ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8),

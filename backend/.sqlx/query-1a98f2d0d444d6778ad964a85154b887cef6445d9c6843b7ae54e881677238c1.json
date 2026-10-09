@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO conversations (id, kind, page_id, customer_id, created_by)\n        VALUES ($1, 'page', $2, $3, $3)\n        ON CONFLICT (page_id, customer_id) DO UPDATE SET page_id = EXCLUDED.page_id\n        RETURNING id\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "conversations",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1a98f2d0d444d6778ad964a85154b887cef6445d9c6843b7ae54e881677238c1"
+}

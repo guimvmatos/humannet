@@ -93,7 +93,13 @@ pub async fn list(
     user: AuthUser,
     Path(post_id): Path<Uuid>,
 ) -> AppResult<Json<ListDto<CommentDto>>> {
-    let post_author = visible_post_author(&state, user.user_id, post_id).await?;
+    let (post_author, page_id) =
+        crate::routes::posts::visible_post(&state, user.user_id, post_id).await?;
+    let moderator = post_author == user.user_id
+        || match page_id {
+            Some(pg) => crate::routes::posts::is_page_admin(&state.db, pg, user.user_id).await?,
+            None => false,
+        };
     let rows = sqlx::query!(
         r#"
         SELECT c.id, c.post_id, c.body, c.created_at,
@@ -118,7 +124,7 @@ pub async fn list(
         .map(|r| CommentDto {
             id: r.id,
             post_id: r.post_id,
-            can_delete: r.author_id == user.user_id || post_author == user.user_id,
+            can_delete: r.author_id == user.user_id || moderator,
             author: AuthorDto {
                 id: r.author_id,
                 username: r.username,
@@ -141,7 +147,7 @@ pub async fn delete(
 ) -> AppResult<StatusCode> {
     let row = sqlx::query!(
         r#"
-        SELECT c.author_id, p.author_id AS post_author
+        SELECT c.author_id, p.author_id AS post_author, p.page_id
         FROM comments c JOIN posts p ON p.id = c.post_id
         WHERE c.id = $1 AND c.deleted_at IS NULL
         "#,
@@ -150,7 +156,11 @@ pub async fn delete(
     .fetch_optional(&state.db)
     .await?
     .ok_or(AppError::NotFound)?;
-    if row.author_id != user.user_id && row.post_author != user.user_id {
+    let page_admin = match row.page_id {
+        Some(pg) => crate::routes::posts::is_page_admin(&state.db, pg, user.user_id).await?,
+        None => false,
+    };
+    if row.author_id != user.user_id && row.post_author != user.user_id && !page_admin {
         return Err(AppError::Forbidden);
     }
     sqlx::query!(

@@ -6,6 +6,7 @@ import '../api/models.dart';
 import '../auth/session_controller.dart';
 import 'error_messages.dart';
 import 'photos.dart';
+import 'places_ui.dart';
 import 'post_screen.dart';
 import 'profile_screen.dart';
 import 'report_dialog.dart';
@@ -170,6 +171,16 @@ class PostTile extends StatelessWidget {
 
   bool get _isMine => session.user?.id == post.author.id;
 
+  /// Post de página: abre a página; pessoal: o perfil do autor.
+  void _openSource(BuildContext context) {
+    final page = post.page;
+    if (page != null) {
+      unawaited(openPlace(context, session, page.slug));
+    } else {
+      _openAuthor(context);
+    }
+  }
+
   Future<void> _delete(BuildContext context) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -225,24 +236,34 @@ class PostTile extends StatelessWidget {
             Row(
               children: [
                 GestureDetector(
-                  onTap: () => _openAuthor(context),
-                  child: UserAvatar(post.author, radius: 16),
+                  onTap: () => _openSource(context),
+                  child: switch (post.page) {
+                    final page? => PlaceLogo(
+                      name: page.name,
+                      url: page.logoUrl,
+                      radius: 16,
+                    ),
+                    null => UserAvatar(post.author, radius: 16),
+                  },
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: InkWell(
-                    onTap: () => _openAuthor(context),
+                    onTap: () => _openSource(context),
                     child: Text.rich(
                       TextSpan(
                         children: [
                           TextSpan(
-                            text: post.author.label,
+                            text: post.page?.name ?? post.author.label,
                             style: theme.textTheme.titleSmall,
                           ),
                           TextSpan(
-                            text:
-                                '  @${post.author.username} · '
-                                '${relativeTime(post.createdAt)}',
+                            // Post de página mostra quem publicou (R1).
+                            text: post.page != null
+                                ? '  por @${post.author.username} · '
+                                      '${relativeTime(post.createdAt)}'
+                                : '  @${post.author.username} · '
+                                      '${relativeTime(post.createdAt)}',
                             style: theme.textTheme.bodySmall,
                           ),
                         ],

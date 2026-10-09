@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, slug, name, category, description, address, city, cnpj,\n                  (verified_at IS NOT NULL) AS \"verified!\"\n           FROM pages WHERE slug = $1 AND deleted_at IS NULL",
+  "query": "SELECT p.id, p.slug, p.name, p.category, p.description, p.address, p.city, p.cnpj,\n                  (p.verified_at IS NOT NULL) AS \"verified!\", p.cep,\n                  lm.key AS \"logo_key?\", cm.key AS \"cover_key?\"\n           FROM pages p\n           LEFT JOIN media lm ON lm.id = p.logo_media_id\n           LEFT JOIN media cm ON cm.id = p.cover_media_id\n           WHERE p.slug = $1 AND p.deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -96,6 +96,39 @@
         "name": "verified!",
         "type_info": "Bool",
         "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "cep",
+        "type_info": "Bpchar",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "cep"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "logo_key?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "media",
+            "name": "key"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "cover_key?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "media",
+            "name": "key"
+          }
+        }
       }
     ],
     "parameters": {
@@ -112,8 +145,11 @@
       false,
       false,
       false,
-      null
+      null,
+      true,
+      true,
+      true
     ]
   },
-  "hash": "642581111ec0f5923d3b505eb069e7047d2efdb333309cb18e6f0e6962071b13"
+  "hash": "04ce20a7b9599408a3f3a337f7bc0356d46448fecb5d526a0adbce6603c83530"
 }

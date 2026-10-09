@@ -102,6 +102,7 @@ class Post {
     this.likedByMe = false,
     this.likeCount,
     this.images = const [],
+    this.page,
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
@@ -118,6 +119,9 @@ class Post {
       images: ((json['images'] as List<dynamic>?) ?? const [])
           .map((e) => MediaRef.fromJson(e as Map<String, dynamic>))
           .toList(),
+      page: json['page'] == null
+          ? null
+          : PostPageRef.fromJson(json['page'] as Map<String, dynamic>),
     );
   }
 
@@ -134,6 +138,24 @@ class Post {
 
   /// Até 4 fotos.
   final List<MediaRef> images;
+
+  /// Post do mural de uma página (o autor é quem publicou por ela).
+  final PostPageRef? page;
+}
+
+/// Página que publicou um post.
+class PostPageRef {
+  const PostPageRef({required this.slug, required this.name, this.logoUrl});
+
+  factory PostPageRef.fromJson(Map<String, dynamic> json) => PostPageRef(
+    slug: json['slug'] as String,
+    name: json['name'] as String,
+    logoUrl: json['logo_url'] as String?,
+  );
+
+  final String slug;
+  final String name;
+  final String? logoUrl;
 }
 
 /// Foto guardada no servidor (link assinado, vale algumas horas).
@@ -795,6 +817,7 @@ class PlaceItem {
     required this.verified,
     required this.following,
     this.myRole,
+    this.logoUrl,
   });
 
   factory PlaceItem.fromJson(Map<String, dynamic> json) => PlaceItem(
@@ -805,6 +828,7 @@ class PlaceItem {
     verified: (json['verified'] as bool?) ?? false,
     following: (json['following'] as bool?) ?? false,
     myRole: json['my_role'] as String?,
+    logoUrl: json['logo_url'] as String?,
   );
 
   final String slug;
@@ -814,6 +838,7 @@ class PlaceItem {
   final bool verified;
   final bool following;
   final String? myRole;
+  final String? logoUrl;
 
   String get categoryLabel => placeCategories[category] ?? category;
 }
@@ -832,6 +857,9 @@ class Place {
     required this.following,
     this.myRole,
     this.followerCount,
+    this.cep,
+    this.logoUrl,
+    this.coverUrl,
   });
 
   factory Place.fromJson(Map<String, dynamic> json) => Place(
@@ -846,6 +874,9 @@ class Place {
     following: (json['following'] as bool?) ?? false,
     myRole: json['my_role'] as String?,
     followerCount: json['follower_count'] as int?,
+    cep: json['cep'] as String?,
+    logoUrl: json['logo_url'] as String?,
+    coverUrl: json['cover_url'] as String?,
   );
 
   final String slug;
@@ -864,9 +895,45 @@ class Place {
   /// Só para quem administra (R3).
   final int? followerCount;
 
+  /// Só dígitos (8).
+  final String? cep;
+  final String? logoUrl;
+  final String? coverUrl;
+
   bool get canManage => myRole != null;
   bool get isOwner => myRole == 'owner';
   String get categoryLabel => placeCategories[category] ?? category;
+}
+
+/// Quem administra uma página.
+class PlaceAdmin {
+  const PlaceAdmin({required this.user, required this.role});
+
+  factory PlaceAdmin.fromJson(Map<String, dynamic> json) => PlaceAdmin(
+    user: Author.fromJson(json),
+    role: (json['role'] as String?) ?? 'admin',
+  );
+
+  final Author user;
+
+  /// owner | admin
+  final String role;
+  bool get isOwner => role == 'owner';
+}
+
+/// Endereço vindo do CEP (base pública dos Correios via ViaCEP).
+class CepAddress {
+  const CepAddress({
+    required this.street,
+    required this.district,
+    required this.city,
+    required this.uf,
+  });
+
+  final String street;
+  final String district;
+  final String city;
+  final String uf;
 }
 
 class PlaceEvent {
@@ -946,6 +1013,8 @@ class Conversation {
     required this.isOwner,
     this.other,
     this.lastMessage,
+    this.pageSlug,
+    this.asPage = false,
   });
 
   factory Conversation.fromJson(Map<String, dynamic> json) => Conversation(
@@ -960,7 +1029,15 @@ class Conversation {
     lastMessageAt: DateTime.parse(json['last_message_at'] as String),
     unread: (json['unread'] as int?) ?? 0,
     isOwner: (json['is_owner'] as bool?) ?? false,
+    pageSlug: json['page_slug'] as String?,
+    asPage: (json['as_page'] as bool?) ?? false,
   );
+
+  /// Conversa com uma página: o endereço dela.
+  final String? pageSlug;
+
+  /// Eu respondo como a página (administro).
+  final bool asPage;
 
   final String id;
 
@@ -975,6 +1052,11 @@ class Conversation {
   final bool isOwner;
 
   bool get isGroup => kind == 'group';
+  bool get isPage => kind == 'page';
+
+  /// Conversa com página: o nome dela (o título de quem administra é
+  /// "Página · pessoa").
+  String get pageName => asPage ? title.split(' · ').first : title;
 }
 
 class ChatMessage {
@@ -985,6 +1067,7 @@ class ChatMessage {
     required this.mine,
     required this.deleted,
     this.author,
+    this.asPage = false,
   });
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
@@ -996,8 +1079,11 @@ class ChatMessage {
     createdAt: DateTime.parse(json['created_at'] as String),
     mine: (json['mine'] as bool?) ?? false,
     deleted: (json['deleted'] as bool?) ?? false,
+    asPage: (json['as_page'] as bool?) ?? false,
   );
 
+  /// Enviada como a página (por quem administra).
+  final bool asPage;
   final String id;
   final Author? author;
   final String body;

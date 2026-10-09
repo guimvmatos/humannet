@@ -197,9 +197,7 @@ pub async fn report(
             .fetch_optional(&state.db)
             .await?
             .ok_or(AppError::NotFound)?;
-            if !friends::can_see_content(&state.db, me, post.author_id).await? {
-                return Err(AppError::NotFound);
-            }
+            visible_post_author(&state, me, *post_id).await?;
             ("post", *post_id, post.body, post.author_id)
         }
         ReportTarget::User { username } => {

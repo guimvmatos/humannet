@@ -48,6 +48,10 @@ pub struct ConversationDto {
     pub last_message_at: OffsetDateTime,
     pub unread: i64,
     pub is_owner: bool,
+    /// Conversa com uma página: o endereço dela.
+    pub page_slug: Option<String>,
+    /// Página: eu respondo como a página (administro).
+    pub as_page: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -59,6 +63,8 @@ pub struct MessageDto {
     pub created_at: OffsetDateTime,
     pub mine: bool,
     pub deleted: bool,
+    /// Enviada como a página (por quem administra).
+    pub as_page: bool,
 }
 
 /// Confere que sou membro. NotFound se não (não revela que existe).
@@ -88,6 +94,7 @@ async fn conversations_for(
                (SELECT count(*) FROM messages g
                  WHERE g.conversation_id = c.id AND g.created_at > m.last_read_at
                    AND g.author_id IS DISTINCT FROM $1 AND g.deleted_at IS NULL
+                   AND NOT (g.as_page AND m.role = 'page')
                    AND NOT EXISTS (SELECT 1 FROM blocks b
                      WHERE (b.blocker_id = $1 AND b.blocked_id = g.author_id)
                         OR (b.blocker_id = g.author_id AND b.blocked_id = $1))) AS "unread!",
@@ -98,13 +105,17 @@ async fn conversations_for(
                         OR (b.blocker_id = g.author_id AND b.blocked_id = $1))
                  ORDER BY g.id DESC LIMIT 1) AS last_body,
                o.id AS "other_id?", o.username AS "other_username?",
-               o.display_name AS other_display_name
+               o.display_name AS other_display_name,
+               pg.slug AS "page_slug?", pg.name AS "page_name?"
         FROM conversations c
         JOIN conversation_members m ON m.conversation_id = c.id AND m.user_id = $1
+        LEFT JOIN pages pg ON pg.id = c.page_id
         LEFT JOIN LATERAL (
           SELECT u.id, u.username, u.display_name FROM conversation_members om
           JOIN users u ON u.id = om.user_id
-          WHERE c.kind = 'direct' AND om.conversation_id = c.id AND om.user_id <> $1
+          WHERE ((c.kind = 'direct' AND om.user_id <> $1)
+                 OR (c.kind = 'page' AND m.role = 'page' AND om.user_id = c.customer_id))
+            AND om.conversation_id = c.id
           LIMIT 1
         ) o ON true
         WHERE ($2::uuid IS NULL OR c.id = $2)
@@ -128,9 +139,15 @@ async fn conversations_for(
                 }),
                 _ => None,
             };
+            let as_page = r.kind == "page" && r.role == "page";
+            let name_of =
+                |o: &AuthorDto| o.display_name.clone().unwrap_or(format!("@{}", o.username));
+            let page_name = r.page_name.clone().unwrap_or_default();
             let title = match (&other, r.kind.as_str()) {
-                (Some(o), "direct") => o.display_name.clone().unwrap_or(format!("@{}", o.username)),
+                (Some(o), "direct") => name_of(o),
                 (None, "direct") => "Conversa".to_owned(),
+                (Some(o), "page") => format!("{page_name} · {}", name_of(o)),
+                (None, "page") => page_name,
                 _ => r.title,
             };
             ConversationDto {
@@ -143,6 +160,8 @@ async fn conversations_for(
                 last_message_at: r.last_message_at,
                 unread: r.unread,
                 is_owner: r.role == "owner",
+                page_slug: r.page_slug,
+                as_page,
             }
         })
         .collect();
@@ -378,7 +397,9 @@ pub async fn leave(
 ) -> AppResult<StatusCode> {
     let me = user.user_id;
     let (kind, role) = membership(&state, id, me).await?;
-    if kind != "group" {
+    // Grupo: qualquer um sai. Página: quem escreveu pode tirar da lista
+    // (volta se escrever de novo); quem administra, não.
+    if !(kind == "group" || (kind == "page" && role == "member")) {
         return Err(AppError::Validation("cannot_leave_direct"));
     }
     let mut tx = state.db.begin().await?;
@@ -430,7 +451,7 @@ pub async fn messages(
     .limit();
     let rows = sqlx::query!(
         r#"
-        SELECT g.id, g.body, g.created_at, g.deleted_at,
+        SELECT g.id, g.body, g.created_at, g.deleted_at, g.as_page,
                u.id AS "author_id?", u.username AS "username?", u.display_name
         FROM messages g LEFT JOIN users u ON u.id = g.author_id
         WHERE g.conversation_id = $1
@@ -457,6 +478,7 @@ pub async fn messages(
             id: r.id,
             mine: r.author_id == Some(me),
             deleted: r.deleted_at.is_some(),
+            as_page: r.as_page,
             author: match (r.author_id, r.username) {
                 (Some(id), Some(username)) => Some(AuthorDto {
                     id,
@@ -501,8 +523,25 @@ pub async fn send(
     Json(req): Json<SendReq>,
 ) -> AppResult<(StatusCode, Json<MessageDto>)> {
     let me = user.user_id;
-    let (kind, _) = membership(&state, id, me).await?;
+    let (kind, role) = membership(&state, id, me).await?;
     let body = validation::long_text(&req.body, MESSAGE_MAX, "invalid_message")?;
+    let as_page = kind == "page" && role == "page";
+    if kind == "page" {
+        let ok = sqlx::query_scalar!(
+            r#"SELECT (pg.deleted_at IS NULL
+                       AND ($2 OR EXISTS (SELECT 1 FROM page_followers f
+                                          WHERE f.page_id = pg.id AND f.user_id = $3))) AS "ok!"
+               FROM conversations c JOIN pages pg ON pg.id = c.page_id WHERE c.id = $1"#,
+            id,
+            as_page,
+            me
+        )
+        .fetch_one(&state.db)
+        .await?;
+        if !ok {
+            return Err(AppError::Validation("follow_page_first"));
+        }
+    }
     if body.is_empty() {
         return Err(AppError::Validation("invalid_message"));
     }
@@ -535,7 +574,8 @@ pub async fn send(
     let r = sqlx::query!(
         r#"
         WITH g AS (
-          INSERT INTO messages (id, conversation_id, author_id, body) VALUES ($1, $2, $3, $4)
+          INSERT INTO messages (id, conversation_id, author_id, body, as_page)
+          VALUES ($1, $2, $3, $4, $5)
           RETURNING id, body, created_at
         )
         SELECT g.id, g.body, g.created_at, u.username, u.display_name
@@ -544,7 +584,8 @@ pub async fn send(
         Uuid::now_v7(),
         id,
         me,
-        body
+        body,
+        as_page
     )
     .fetch_one(&mut *tx)
     .await?;
@@ -577,6 +618,7 @@ pub async fn send(
         created_at: r.created_at,
         mine: true,
         deleted: false,
+        as_page,
     };
     fill_avatars(&state, dto.author.as_mut()).await?;
     let others = sqlx::query_scalar!(
@@ -586,14 +628,22 @@ pub async fn send(
     )
     .fetch_all(&state.db)
     .await?;
-    let group = if kind == "direct" {
-        None
-    } else {
-        Some(
+    let group = match kind.as_str() {
+        "direct" => None,
+        "page" => Some(
+            sqlx::query_scalar!(
+                "SELECT pg.name FROM conversations c JOIN pages pg ON pg.id = c.page_id
+                 WHERE c.id = $1",
+                id
+            )
+            .fetch_one(&state.db)
+            .await?,
+        ),
+        _ => Some(
             sqlx::query_scalar!("SELECT title FROM conversations WHERE id = $1", id)
                 .fetch_one(&state.db)
                 .await?,
-        )
+        ),
     };
     state.push.notify(
         &state.db,
@@ -655,6 +705,7 @@ pub async fn unread_conversations(state: &AppState, me: Uuid) -> sqlx::Result<i6
           SELECT 1 FROM messages g
           WHERE g.conversation_id = m.conversation_id AND g.created_at > m.last_read_at
             AND g.author_id IS DISTINCT FROM $1 AND g.deleted_at IS NULL
+            AND NOT (g.as_page AND m.role = 'page')
             AND NOT EXISTS (SELECT 1 FROM blocks b
               WHERE (b.blocker_id = $1 AND b.blocked_id = g.author_id)
                  OR (b.blocker_id = g.author_id AND b.blocked_id = $1)))
@@ -663,4 +714,61 @@ pub async fn unread_conversations(state: &AppState, me: Uuid) -> sqlx::Result<i6
     )
     .fetch_one(&state.db)
     .await
+}
+
+/// POST /v1/pages/{slug}/conversation — abre (ou cria) a conversa com a
+/// página. Só quem acompanha a página; quem administra responde como ela.
+pub async fn page_conversation(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path(slug): Path<String>,
+) -> AppResult<Json<ConversationDto>> {
+    let me = user.user_id;
+    let page = crate::routes::pages::load(&state, &slug).await?;
+    if crate::routes::posts::is_page_admin(&state.db, page.id, me).await? {
+        return Err(AppError::Validation("cannot_message_own_page"));
+    }
+    let follows = sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM page_followers WHERE page_id = $1 AND user_id = $2) AS "e!""#,
+        page.id,
+        me
+    )
+    .fetch_one(&state.db)
+    .await?;
+    if !follows {
+        return Err(AppError::Validation("follow_page_first"));
+    }
+    let mut tx = state.db.begin().await?;
+    let id = sqlx::query_scalar!(
+        r#"
+        INSERT INTO conversations (id, kind, page_id, customer_id, created_by)
+        VALUES ($1, 'page', $2, $3, $3)
+        ON CONFLICT (page_id, customer_id) DO UPDATE SET page_id = EXCLUDED.page_id
+        RETURNING id
+        "#,
+        Uuid::now_v7(),
+        page.id,
+        me
+    )
+    .fetch_one(&mut *tx)
+    .await?;
+    sqlx::query!(
+        "INSERT INTO conversation_members (conversation_id, user_id) VALUES ($1, $2)
+         ON CONFLICT DO NOTHING",
+        id,
+        me
+    )
+    .execute(&mut *tx)
+    .await?;
+    sqlx::query!(
+        "INSERT INTO conversation_members (conversation_id, user_id, role)
+         SELECT $1, user_id, 'page' FROM page_admins WHERE page_id = $2
+         ON CONFLICT DO NOTHING",
+        id,
+        page.id
+    )
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    Ok(Json(one(&state, me, id).await?))
 }

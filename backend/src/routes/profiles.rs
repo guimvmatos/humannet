@@ -108,7 +108,7 @@ pub async fn get(
                 r#"
                 SELECT
                   (SELECT count(*) FROM friends WHERE user_id = $1) AS "friends!",
-                  (SELECT count(*) FROM posts WHERE author_id = $1 AND deleted_at IS NULL) AS "posts!",
+                  (SELECT count(*) FROM posts WHERE author_id = $1 AND page_id IS NULL AND deleted_at IS NULL) AS "posts!",
                   (SELECT count(*) FROM friend_requests WHERE to_id = $1) AS "pending_requests!",
                   (SELECT count(*) FROM testimonials
                     WHERE recipient_id = $1 AND status = 'pending') AS "pending_testimonials!"

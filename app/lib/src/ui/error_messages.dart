@@ -7,6 +7,11 @@ String errorMessage(Object error) {
   }
   return switch (error.code) {
     'invalid_credentials' => 'Usuário ou senha incorretos.',
+    'invalid_cep' => 'CEP inválido: use 8 dígitos.',
+    'follow_page_first' =>
+      'Acompanhe a página para mandar mensagem para ela.',
+    'cannot_message_own_page' =>
+      'Você administra esta página: as mensagens dela chegam para você.',
     'invalid_invite' => 'Convite inválido, expirado ou já utilizado.',
     'invalid_username' =>
       'Nome de usuário deve ter 3–30 caracteres: letras, números ou _.',

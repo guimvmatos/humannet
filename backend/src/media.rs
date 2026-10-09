@@ -31,6 +31,8 @@ pub enum Kind {
     Post,
     Avatar,
     Daily,
+    /// Capa de página: faixa larga 3:1.
+    Cover,
 }
 
 impl Kind {
@@ -39,6 +41,7 @@ impl Kind {
             "post" => Some(Self::Post),
             "avatar" => Some(Self::Avatar),
             "daily" => Some(Self::Daily),
+            "cover" => Some(Self::Cover),
             _ => None,
         }
     }
@@ -48,6 +51,7 @@ impl Kind {
             Self::Post => "post",
             Self::Avatar => "avatar",
             Self::Daily => "daily",
+            Self::Cover => "cover",
         }
     }
 }
@@ -88,6 +92,21 @@ pub fn process(bytes: &[u8], kind: Kind) -> anyhow::Result<Processed> {
             let y = (img.height() - side) / 2;
             img.crop_imm(x, y, side, side)
                 .resize_exact(512, 512, FilterType::Lanczos3)
+        }
+        Kind::Cover => {
+            // Faixa central 3:1, até 1500 x 500.
+            let (w, h) = (img.width(), img.height());
+            let (cw, ch) = if w >= h * 3 {
+                (h * 3, h)
+            } else {
+                (w, (w / 3).max(1))
+            };
+            let cropped = img.crop_imm((w - cw) / 2, (h - ch) / 2, cw, ch);
+            if cw > 1500 {
+                cropped.resize_exact(1500, 500, FilterType::Lanczos3)
+            } else {
+                cropped
+            }
         }
         Kind::Post | Kind::Daily => {
             const MAX: u32 = 1600;

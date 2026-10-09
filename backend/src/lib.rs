@@ -134,7 +134,26 @@ pub fn app(state: AppState) -> Router {
             "/pages/{slug}/follow",
             put(routes::pages::follow).delete(routes::pages::unfollow),
         )
-        .route("/pages/{slug}/admins", post(routes::pages::add_admin))
+        .route(
+            "/pages/{slug}/admins",
+            get(routes::pages::admins).post(routes::pages::add_admin),
+        )
+        .route(
+            "/pages/{slug}/logo",
+            put(routes::pages::set_logo).delete(routes::pages::delete_logo),
+        )
+        .route(
+            "/pages/{slug}/cover",
+            put(routes::pages::set_cover).delete(routes::pages::delete_cover),
+        )
+        .route(
+            "/pages/{slug}/posts",
+            get(routes::pages::wall).post(routes::pages::post_to_wall),
+        )
+        .route(
+            "/pages/{slug}/conversation",
+            post(routes::messages::page_conversation),
+        )
         .route(
             "/pages/{slug}/admins/{username}",
             delete(routes::pages::remove_admin),

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT count(*) AS \"n!\" FROM conversation_members m\n        WHERE m.user_id = $1 AND EXISTS (\n          SELECT 1 FROM messages g\n          WHERE g.conversation_id = m.conversation_id AND g.created_at > m.last_read_at\n            AND g.author_id IS DISTINCT FROM $1 AND g.deleted_at IS NULL\n            AND NOT (g.as_page AND m.role = 'page')\n            AND NOT EXISTS (SELECT 1 FROM blocks b\n              WHERE (b.blocker_id = $1 AND b.blocked_id = g.author_id)\n                 OR (b.blocker_id = g.author_id AND b.blocked_id = $1)))\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "55dfc24211089d7d679582ca3f72e2487ebb76c8065a25eb1b9123cf66186f82"
+}

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE pages p SET logo_media_id = $2 FROM pages o\n             WHERE p.id = $1 AND o.id = p.id RETURNING o.logo_media_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "logo_media_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "logo_media_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "4a110a2c989dc050086aec4a5ed52da5993508805ca11c9be10eeec61d119586"
+}

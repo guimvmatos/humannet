@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE pages p SET cover_media_id = $2 FROM pages o\n             WHERE p.id = $1 AND o.id = p.id RETURNING o.cover_media_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "cover_media_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "cover_media_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "85d533b0d2070909d6efdd17f71d17bd99f78e60bfb3f6dce7abdd7343691ec4"
+}

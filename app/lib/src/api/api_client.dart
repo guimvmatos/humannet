@@ -857,6 +857,7 @@ class ApiClient {
     String description = '',
     String address = '',
     String city = '',
+    String cep = '',
   }) async {
     final json = await _send(
       'POST',
@@ -869,6 +870,7 @@ class ApiClient {
         'description': description,
         'address': address,
         'city': city,
+        'cep': cep,
       },
     );
     return Place.fromJson(json!);
@@ -882,6 +884,7 @@ class ApiClient {
     String? description,
     String? address,
     String? city,
+    String? cep,
   }) async {
     final json = await _send(
       'PATCH',
@@ -893,9 +896,99 @@ class ApiClient {
         'description': ?description,
         'address': ?address,
         'city': ?city,
+        'cep': ?cep,
       },
     );
     return Place.fromJson(json!);
+  }
+
+  /// Logo (`logo: true`, foto kind=avatar) ou capa (kind=cover) da página.
+  /// `mediaId` nulo remove.
+  Future<Place> setPlaceImage(
+    String token,
+    String slug, {
+    required bool logo,
+    String? mediaId,
+  }) async {
+    final path = '${_p(slug)}/${logo ? 'logo' : 'cover'}';
+    final json = mediaId == null
+        ? await _send('DELETE', path, token: token)
+        : await _send('PUT', path, token: token, body: {'media_id': mediaId});
+    return Place.fromJson(json!);
+  }
+
+  Future<List<PlaceAdmin>> placeAdmins(String token, String slug) async {
+    final json = await _send('GET', '${_p(slug)}/admins', token: token);
+    return (json!['items'] as List<dynamic>)
+        .map((e) => PlaceAdmin.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> removePlaceAdmin(String token, String slug, String username) async {
+    await _send(
+      'DELETE',
+      '${_p(slug)}/admins/${Uri.encodeComponent(username)}',
+      token: token,
+    );
+  }
+
+  /// Mural da página (mais novos primeiro).
+  Future<PostPage> placeWall(String token, String slug, {String? before}) async {
+    final json = await _send(
+      'GET',
+      '${_p(slug)}/posts',
+      token: token,
+      query: {'before': ?before},
+    );
+    return PostPage.fromJson(json!);
+  }
+
+  /// Quem administra publica no mural (vai para o feed de quem acompanha).
+  Future<Post> postToPlace(
+    String token,
+    String slug,
+    String body, {
+    List<String> mediaIds = const [],
+  }) async {
+    final json = await _send(
+      'POST',
+      '${_p(slug)}/posts',
+      token: token,
+      body: {'body': body, if (mediaIds.isNotEmpty) 'media_ids': mediaIds},
+    );
+    return Post.fromJson(json!);
+  }
+
+  /// Abre (ou cria) a conversa com a página. Só quem acompanha.
+  Future<Conversation> placeConversation(String token, String slug) async =>
+      Conversation.fromJson(
+        (await _send('POST', '${_p(slug)}/conversation', token: token))!,
+      );
+
+  /// Endereço pelo CEP (ViaCEP, base pública dos Correios). `null` se não
+  /// existir. Não passa pela API da HumanNet.
+  Future<CepAddress?> lookupCep(String cep) async {
+    final digits = cep.replaceAll(RegExp(r'\D'), '');
+    if (digits.length != 8) return null;
+    final request = http.Request(
+      'GET',
+      Uri.parse('https://viacep.com.br/ws/$digits/json/'),
+    )..headers['Accept'] = 'application/json';
+    final Map<String, dynamic>? json;
+    try {
+      json = await _execute(request);
+    } on ApiException {
+      return null;
+    }
+    if (json == null || json['erro'] != null) return null;
+    final data = json;
+    String f(String k) => (data[k] as String?)?.trim() ?? '';
+    return CepAddress(
+      street: f('logradouro'),
+      district: f('bairro'),
+      city: f('localidade'),
+      uf: f('uf'),
+    );
   }
 
   Future<void> deletePlace(String token, String slug) async {

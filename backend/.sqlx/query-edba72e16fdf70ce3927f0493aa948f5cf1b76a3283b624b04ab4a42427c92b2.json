@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT p.id, p.body, p.created_at, p.edited_at,\n               u.id AS author_id, u.username AS author_username,\n               u.display_name AS author_display_name\n        FROM posts p JOIN users u ON u.id = p.author_id\n        WHERE p.deleted_at IS NULL\n          AND (p.author_id = $1\n               OR p.author_id IN (SELECT friend_id FROM friends WHERE user_id = $1))\n          AND ($2::uuid IS NULL OR p.id < $2)\n        ORDER BY p.id DESC\n        LIMIT $3\n        ",
+  "query": "\n        SELECT p.id, p.body, p.created_at, p.edited_at,\n               u.id AS author_id, u.username AS author_username,\n               u.display_name AS author_display_name,\n               pg.slug AS \"page_slug?\", pg.name AS \"page_name?\", lm.key AS \"page_logo_key?\"\n        FROM posts p JOIN users u ON u.id = p.author_id\n        LEFT JOIN pages pg ON pg.id = p.page_id\n        LEFT JOIN media lm ON lm.id = pg.logo_media_id\n        WHERE p.deleted_at IS NULL\n          AND ((p.page_id IS NULL\n                AND (p.author_id = $1\n                     OR p.author_id IN (SELECT friend_id FROM friends WHERE user_id = $1)))\n               OR (pg.deleted_at IS NULL\n                   AND p.page_id IN (SELECT page_id FROM page_followers WHERE user_id = $1)))\n          AND ($2::uuid IS NULL OR p.id < $2)\n        ORDER BY p.id DESC\n        LIMIT $3\n        ",
   "describe": {
     "columns": [
       {
@@ -79,6 +79,39 @@
             "name": "display_name"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "page_slug?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "slug"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "page_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "page_logo_key?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "media",
+            "name": "key"
+          }
+        }
       }
     ],
     "parameters": {
@@ -95,8 +128,11 @@
       true,
       false,
       false,
-      true
+      true,
+      false,
+      false,
+      false
     ]
   },
-  "hash": "5d4c5e865e15f09124a8028586383de0761293b459439428eca05525e212a281"
+  "hash": "edba72e16fdf70ce3927f0493aa948f5cf1b76a3283b624b04ab4a42427c92b2"
 }

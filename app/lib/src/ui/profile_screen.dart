@@ -9,6 +9,7 @@ import 'chat_ui.dart';
 import 'edit_profile_screen.dart';
 import 'error_messages.dart';
 import 'photos.dart';
+import 'places_ui.dart';
 import 'post_list.dart';
 import 'report_dialog.dart';
 import 'scraps_screen.dart';
@@ -482,6 +483,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onDecline: () => _friendAction(decline: true),
       onMessage: () =>
           openDirectChat(context, widget.session, widget.username),
+      onPlaces: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => PlacesScreen(session: widget.session, adminOnly: true),
+        ),
+      ),
       onEdit: _editProfile,
       onInvite: _createInvite,
       onTestimonials: _openTestimonials,
@@ -535,6 +541,7 @@ class _Header extends StatelessWidget {
     required this.onFriendAction,
     required this.onDecline,
     required this.onMessage,
+    required this.onPlaces,
     required this.onEdit,
     required this.onInvite,
     required this.onTestimonials,
@@ -550,6 +557,7 @@ class _Header extends StatelessWidget {
   final VoidCallback onFriendAction;
   final VoidCallback onDecline;
   final VoidCallback onMessage;
+  final VoidCallback onPlaces;
   final VoidCallback onEdit;
   final VoidCallback onInvite;
   final VoidCallback onTestimonials;
@@ -726,6 +734,12 @@ class _Header extends StatelessWidget {
                       onPressed: busy ? null : onInvite,
                       icon: const Icon(Icons.person_add_alt),
                       label: const Text('Gerar convite'),
+                    ),
+                    OutlinedButton.icon(
+                      key: const Key('my_places_button'),
+                      onPressed: onPlaces,
+                      icon: const Icon(Icons.storefront_outlined),
+                      label: const Text('Minhas páginas'),
                     ),
                   ]
                 : _friendButtons(),

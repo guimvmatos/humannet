@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        WITH p AS (\n          INSERT INTO posts (id, author_id, body) VALUES ($1, $2, $3)\n          RETURNING id, author_id, body, created_at, edited_at\n        )\n        SELECT p.id, p.body, p.created_at, p.edited_at,\n               u.id AS author_id, u.username AS author_username,\n               u.display_name AS author_display_name\n        FROM p JOIN users u ON u.id = p.author_id\n        ",
+  "query": "\n        SELECT p.id, p.body, p.created_at, p.edited_at,\n               u.id AS author_id, u.username AS author_username,\n               u.display_name AS author_display_name,\n               pg.slug AS \"page_slug?\", pg.name AS \"page_name?\", lm.key AS \"page_logo_key?\"\n        FROM posts p JOIN users u ON u.id = p.author_id\n        JOIN pages pg ON pg.id = p.page_id\n        LEFT JOIN media lm ON lm.id = pg.logo_media_id\n        WHERE p.page_id = $1 AND p.deleted_at IS NULL\n          AND ($2::uuid IS NULL OR p.id < $2)\n        ORDER BY p.id DESC\n        LIMIT $3\n        ",
   "describe": {
     "columns": [
       {
@@ -79,13 +79,46 @@
             "name": "display_name"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "page_slug?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "slug"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "page_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "page_logo_key?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "media",
+            "name": "key"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
         "Uuid",
         "Uuid",
-        "Text"
+        "Int8"
       ]
     },
     "nullable": [
@@ -95,8 +128,11 @@
       true,
       false,
       false,
-      true
+      true,
+      false,
+      false,
+      false
     ]
   },
-  "hash": "b8100bc6f44669c533652a7ff248f697b7d0dd6f866a1ee398cf3bfeb8f5c131"
+  "hash": "bfd9c85241c13035c80e1d8dd6038e5ca5a152abb37232109791c283c046bcd8"
 }

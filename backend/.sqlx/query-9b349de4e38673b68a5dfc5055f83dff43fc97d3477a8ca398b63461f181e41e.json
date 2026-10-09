@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (pg.deleted_at IS NULL\n                       AND ($2 OR EXISTS (SELECT 1 FROM page_followers f\n                                          WHERE f.page_id = pg.id AND f.user_id = $3))) AS \"ok!\"\n               FROM conversations c JOIN pages pg ON pg.id = c.page_id WHERE c.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "ok!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "9b349de4e38673b68a5dfc5055f83dff43fc97d3477a8ca398b63461f181e41e"
+}

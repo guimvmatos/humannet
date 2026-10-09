@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO conversation_members (conversation_id, user_id, role)\n         SELECT id, $2, 'page' FROM conversations WHERE page_id = $1 AND customer_id <> $2\n         ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fb7060fad361d49b5d2ba762c338fc22e7bc39baf4bcfb494f2ed4081e1503e5"
+}

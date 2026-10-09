@@ -90,6 +90,10 @@ class FakeBackend {
   bool chatRead = false;
   int chatSeq = 1;
 
+  /// Mural da página "meu-bar" e conversa com "bar-do-ze".
+  final List<Map<String, Object?>> pagePosts = [];
+  bool pageConversationOpened = false;
+
   Map<String, Object?> _conversation() => {
     'id': 'cv1',
     'kind': 'direct',
@@ -353,6 +357,46 @@ class FakeBackend {
         });
       case 'GET /v1/pages/meu-bar/events':
         return _json(200, {'items': <Object>[]});
+      case 'GET /v1/pages/meu-bar/posts':
+        return _json(200, {'items': pagePosts, 'next_cursor': null});
+      case 'GET /v1/pages/bar-do-ze/posts':
+        return _json(200, {'items': <Object>[], 'next_cursor': null});
+      case 'POST /v1/pages/meu-bar/posts':
+        final b = jsonDecode(request.body) as Map<String, dynamic>;
+        final post = <String, Object?>{
+          ..._post('pp${pagePosts.length + 1}', b['body'] as String),
+          'page': {'slug': 'meu-bar', 'name': 'Meu Bar', 'logo_url': null},
+        };
+        pagePosts.insert(0, post);
+        return _json(201, post);
+      case 'POST /v1/pages/bar-do-ze/conversation':
+        if (!followingBar) return _json(422, {'error': 'follow_page_first'});
+        pageConversationOpened = true;
+        return _json(200, {
+          'id': 'cv2',
+          'kind': 'page',
+          'title': 'Bar do Zé',
+          'other': null,
+          'member_count': 2,
+          'last_message': null,
+          'last_message_at': '2026-10-08T12:00:00Z',
+          'unread': 0,
+          'is_owner': false,
+          'page_slug': 'bar-do-ze',
+          'as_page': false,
+        });
+      case 'GET /v1/conversations/cv2/messages':
+        return _json(200, {'items': <Object>[], 'next_cursor': null});
+      case 'POST /v1/conversations/cv2/read':
+        return http.Response('', 204);
+      case 'GET /ws/18035000/json/':
+        return _json(200, {
+          'cep': '18035-000',
+          'logradouro': 'Rua XV de Novembro',
+          'bairro': 'Centro',
+          'localidade': 'Sorocaba',
+          'uf': 'SP',
+        });
       case 'PUT /v1/me/cpf':
         cpfSent = (jsonDecode(request.body) as Map<String, dynamic>)['cpf'] as String;
         needsCpf = false;

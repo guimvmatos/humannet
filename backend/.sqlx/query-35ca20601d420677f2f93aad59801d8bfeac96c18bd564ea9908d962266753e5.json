@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT\n                  (SELECT count(*) FROM friends WHERE user_id = $1) AS \"friends!\",\n                  (SELECT count(*) FROM posts WHERE author_id = $1 AND deleted_at IS NULL) AS \"posts!\",\n                  (SELECT count(*) FROM friend_requests WHERE to_id = $1) AS \"pending_requests!\",\n                  (SELECT count(*) FROM testimonials\n                    WHERE recipient_id = $1 AND status = 'pending') AS \"pending_testimonials!\"\n                ",
+  "query": "\n                SELECT\n                  (SELECT count(*) FROM friends WHERE user_id = $1) AS \"friends!\",\n                  (SELECT count(*) FROM posts WHERE author_id = $1 AND page_id IS NULL AND deleted_at IS NULL) AS \"posts!\",\n                  (SELECT count(*) FROM friend_requests WHERE to_id = $1) AS \"pending_requests!\",\n                  (SELECT count(*) FROM testimonials\n                    WHERE recipient_id = $1 AND status = 'pending') AS \"pending_testimonials!\"\n                ",
   "describe": {
     "columns": [
       {
@@ -40,5 +40,5 @@
       null
     ]
   },
-  "hash": "9edbedbfa513e49bf1dc7a5a5438d909f8f0a911657c52ff5eb19b4507ec27e4"
+  "hash": "35ca20601d420677f2f93aad59801d8bfeac96c18bd564ea9908d962266753e5"
 }

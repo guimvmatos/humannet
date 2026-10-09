@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT g.id, g.body, g.created_at, g.deleted_at,\n               u.id AS \"author_id?\", u.username AS \"username?\", u.display_name\n        FROM messages g LEFT JOIN users u ON u.id = g.author_id\n        WHERE g.conversation_id = $1\n          AND ($2::uuid IS NULL OR g.id < $2)\n          AND ($3::uuid IS NULL OR g.id > $3)\n          AND NOT EXISTS (SELECT 1 FROM blocks b\n            WHERE (b.blocker_id = $4 AND b.blocked_id = g.author_id)\n               OR (b.blocker_id = g.author_id AND b.blocked_id = $4))\n        ORDER BY CASE WHEN $3::uuid IS NULL THEN g.id END DESC,\n                 CASE WHEN $3::uuid IS NOT NULL THEN g.id END ASC\n        LIMIT $5\n        ",
+  "query": "\n        SELECT p.id, p.body, p.created_at, p.edited_at,\n               u.id AS author_id, u.username AS author_username,\n               u.display_name AS author_display_name,\n               NULL::text AS \"page_slug?\", NULL::text AS \"page_name?\",\n               NULL::text AS \"page_logo_key?\"\n        FROM posts p JOIN users u ON u.id = p.author_id\n        WHERE p.author_id = $1\n          AND p.page_id IS NULL\n          AND p.deleted_at IS NULL\n          AND ($2::uuid IS NULL OR p.id < $2)\n        ORDER BY p.id DESC\n        LIMIT $3\n        ",
   "describe": {
     "columns": [
       {
@@ -9,7 +9,7 @@
         "type_info": "Uuid",
         "origin": {
           "Table": {
-            "table": "messages",
+            "table": "posts",
             "name": "id"
           }
         }
@@ -20,7 +20,7 @@
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "messages",
+            "table": "posts",
             "name": "body"
           }
         }
@@ -31,25 +31,25 @@
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
-            "table": "messages",
+            "table": "posts",
             "name": "created_at"
           }
         }
       },
       {
         "ordinal": 3,
-        "name": "deleted_at",
+        "name": "edited_at",
         "type_info": "Timestamptz",
         "origin": {
           "Table": {
-            "table": "messages",
-            "name": "deleted_at"
+            "table": "posts",
+            "name": "edited_at"
           }
         }
       },
       {
         "ordinal": 4,
-        "name": "author_id?",
+        "name": "author_id",
         "type_info": "Uuid",
         "origin": {
           "Table": {
@@ -60,7 +60,7 @@
       },
       {
         "ordinal": 5,
-        "name": "username?",
+        "name": "author_username",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -71,7 +71,7 @@
       },
       {
         "ordinal": 6,
-        "name": "display_name",
+        "name": "author_display_name",
         "type_info": "Text",
         "origin": {
           "Table": {
@@ -79,12 +79,28 @@
             "name": "display_name"
           }
         }
+      },
+      {
+        "ordinal": 7,
+        "name": "page_slug?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "page_name?",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "page_logo_key?",
+        "type_info": "Text",
+        "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid",
-        "Uuid",
         "Uuid",
         "Uuid",
         "Int8"
@@ -97,8 +113,11 @@
       true,
       false,
       false,
-      true
+      true,
+      null,
+      null,
+      null
     ]
   },
-  "hash": "082aef06231563f331e11ecc2879bbb04125986c0cae02cc383ec16620c0a7a8"
+  "hash": "e4b999076c7083478b851f1865a9fa7b18b379035a87e015a86da90074dd6ccf"
 }

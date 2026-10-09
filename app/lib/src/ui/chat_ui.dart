@@ -7,6 +7,7 @@ import '../auth/session_controller.dart';
 import 'error_messages.dart';
 import 'photos.dart';
 import 'post_list.dart' show relativeTime;
+import 'places_ui.dart';
 import 'report_dialog.dart';
 
 /// Abre (ou cria) a conversa 1:1 com um amigo.
@@ -152,7 +153,9 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                   key: Key('conversation_${c.id}'),
                   leading: c.other != null
                       ? UserAvatar(c.other!)
-                      : const CircleAvatar(child: Icon(Icons.group)),
+                      : CircleAvatar(
+                          child: Icon(c.isPage ? Icons.storefront : Icons.group),
+                        ),
                   title: Text(
                     c.title,
                     style: c.unread > 0
@@ -521,6 +524,9 @@ class _ChatScreenState extends State<ChatScreen> {
         case 'leave':
           await api.leaveGroup(token, _c.id);
           if (mounted) Navigator.of(context).pop();
+        case 'page':
+          final slug = _c.pageSlug;
+          if (slug != null) await openPlace(context, widget.session, slug);
       }
     } catch (e) {
       _snack(errorMessage(e));
@@ -535,6 +541,19 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         title: Text(_c.title),
         actions: [
+          if (_c.isPage)
+            PopupMenuButton<String>(
+              key: const Key('page_chat_menu'),
+              onSelected: _menu,
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'page', child: Text('Ver página')),
+                if (!_c.asPage)
+                  const PopupMenuItem(
+                    value: 'leave',
+                    child: Text('Tirar da lista'),
+                  ),
+              ],
+            ),
           if (_c.isGroup)
             PopupMenuButton<String>(
               onSelected: _menu,
@@ -573,7 +592,10 @@ class _ChatScreenState extends State<ChatScreen> {
                       return _Bubble(
                         key: Key('msg_${m.id}'),
                         message: m,
-                        showAuthor: _c.isGroup && !m.mine,
+                        showAuthor: (_c.isGroup || _c.isPage) && !m.mine,
+                        authorLabel: m.asPage && m.author != null
+                            ? '${_c.pageName} · @${m.author!.username}'
+                            : null,
                         theme: theme,
                         onLongPress: () => _longPress(m),
                       );
@@ -630,10 +652,14 @@ class _Bubble extends StatelessWidget {
     required this.showAuthor,
     required this.theme,
     required this.onLongPress,
+    this.authorLabel,
   });
 
   final ChatMessage message;
   final bool showAuthor;
+
+  /// Mensagem da página: "Página · @quem enviou".
+  final String? authorLabel;
   final ThemeData theme;
   final VoidCallback onLongPress;
 
@@ -663,7 +689,10 @@ class _Bubble extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (showAuthor && m.author != null)
-                Text(m.author!.label, style: theme.textTheme.labelSmall),
+                Text(
+                  authorLabel ?? m.author!.label,
+                  style: theme.textTheme.labelSmall,
+                ),
               Text(
                 m.deleted ? 'Mensagem apagada' : m.body,
                 style: m.deleted

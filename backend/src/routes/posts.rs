@@ -74,6 +74,16 @@ pub struct PostDto {
     pub like_count: Option<i64>,
     /// Até 4 fotos, na ordem.
     pub images: Vec<MediaDto>,
+    /// Post do mural de uma página (o autor é quem administra e publicou).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub page: Option<PageRef>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PageRef {
+    pub slug: String,
+    pub name: String,
+    pub logo_url: Option<String>,
 }
 
 /// Linha "achatada" vinda do banco.
@@ -85,6 +95,9 @@ struct PostRow {
     author_id: Uuid,
     author_username: String,
     author_display_name: Option<String>,
+    page_slug: Option<String>,
+    page_name: Option<String>,
+    page_logo_key: Option<String>,
 }
 
 impl From<PostRow> for PostDto {
@@ -104,6 +117,15 @@ impl From<PostRow> for PostDto {
             liked_by_me: false,
             like_count: None,
             images: Vec::new(),
+            page: match (r.page_slug, r.page_name) {
+                (Some(slug), Some(name)) => Some(PageRef {
+                    slug,
+                    name,
+                    // Chave do bucket; vira link assinado em `enrich`.
+                    logo_url: r.page_logo_key,
+                }),
+                _ => None,
+            },
         }
     }
 }
@@ -139,6 +161,11 @@ async fn enrich(state: &AppState, viewer: Uuid, posts: &mut [PostDto]) -> sqlx::
         }
     }
     fill_avatars(state, posts.iter_mut().map(|p| &mut p.author)).await?;
+    for p in posts.iter_mut() {
+        if let Some(pg) = p.page.as_mut() {
+            pg.logo_url = pg.logo_url.take().map(|k| state.media.url(&k));
+        }
+    }
     let mut images = photos::for_posts(db, &state.media, &ids).await?;
     for p in posts.iter_mut() {
         p.images = images.remove(&p.id).unwrap_or_default();
@@ -157,23 +184,54 @@ async fn page(
     Ok(Page::from_overfetch(items, limit, |p| p.id))
 }
 
-/// Post visível para `viewer` (autor ou amigo). 404 caso contrário.
-pub(crate) async fn visible_post_author(
+/// Quem administra a página (dono ou admin).
+pub(crate) async fn is_page_admin(
+    db: &sqlx::PgPool,
+    page_id: Uuid,
+    user_id: Uuid,
+) -> sqlx::Result<bool> {
+    sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM page_admins WHERE page_id = $1 AND user_id = $2) AS "e!""#,
+        page_id,
+        user_id
+    )
+    .fetch_one(db)
+    .await
+}
+
+/// Post visível para `viewer`: de página (ativa) para todos; os demais, só
+/// autor e amigos. 404 caso contrário. Devolve (autor, página).
+pub(crate) async fn visible_post(
     state: &AppState,
     viewer: Uuid,
     post_id: Uuid,
-) -> AppResult<Uuid> {
-    let author = sqlx::query_scalar!(
-        "SELECT author_id FROM posts WHERE id = $1 AND deleted_at IS NULL",
+) -> AppResult<(Uuid, Option<Uuid>)> {
+    let r = sqlx::query!(
+        r#"SELECT p.author_id, p.page_id, (pg.deleted_at IS NULL) AS "page_alive?"
+           FROM posts p LEFT JOIN pages pg ON pg.id = p.page_id
+           WHERE p.id = $1 AND p.deleted_at IS NULL"#,
         post_id
     )
     .fetch_optional(&state.db)
     .await?
     .ok_or(AppError::NotFound)?;
-    if !friends::can_see_content(&state.db, viewer, author).await? {
+    let ok = match r.page_id {
+        Some(_) => r.page_alive == Some(true),
+        None => friends::can_see_content(&state.db, viewer, r.author_id).await?,
+    };
+    if !ok {
         return Err(AppError::NotFound);
     }
-    Ok(author)
+    Ok((r.author_id, r.page_id))
+}
+
+/// Post visível para `viewer`. 404 caso contrário. Devolve o autor.
+pub(crate) async fn visible_post_author(
+    state: &AppState,
+    viewer: Uuid,
+    post_id: Uuid,
+) -> AppResult<Uuid> {
+    Ok(visible_post(state, viewer, post_id).await?.0)
 }
 
 #[derive(Debug, Deserialize)]
@@ -194,6 +252,17 @@ pub async fn create(
     user: AuthUser,
     Json(req): Json<CreatePost>,
 ) -> AppResult<(StatusCode, Json<PostDto>)> {
+    let dto = insert(&state, user.user_id, None, req).await?;
+    Ok((StatusCode::CREATED, Json(dto)))
+}
+
+/// Cria um post (pessoal ou, com `page_id`, no mural da página).
+pub(crate) async fn insert(
+    state: &AppState,
+    author: Uuid,
+    page_id: Option<Uuid>,
+    req: CreatePost,
+) -> AppResult<PostDto> {
     if req.media_ids.len() > MAX_IMAGES {
         return Err(AppError::Validation("too_many_images"));
     }
@@ -204,30 +273,22 @@ pub async fn create(
         String::new()
     };
     let mut tx = state.db.begin().await?;
-    let row = sqlx::query_as!(
-        PostRow,
-        r#"
-        WITH p AS (
-          INSERT INTO posts (id, author_id, body) VALUES ($1, $2, $3)
-          RETURNING id, author_id, body, created_at, edited_at
-        )
-        SELECT p.id, p.body, p.created_at, p.edited_at,
-               u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name
-        FROM p JOIN users u ON u.id = p.author_id
-        "#,
-        Uuid::now_v7(),
-        user.user_id,
-        body
+    let id = Uuid::now_v7();
+    sqlx::query!(
+        "INSERT INTO posts (id, author_id, body, page_id) VALUES ($1, $2, $3, $4)",
+        id,
+        author,
+        body,
+        page_id
     )
-    .fetch_one(&mut *tx)
+    .execute(&mut *tx)
     .await?;
     if !req.media_ids.is_empty() {
-        photos::claim(&mut tx, user.user_id, Kind::Post, &req.media_ids).await?;
+        photos::claim(&mut tx, author, Kind::Post, &req.media_ids).await?;
         for (i, m) in req.media_ids.iter().enumerate() {
             sqlx::query!(
                 "INSERT INTO post_media (post_id, media_id, position) VALUES ($1, $2, $3)",
-                row.id,
+                id,
                 m,
                 i16::try_from(i).unwrap_or(0)
             )
@@ -236,57 +297,66 @@ pub async fn create(
         }
     }
     tx.commit().await?;
+    let row = fetch_row(state, id).await?.ok_or(AppError::NotFound)?;
     let mut items = [PostDto::from(row)];
-    enrich(&state, user.user_id, &mut items).await?;
+    enrich(state, author, &mut items).await?;
     let [dto] = items;
-    Ok((StatusCode::CREATED, Json(dto)))
+    Ok(dto)
 }
 
-/// GET /v1/posts/{id} — só o autor e os amigos dele. Para os demais, 404
-/// (não revela que o post existe).
-pub async fn get(
-    State(state): State<AppState>,
-    user: AuthUser,
-    Path(id): Path<Uuid>,
-) -> AppResult<Json<PostDto>> {
-    let row = sqlx::query_as!(
+async fn fetch_row(state: &AppState, id: Uuid) -> sqlx::Result<Option<PostRow>> {
+    sqlx::query_as!(
         PostRow,
         r#"
         SELECT p.id, p.body, p.created_at, p.edited_at,
                u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name
+               u.display_name AS author_display_name,
+               pg.slug AS "page_slug?", pg.name AS "page_name?", lm.key AS "page_logo_key?"
         FROM posts p JOIN users u ON u.id = p.author_id
+        LEFT JOIN pages pg ON pg.id = p.page_id
+        LEFT JOIN media lm ON lm.id = pg.logo_media_id
         WHERE p.id = $1 AND p.deleted_at IS NULL
         "#,
         id
     )
     .fetch_optional(&state.db)
-    .await?
-    .ok_or(AppError::NotFound)?;
-    if !friends::can_see_content(&state.db, user.user_id, row.author_id).await? {
-        return Err(AppError::NotFound);
-    }
+    .await
+}
+
+/// GET /v1/posts/{id} — post pessoal: só o autor e os amigos dele (para os
+/// demais, 404: não revela que existe). Post de página: todos.
+pub async fn get(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<PostDto>> {
+    visible_post(&state, user.user_id, id).await?;
+    let row = fetch_row(&state, id).await?.ok_or(AppError::NotFound)?;
     let mut items = [PostDto::from(row)];
     enrich(&state, user.user_id, &mut items).await?;
     let [dto] = items;
     Ok(Json(dto))
 }
 
-/// DELETE /v1/posts/{id} — só o autor. Exclusão lógica.
+/// DELETE /v1/posts/{id} — o autor (ou quem administra a página, se for do
+/// mural). Exclusão lógica.
 pub async fn delete(
     State(state): State<AppState>,
     user: AuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<StatusCode> {
-    let author = sqlx::query_scalar!(
-        "SELECT author_id FROM posts WHERE id = $1 AND deleted_at IS NULL",
+    let r = sqlx::query!(
+        "SELECT author_id, page_id FROM posts WHERE id = $1 AND deleted_at IS NULL",
         id
     )
     .fetch_optional(&state.db)
     .await?
     .ok_or(AppError::NotFound)?;
-
-    if author != user.user_id {
+    let page_admin = match r.page_id {
+        Some(pg) => is_page_admin(&state.db, pg, user.user_id).await?,
+        None => false,
+    };
+    if r.author_id != user.user_id && !page_admin {
         return Err(AppError::Forbidden);
     }
 
@@ -318,9 +388,12 @@ pub async fn list_by_user(
         r#"
         SELECT p.id, p.body, p.created_at, p.edited_at,
                u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name
+               u.display_name AS author_display_name,
+               NULL::text AS "page_slug?", NULL::text AS "page_name?",
+               NULL::text AS "page_logo_key?"
         FROM posts p JOIN users u ON u.id = p.author_id
         WHERE p.author_id = $1
+          AND p.page_id IS NULL
           AND p.deleted_at IS NULL
           AND ($2::uuid IS NULL OR p.id < $2)
         ORDER BY p.id DESC
@@ -335,8 +408,8 @@ pub async fn list_by_user(
     Ok(Json(page(&state, viewer.user_id, rows, limit).await?))
 }
 
-/// GET /v1/feed — modo cronológico (padrão, R2): meus amigos + eu.
-/// Sem ranking. A ordem é a de publicação.
+/// GET /v1/feed — modo cronológico (padrão, R2): meus amigos, eu e as
+/// páginas que acompanho. Sem ranking. A ordem é a de publicação.
 pub async fn feed(
     State(state): State<AppState>,
     user: AuthUser,
@@ -348,11 +421,17 @@ pub async fn feed(
         r#"
         SELECT p.id, p.body, p.created_at, p.edited_at,
                u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name
+               u.display_name AS author_display_name,
+               pg.slug AS "page_slug?", pg.name AS "page_name?", lm.key AS "page_logo_key?"
         FROM posts p JOIN users u ON u.id = p.author_id
+        LEFT JOIN pages pg ON pg.id = p.page_id
+        LEFT JOIN media lm ON lm.id = pg.logo_media_id
         WHERE p.deleted_at IS NULL
-          AND (p.author_id = $1
-               OR p.author_id IN (SELECT friend_id FROM friends WHERE user_id = $1))
+          AND ((p.page_id IS NULL
+                AND (p.author_id = $1
+                     OR p.author_id IN (SELECT friend_id FROM friends WHERE user_id = $1)))
+               OR (pg.deleted_at IS NULL
+                   AND p.page_id IN (SELECT page_id FROM page_followers WHERE user_id = $1)))
           AND ($2::uuid IS NULL OR p.id < $2)
         ORDER BY p.id DESC
         LIMIT $3
@@ -397,4 +476,36 @@ pub async fn unlike(
     .execute(&state.db)
     .await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Mural de uma página (mais novos primeiro). Todos veem.
+pub(crate) async fn page_wall(
+    state: &AppState,
+    viewer: Uuid,
+    page_id: Uuid,
+    q: &PageQuery,
+) -> AppResult<Page<PostDto>> {
+    let limit = q.limit();
+    let rows = sqlx::query_as!(
+        PostRow,
+        r#"
+        SELECT p.id, p.body, p.created_at, p.edited_at,
+               u.id AS author_id, u.username AS author_username,
+               u.display_name AS author_display_name,
+               pg.slug AS "page_slug?", pg.name AS "page_name?", lm.key AS "page_logo_key?"
+        FROM posts p JOIN users u ON u.id = p.author_id
+        JOIN pages pg ON pg.id = p.page_id
+        LEFT JOIN media lm ON lm.id = pg.logo_media_id
+        WHERE p.page_id = $1 AND p.deleted_at IS NULL
+          AND ($2::uuid IS NULL OR p.id < $2)
+        ORDER BY p.id DESC
+        LIMIT $3
+        "#,
+        page_id,
+        q.before,
+        limit + 1
+    )
+    .fetch_all(&state.db)
+    .await?;
+    Ok(page(state, viewer, rows, limit).await?)
 }

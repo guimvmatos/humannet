@@ -4,8 +4,12 @@ import 'package:flutter/material.dart';
 
 import '../api/models.dart';
 import '../auth/session_controller.dart';
+import 'chat_ui.dart';
+import 'compose_screen.dart';
 import 'error_messages.dart';
 import 'events_ui.dart';
+import 'photos.dart';
+import 'post_list.dart';
 import 'report_dialog.dart';
 
 /// Abre a página de um lugar.
@@ -143,11 +147,33 @@ class AgendaScreenState extends State<AgendaScreen> {
   }
 }
 
-/// Busca de lugares + os que você acompanha/administra.
+/// Logo da página (ou a inicial do nome).
+class PlaceLogo extends StatelessWidget {
+  const PlaceLogo({super.key, required this.name, this.url, this.radius = 20});
+
+  final String name;
+  final String? url;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final u = url;
+    final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+    return CircleAvatar(
+      radius: radius,
+      backgroundImage: u == null ? null : NetworkImage(u),
+      child: u == null ? Text(initial) : null,
+    );
+  }
+}
+
+/// Busca de lugares; os que você administra aparecem primeiro.
+/// `adminOnly`: só os que você administra ("Minhas páginas").
 class PlacesScreen extends StatefulWidget {
-  const PlacesScreen({super.key, required this.session});
+  const PlacesScreen({super.key, required this.session, this.adminOnly = false});
 
   final SessionController session;
+  final bool adminOnly;
 
   @override
   State<PlacesScreen> createState() => _PlacesScreenState();
@@ -177,7 +203,14 @@ class _PlacesScreenState extends State<PlacesScreen> {
     if (token == null) return;
     final q = _search.text.trim();
     try {
-      final items = await widget.session.api.places(token, query: q);
+      var items = await widget.session.api.places(
+        token,
+        query: q,
+        mine: widget.adminOnly,
+      );
+      if (widget.adminOnly) {
+        items = items.where((p) => p.myRole != null).toList();
+      }
       if (mounted && _search.text.trim() == q) {
         setState(() {
           _items = items;
@@ -201,12 +234,40 @@ class _PlacesScreenState extends State<PlacesScreen> {
     }
   }
 
+  Widget _tile(PlaceItem p) => ListTile(
+    key: Key('place_${p.slug}'),
+    leading: PlaceLogo(name: p.name, url: p.logoUrl),
+    title: Text(p.verified ? '${p.name} ✓' : p.name),
+    subtitle: Text(
+      [
+        p.categoryLabel,
+        if (p.city.isNotEmpty) p.city,
+        if (p.myRole == 'owner') 'você é dono',
+        if (p.myRole == 'admin') 'você administra',
+        if (p.following && p.myRole == null) 'acompanhando',
+      ].join(' · '),
+    ),
+    onTap: () async {
+      await openPlace(context, widget.session, p.slug);
+      await _load();
+    },
+  );
+
   @override
   Widget build(BuildContext context) {
     final items = _items;
+    final theme = Theme.of(context);
+    final mine = items?.where((p) => p.myRole != null).toList() ?? const [];
+    final others = items?.where((p) => p.myRole == null).toList() ?? const [];
+    Widget section(String title) => Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Text(title, style: theme.textTheme.titleSmall),
+    );
     return Scaffold(
       key: const Key('places_screen'),
-      appBar: AppBar(title: const Text('Lugares')),
+      appBar: AppBar(
+        title: Text(widget.adminOnly ? 'Minhas páginas' : 'Lugares'),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'create_place_fab',
         key: const Key('create_place_button'),
@@ -217,61 +278,54 @@ class _PlacesScreenState extends State<PlacesScreen> {
       body: ListView(
         padding: const EdgeInsets.only(bottom: 88),
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: TextField(
-              key: const Key('place_search_field'),
-              controller: _search,
-              onChanged: (_) {
-                _debounce?.cancel();
-                _debounce = Timer(const Duration(milliseconds: 400), _load);
-              },
-              decoration: const InputDecoration(
-                hintText: 'Buscar por nome ou cidade',
-                prefixIcon: Icon(Icons.search),
+          if (!widget.adminOnly)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: TextField(
+                key: const Key('place_search_field'),
+                controller: _search,
+                onChanged: (_) {
+                  _debounce?.cancel();
+                  _debounce = Timer(const Duration(milliseconds: 400), _load);
+                },
+                decoration: const InputDecoration(
+                  hintText: 'Buscar por nome ou cidade',
+                  prefixIcon: Icon(Icons.search),
+                ),
               ),
             ),
-          ),
           if (_error != null)
             Padding(padding: const EdgeInsets.all(16), child: Text(_error!))
           else if (items == null)
             const Center(child: CircularProgressIndicator())
           else if (items.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(24),
+            Padding(
+              padding: const EdgeInsets.all(24),
               child: Text(
-                'Nenhum lugar encontrado. Você tem um bar, café ou espaço? '
-                'Crie a página dele.',
-                key: Key('no_places'),
+                widget.adminOnly
+                    ? 'Você ainda não administra nenhuma página. Qualquer '
+                          'pessoa pode criar até 3 (com o CNPJ do lugar).'
+                    : 'Nenhum lugar encontrado. Você tem um bar, café ou '
+                          'espaço? Crie a página dele.',
+                key: const Key('no_places'),
                 textAlign: TextAlign.center,
               ),
             )
-          else
-            for (final p in items)
-              ListTile(
-                key: Key('place_${p.slug}'),
-                leading: const CircleAvatar(child: Icon(Icons.storefront)),
-                title: Text(p.verified ? '${p.name} ✓' : p.name),
-                subtitle: Text(
-                  [
-                    p.categoryLabel,
-                    if (p.city.isNotEmpty) p.city,
-                    if (p.myRole != null) 'você administra',
-                    if (p.following && p.myRole == null) 'acompanhando',
-                  ].join(' · '),
-                ),
-                onTap: () async {
-                  await openPlace(context, widget.session, p.slug);
-                  await _load();
-                },
-              ),
+          else ...[
+            if (mine.isNotEmpty && !widget.adminOnly)
+              section('Páginas que você administra'),
+            for (final p in mine) _tile(p),
+            if (others.isNotEmpty && mine.isNotEmpty) section('Outros lugares'),
+            for (final p in others) _tile(p),
+          ],
         ],
       ),
     );
   }
 }
 
-/// Página de um lugar: informações, acompanhar, eventos.
+/// Página de um lugar: capa e logo, informações, acompanhar, mensagem,
+/// eventos e o mural (posts da página).
 class PlaceScreen extends StatefulWidget {
   const PlaceScreen({super.key, required this.session, required this.slug});
 
@@ -283,6 +337,7 @@ class PlaceScreen extends StatefulWidget {
 }
 
 class _PlaceScreenState extends State<PlaceScreen> {
+  final _wallKey = GlobalKey<PagedPostListState>();
   Place? _p;
   List<PlaceEvent> _events = const [];
   bool _past = false;
@@ -333,6 +388,27 @@ class _PlaceScreenState extends State<PlaceScreen> {
     }
   }
 
+  Future<void> _message() async {
+    final p = _p;
+    final token = widget.session.token;
+    if (p == null || token == null) return;
+    if (!p.following) {
+      _snack('Acompanhe a página para mandar mensagem.');
+      return;
+    }
+    try {
+      final c = await widget.session.api.placeConversation(token, p.slug);
+      if (!mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ChatScreen(session: widget.session, conversation: c),
+        ),
+      );
+    } catch (err) {
+      _snack(errorMessage(err));
+    }
+  }
+
   Future<void> _newEvent() async {
     final created = await Navigator.of(context).push<PlaceEvent>(
       MaterialPageRoute(
@@ -341,6 +417,179 @@ class _PlaceScreenState extends State<PlaceScreen> {
       ),
     );
     if (created != null) await _load();
+  }
+
+  Future<void> _newPost() async {
+    final p = _p;
+    if (p == null) return;
+    final post = await Navigator.of(context).push<Post>(
+      MaterialPageRoute(
+        builder: (_) => ComposeScreen(
+          session: widget.session,
+          placeSlug: p.slug,
+          placeName: p.name,
+        ),
+      ),
+    );
+    if (post != null) _wallKey.currentState?.prepend(post);
+  }
+
+  /// Trocar ou remover a logo (`logo`) ou a capa.
+  Future<void> _imageMenu({required bool logo}) async {
+    final p = _p;
+    if (p == null || !p.canManage) return;
+    final has = logo ? p.logoUrl != null : p.coverUrl != null;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: Text(logo ? 'Escolher logo' : 'Escolher capa'),
+              subtitle: Text(
+                logo
+                    ? 'Fica redonda, como foto de perfil.'
+                    : 'Faixa larga no topo da página (3:1).',
+              ),
+              onTap: () => Navigator.of(ctx).pop('pick'),
+            ),
+            if (has)
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: Text(logo ? 'Remover logo' : 'Remover capa'),
+                onTap: () => Navigator.of(ctx).pop('remove'),
+              ),
+          ],
+        ),
+      ),
+    );
+    final token = widget.session.token;
+    if (action == null || token == null) return;
+    setState(() => _busy = true);
+    try {
+      final api = widget.session.api;
+      if (action == 'remove') {
+        await api.setPlaceImage(token, p.slug, logo: logo);
+      } else {
+        final photos = await pickPhotos();
+        if (photos.isEmpty) return;
+        _snack('Enviando foto…');
+        final m = await api.uploadMedia(
+          token,
+          logo ? 'avatar' : 'cover',
+          photos.first,
+        );
+        await api.setPlaceImage(token, p.slug, logo: logo, mediaId: m.id);
+      }
+      await _load();
+    } catch (err) {
+      _snack(errorMessage(err));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _admins() async {
+    final p = _p;
+    final token = widget.session.token;
+    if (p == null || token == null) return;
+    final api = widget.session.api;
+    List<PlaceAdmin> admins;
+    try {
+      admins = await api.placeAdmins(token, p.slug);
+    } catch (err) {
+      _snack(errorMessage(err));
+      return;
+    }
+    if (!mounted) return;
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            const ListTile(
+              title: Text('Quem administra'),
+              subtitle: Text(
+                'O dono pode adicionar e remover administradores. Todos '
+                'editam a página, publicam no mural, criam eventos e '
+                'respondem as mensagens.',
+              ),
+            ),
+            for (final a in admins)
+              ListTile(
+                leading: UserAvatar(a.user),
+                title: Text(a.user.label),
+                subtitle: Text(
+                  '@${a.user.username} · ${a.isOwner ? 'dono' : 'administra'}',
+                ),
+                trailing: p.isOwner && !a.isOwner
+                    ? IconButton(
+                        tooltip: 'Remover',
+                        icon: const Icon(Icons.person_remove_outlined),
+                        onPressed: () =>
+                            Navigator.of(ctx).pop('remove:${a.user.username}'),
+                      )
+                    : null,
+              ),
+            if (p.isOwner)
+              ListTile(
+                key: const Key('add_place_admin'),
+                leading: const Icon(Icons.person_add_alt),
+                title: const Text('Adicionar administrador'),
+                onTap: () => Navigator.of(ctx).pop('add'),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (action == null) return;
+    if (action.startsWith('remove:')) {
+      final u = action.substring(7);
+      try {
+        await api.removePlaceAdmin(token, p.slug, u);
+        _snack('@$u não administra mais a página.');
+      } catch (err) {
+        _snack(errorMessage(err));
+      }
+      return;
+    }
+    if (!mounted) return;
+    final c = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Adicionar administrador'),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          decoration: const InputDecoration(
+            prefixText: '@',
+            helperText: 'Poderá editar, publicar, criar eventos e responder.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(c.text),
+            child: const Text('Adicionar'),
+          ),
+        ],
+      ),
+    );
+    final u = name?.trim().replaceFirst('@', '').toLowerCase() ?? '';
+    if (u.isEmpty) return;
+    try {
+      await api.addPlaceAdmin(token, p.slug, u);
+      _snack('@$u agora administra a página.');
+    } catch (err) {
+      _snack(errorMessage(err));
+    }
   }
 
   Future<void> _menu(String action) async {
@@ -357,40 +606,12 @@ class _PlaceScreenState extends State<PlaceScreen> {
           ),
         );
         if (saved != null) await _load();
-      case 'admin':
-        final c = TextEditingController();
-        final name = await showDialog<String>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Adicionar administrador'),
-            content: TextField(
-              controller: c,
-              autofocus: true,
-              decoration: const InputDecoration(
-                prefixText: '@',
-                helperText: 'A pessoa poderá editar a página e criar eventos.',
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Cancelar'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(c.text),
-                child: const Text('Adicionar'),
-              ),
-            ],
-          ),
-        );
-        final u = name?.trim().replaceFirst('@', '').toLowerCase() ?? '';
-        if (u.isEmpty) return;
-        try {
-          await api.addPlaceAdmin(token, p.slug, u);
-          _snack('@$u agora administra a página.');
-        } catch (err) {
-          _snack(errorMessage(err));
-        }
+      case 'logo':
+        await _imageMenu(logo: true);
+      case 'cover':
+        await _imageMenu(logo: false);
+      case 'admins':
+        await _admins();
       case 'delete':
         try {
           await api.deletePlace(token, p.slug);
@@ -407,10 +628,204 @@ class _PlaceScreenState extends State<PlaceScreen> {
     }
   }
 
+  Widget _cover(Place p, ThemeData theme) {
+    final cover = p.coverUrl;
+    return SizedBox(
+      height: 172,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(
+            bottom: 44,
+            child: GestureDetector(
+              onTap: p.canManage && !_busy
+                  ? () => _imageMenu(logo: false)
+                  : null,
+              child: cover != null
+                  ? Image.network(cover, fit: BoxFit.cover)
+                  : DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            theme.colorScheme.primaryContainer,
+                            theme.colorScheme.tertiaryContainer,
+                          ],
+                        ),
+                      ),
+                      child: p.canManage
+                          ? const Center(child: Text('Toque para pôr uma capa'))
+                          : null,
+                    ),
+            ),
+          ),
+          Positioned(
+            left: 16,
+            bottom: 0,
+            child: GestureDetector(
+              key: const Key('place_logo'),
+              onTap: p.canManage && !_busy
+                  ? () => _imageMenu(logo: true)
+                  : null,
+              child: CircleAvatar(
+                radius: 44,
+                backgroundColor: theme.colorScheme.surface,
+                child: PlaceLogo(name: p.name, url: p.logoUrl, radius: 40),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _header(Place p) {
+    final theme = Theme.of(context);
+    final cep = p.cep;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _cover(p, theme),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                p.verified ? '${p.name} ✓' : p.name,
+                style: theme.textTheme.titleLarge,
+              ),
+              Text(
+                [p.categoryLabel, if (p.city.isNotEmpty) p.city].join(' · '),
+                style: theme.textTheme.bodySmall,
+              ),
+              if (p.address.isNotEmpty || cep != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  [
+                    if (p.address.isNotEmpty) p.address,
+                    if (cep != null)
+                      'CEP ${cep.substring(0, 5)}-${cep.substring(5)}',
+                  ].join(' · '),
+                ),
+              ],
+              if (p.description.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(p.description),
+              ],
+              const SizedBox(height: 4),
+              Text('CNPJ ${p.cnpj}', style: theme.textTheme.bodySmall),
+              if (p.canManage) ...[
+                Text(
+                  p.isOwner
+                      ? 'Você é dono desta página.'
+                      : 'Você administra esta página.',
+                  key: const Key('place_role_note'),
+                  style: theme.textTheme.bodySmall,
+                ),
+                if (p.followerCount != null)
+                  Text(
+                    '${p.followerCount} acompanham (só quem administra vê)',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                Text(
+                  'Mensagens para a página chegam nas suas Mensagens.',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (p.following)
+                    OutlinedButton.icon(
+                      key: const Key('follow_place_button'),
+                      onPressed: _busy ? null : _follow,
+                      icon: const Icon(Icons.check),
+                      label: const Text('Acompanhando'),
+                    )
+                  else
+                    FilledButton.icon(
+                      key: const Key('follow_place_button'),
+                      onPressed: _busy ? null : _follow,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Acompanhar'),
+                    ),
+                  if (!p.canManage)
+                    OutlinedButton.icon(
+                      key: const Key('place_message_button'),
+                      onPressed: _busy ? null : _message,
+                      icon: const Icon(Icons.chat_bubble_outline),
+                      label: const Text('Mensagem'),
+                    ),
+                  if (p.canManage)
+                    FilledButton.tonalIcon(
+                      key: const Key('place_post_button'),
+                      onPressed: _busy ? null : _newPost,
+                      icon: const Icon(Icons.edit),
+                      label: const Text('Publicar no mural'),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Text(
+                _past ? 'Eventos passados' : 'Próximos eventos',
+                style: theme.textTheme.titleSmall,
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: () {
+                  setState(() => _past = !_past);
+                  unawaited(_load());
+                },
+                child: Text(_past ? 'Ver próximos' : 'Ver passados'),
+              ),
+            ],
+          ),
+        ),
+        if (_events.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text(
+              'Nenhum evento.',
+              key: Key('no_events'),
+              textAlign: TextAlign.center,
+            ),
+          )
+        else
+          for (final e in _events)
+            EventTile(
+              event: e,
+              onTap: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        EventScreen(session: widget.session, eventId: e.id),
+                  ),
+                );
+                await _load();
+              },
+            ),
+        const Divider(height: 24),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+          child: Text('Mural', style: theme.textTheme.titleSmall),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = _p;
-    final theme = Theme.of(context);
+    final token = widget.session.token ?? '';
     if (p == null) {
       return Scaffold(
         appBar: AppBar(),
@@ -432,21 +847,27 @@ class _PlaceScreenState extends State<PlaceScreen> {
             itemBuilder: (_) => [
               if (p.canManage) ...[
                 const PopupMenuItem(value: 'edit', child: Text('Editar')),
-                if (p.isOwner)
-                  const PopupMenuItem(
-                    value: 'admin',
-                    child: Text('Adicionar administrador'),
-                  ),
+                const PopupMenuItem(value: 'logo', child: Text('Trocar logo')),
+                const PopupMenuItem(value: 'cover', child: Text('Trocar capa')),
+                const PopupMenuItem(
+                  value: 'admins',
+                  child: Text('Quem administra'),
+                ),
                 if (p.isOwner)
                   const PopupMenuItem(
                     value: 'delete',
                     child: Text('Apagar página'),
                   ),
-              ] else
+              ] else ...[
+                const PopupMenuItem(
+                  value: 'admins',
+                  child: Text('Quem administra'),
+                ),
                 const PopupMenuItem(
                   value: 'report',
                   child: Text('Denunciar página'),
                 ),
+              ],
             ],
           ),
         ],
@@ -460,103 +881,17 @@ class _PlaceScreenState extends State<PlaceScreen> {
               label: const Text('Novo evento'),
             )
           : null,
-      body: RefreshIndicator(
+      body: PagedPostList(
+        key: _wallKey,
+        session: widget.session,
+        loader: (before) =>
+            widget.session.api.placeWall(token, widget.slug, before: before),
         onRefresh: _load,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.only(bottom: 88),
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    [
-                      p.categoryLabel,
-                      if (p.city.isNotEmpty) p.city,
-                      if (p.verified) 'verificado ✓',
-                    ].join(' · '),
-                    style: theme.textTheme.bodySmall,
-                  ),
-                  if (p.address.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(p.address),
-                  ],
-                  if (p.description.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(p.description),
-                  ],
-                  const SizedBox(height: 4),
-                  Text('CNPJ ${p.cnpj}', style: theme.textTheme.bodySmall),
-                  if (p.followerCount != null)
-                    Text(
-                      '${p.followerCount} acompanham (só administradores veem)',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  const SizedBox(height: 12),
-                  if (p.following)
-                    OutlinedButton.icon(
-                      key: const Key('follow_place_button'),
-                      onPressed: _busy ? null : _follow,
-                      icon: const Icon(Icons.check),
-                      label: const Text('Acompanhando'),
-                    )
-                  else
-                    FilledButton.icon(
-                      key: const Key('follow_place_button'),
-                      onPressed: _busy ? null : _follow,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Acompanhar'),
-                    ),
-                ],
-              ),
-            ),
-            const Divider(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  Text(
-                    _past ? 'Eventos passados' : 'Próximos eventos',
-                    style: theme.textTheme.titleSmall,
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () {
-                      setState(() => _past = !_past);
-                      unawaited(_load());
-                    },
-                    child: Text(_past ? 'Ver próximos' : 'Ver passados'),
-                  ),
-                ],
-              ),
-            ),
-            if (_events.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(24),
-                child: Text(
-                  'Nenhum evento.',
-                  key: Key('no_events'),
-                  textAlign: TextAlign.center,
-                ),
-              )
-            else
-              for (final e in _events)
-                EventTile(
-                  event: e,
-                  onTap: () async {
-                    await Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            EventScreen(session: widget.session, eventId: e.id),
-                      ),
-                    );
-                    await _load();
-                  },
-                ),
-          ],
-        ),
+        header: _header(p),
+        emptyText: p.canManage
+            ? 'Nada no mural ainda. Publique novidades: quem acompanha vê no '
+                  'feed.'
+            : 'Nada no mural ainda.',
       ),
     );
   }
@@ -576,6 +911,7 @@ class PlaceFormScreen extends StatefulWidget {
 class _PlaceFormScreenState extends State<PlaceFormScreen> {
   late final _name = TextEditingController(text: widget.existing?.name);
   final _cnpj = TextEditingController();
+  late final _cep = TextEditingController(text: _formatCep(widget.existing?.cep));
   late final _address = TextEditingController(text: widget.existing?.address);
   late final _city = TextEditingController(text: widget.existing?.city);
   late final _description = TextEditingController(
@@ -583,14 +919,51 @@ class _PlaceFormScreenState extends State<PlaceFormScreen> {
   );
   late String? _category = widget.existing?.category;
   bool _busy = false;
+  bool _lookingUp = false;
+  String? _cepNote;
+  String? _lastCep;
   String? _error;
+
+  static String _formatCep(String? d) =>
+      d == null || d.length != 8 ? '' : '${d.substring(0, 5)}-${d.substring(5)}';
 
   @override
   void dispose() {
-    for (final c in [_name, _cnpj, _address, _city, _description]) {
+    for (final c in [_name, _cnpj, _cep, _address, _city, _description]) {
       c.dispose();
     }
     super.dispose();
+  }
+
+  /// Com 8 dígitos, busca rua, bairro e cidade; deixa o cursor no número.
+  Future<void> _cepChanged(String raw) async {
+    final digits = raw.replaceAll(RegExp(r'\D'), '');
+    if (digits.length != 8 || digits == _lastCep) return;
+    _lastCep = digits;
+    setState(() {
+      _lookingUp = true;
+      _cepNote = null;
+    });
+    final found = await widget.session.api.lookupCep(digits);
+    if (!mounted) return;
+    setState(() {
+      _lookingUp = false;
+      if (found == null) {
+        _cepNote = 'CEP não encontrado. Preencha o endereço à mão.';
+        return;
+      }
+      final street = found.street;
+      final prefix = street.isEmpty ? '' : '$street, ';
+      final suffix = found.district.isEmpty ? '' : ' - ${found.district}';
+      _address.value = TextEditingValue(
+        text: '$prefix$suffix',
+        selection: TextSelection.collapsed(offset: prefix.length),
+      );
+      _city.text = found.uf.isEmpty ? found.city : '${found.city} - ${found.uf}';
+      _cepNote = street.isEmpty
+          ? 'CEP geral da cidade: complete o endereço.'
+          : 'Endereço preenchido. Complete com o número.';
+    });
   }
 
   Future<void> _save() async {
@@ -614,6 +987,7 @@ class _PlaceFormScreenState extends State<PlaceFormScreen> {
               name: _name.text.trim(),
               category: category,
               cnpj: _cnpj.text.trim(),
+              cep: _cep.text.trim(),
               address: _address.text.trim(),
               city: _city.text.trim(),
               description: _description.text.trim(),
@@ -623,6 +997,7 @@ class _PlaceFormScreenState extends State<PlaceFormScreen> {
               existing.slug,
               name: _name.text.trim(),
               category: category,
+              cep: _cep.text.trim(),
               address: _address.text.trim(),
               city: _city.text.trim(),
               description: _description.text.trim(),
@@ -638,11 +1013,26 @@ class _PlaceFormScreenState extends State<PlaceFormScreen> {
   @override
   Widget build(BuildContext context) {
     final creating = widget.existing == null;
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(creating ? 'Nova página' : 'Editar página')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (creating)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  'Qualquer pessoa pode criar até 3 páginas de lugar, com o '
+                  'CNPJ do lugar (uma página por CNPJ). Quem cria vira dono '
+                  'e pode adicionar administradores. Logo e capa você coloca '
+                  'depois, na própria página.',
+                  key: const Key('place_rules_note'),
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+            ),
           TextField(
             key: const Key('place_name_field'),
             controller: _name,
@@ -673,11 +1063,35 @@ class _PlaceFormScreenState extends State<PlaceFormScreen> {
               ),
             ),
           TextField(
+            key: const Key('place_cep_field'),
+            controller: _cep,
+            keyboardType: TextInputType.number,
+            maxLength: 9,
+            onChanged: _cepChanged,
+            decoration: InputDecoration(
+              labelText: 'CEP',
+              hintText: '00000-000',
+              helperText: _cepNote ?? 'Preenche rua, bairro e cidade.',
+              suffixIcon: _lookingUp
+                  ? const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : null,
+            ),
+          ),
+          TextField(
+            key: const Key('place_address_field'),
             controller: _address,
             maxLength: 200,
             decoration: const InputDecoration(labelText: 'Endereço'),
           ),
           TextField(
+            key: const Key('place_city_field'),
             controller: _city,
             maxLength: 80,
             textCapitalization: TextCapitalization.words,
@@ -692,10 +1106,7 @@ class _PlaceFormScreenState extends State<PlaceFormScreen> {
             decoration: const InputDecoration(labelText: 'Sobre o lugar'),
           ),
           if (_error != null)
-            Text(
-              _error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
+            Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
           const SizedBox(height: 8),
           FilledButton(
             key: const Key('save_place_button'),
