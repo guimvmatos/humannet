@@ -127,6 +127,16 @@ class FakeBackend {
       }
       return _json(401, {'error': 'invalid_credentials'});
     }
+    // ViaCEP (fora da API, sem token).
+    if (route == 'GET /ws/18035000/json/') {
+      return _json(200, {
+        'cep': '18035-000',
+        'logradouro': 'Rua XV de Novembro',
+        'bairro': 'Centro',
+        'localidade': 'Sorocaba',
+        'uf': 'SP',
+      });
+    }
     if (!authed) return _json(401, {'error': 'unauthorized'});
 
     switch (route) {
@@ -389,14 +399,7 @@ class FakeBackend {
         return _json(200, {'items': <Object>[], 'next_cursor': null});
       case 'POST /v1/conversations/cv2/read':
         return http.Response('', 204);
-      case 'GET /ws/18035000/json/':
-        return _json(200, {
-          'cep': '18035-000',
-          'logradouro': 'Rua XV de Novembro',
-          'bairro': 'Centro',
-          'localidade': 'Sorocaba',
-          'uf': 'SP',
-        });
+
       case 'PUT /v1/me/cpf':
         cpfSent = (jsonDecode(request.body) as Map<String, dynamic>)['cpf'] as String;
         needsCpf = false;
