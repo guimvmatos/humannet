@@ -1,6 +1,31 @@
-import 'package:flutter/material.dart';
+import 'dart:io';
 
+import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+
+import '../theme/backgrounds.dart';
 import '../theme/theme_controller.dart';
+import 'photos.dart';
+
+/// Escolhe uma foto da galeria e guarda uma cópia só neste aparelho.
+Future<String?> _pickBackgroundPhoto() async {
+  final photos = await pickPhotos();
+  if (photos.isEmpty) return null;
+  final dir = await getApplicationDocumentsDirectory();
+  // Nome novo a cada troca (o Flutter guarda imagens em cache pelo caminho).
+  for (final old in dir.listSync().whereType<File>()) {
+    if (old.path.contains('fundo_')) {
+      try {
+        old.deleteSync();
+      } catch (_) {}
+    }
+  }
+  final file = File(
+    '${dir.path}/fundo_${DateTime.now().millisecondsSinceEpoch}.jpg',
+  );
+  await file.writeAsBytes(photos.first, flush: true);
+  return file.path;
+}
 
 /// Escolha do tema do app. Fica salvo só neste aparelho.
 class AppearanceScreen extends StatelessWidget {
@@ -65,9 +90,87 @@ class AppearanceScreen extends StatelessWidget {
                     key: Key('palette_${p.id}'),
                     value: p.id,
                     title: Text(p.label),
-                    secondary: _Swatch(p),
+                    subtitle: p.background == AppBackground.none
+                        ? null
+                        : const Text('com fundo ilustrado'),
+                    secondary: p.background == AppBackground.none
+                        ? _Swatch(p)
+                        : _Preview(p.background),
                   ),
               ],
+            ),
+          ),
+          const Divider(height: 32),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text('Fundo', style: Theme.of(context).textTheme.titleSmall),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: SegmentedButton<BackgroundMode>(
+              key: const Key('background_mode'),
+              segments: const [
+                ButtonSegment(
+                  value: BackgroundMode.theme,
+                  label: Text('Do tema'),
+                ),
+                ButtonSegment(value: BackgroundMode.none, label: Text('Nenhum')),
+                ButtonSegment(
+                  value: BackgroundMode.photo,
+                  label: Text('Minha foto'),
+                ),
+              ],
+              selected: {themes.backgroundMode},
+              onSelectionChanged: (s) async {
+                final m = s.first;
+                if (m == BackgroundMode.photo && themes.savedPhotoPath == null) {
+                  final path = await _pickBackgroundPhoto();
+                  if (path != null) await themes.setPhoto(path);
+                } else {
+                  await themes.setBackgroundMode(m);
+                }
+              },
+            ),
+          ),
+          if (themes.backgroundMode == BackgroundMode.photo)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: TextButton.icon(
+                  onPressed: () async {
+                    final path = await _pickBackgroundPhoto();
+                    if (path != null) await themes.setPhoto(path);
+                  },
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: const Text('Trocar foto'),
+                ),
+              ),
+            ),
+          if (themes.hasBackground)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Row(
+                children: [
+                  const Text('Intensidade'),
+                  Expanded(
+                    child: Slider(
+                      key: const Key('background_strength'),
+                      value: themes.strength,
+                      min: 0.15,
+                      max: 0.6,
+                      onChanged: themes.setStrength,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+            child: Text(
+              'Os fundos são arte original desenhada no app. A sua foto fica '
+              'só neste aparelho e ninguém mais vê.',
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
           Padding(
@@ -109,4 +212,21 @@ class _Swatch extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Miniatura do fundo ilustrado.
+class _Preview extends StatelessWidget {
+  const _Preview(this.background);
+
+  final AppBackground background;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(6),
+    child: SizedBox(
+      width: 56,
+      height: 36,
+      child: CustomPaint(painter: BackgroundPainter(background)),
+    ),
+  );
 }

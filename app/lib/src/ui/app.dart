@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../auth/session_controller.dart';
+import '../theme/backgrounds.dart';
 import '../theme/theme_controller.dart';
 import 'cpf.dart';
 import 'home_shell.dart';
@@ -35,6 +36,12 @@ class _HumanNetAppState extends State<HumanNetApp> {
           theme: _themes.light,
           darkTheme: _themes.dark,
           themeMode: _themes.mode,
+          builder: (context, child) => ThemedBackground(
+            background: _themes.background,
+            photoPath: _themes.photoPath,
+            strength: _themes.strength,
+            child: child ?? const SizedBox.shrink(),
+          ),
           home: ListenableBuilder(
             listenable: session,
             builder: (context, _) => switch (session.status) {

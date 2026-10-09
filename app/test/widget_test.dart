@@ -1016,4 +1016,33 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('event_screen')), findsOneWidget);
   });
+
+  testWidgets('tema com fundo ilustrado e opção sem fundo', (tester) async {
+    final store = InMemoryPrefsStore();
+    final themes = ThemeController(store);
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session, themes: themes));
+    await _login(tester);
+    expect(find.byKey(const Key('themed_background')), findsNothing);
+
+    await themes.setPalette(appPalettes.firstWhere((p) => p.id == 'espaco'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('themed_background')), findsOneWidget);
+    expect(store.values['theme_palette'], 'espaco');
+
+    await themes.setBackgroundMode(BackgroundMode.none);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('themed_background')), findsNothing);
+
+    // Sem foto salva, "minha foto" não liga.
+    await themes.setBackgroundMode(BackgroundMode.photo);
+    expect(themes.backgroundMode, BackgroundMode.none);
+
+    final again = ThemeController(store);
+    await again.load();
+    expect(again.backgroundMode, BackgroundMode.none);
+    expect(again.palette.id, 'espaco');
+  });
 }
