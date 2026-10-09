@@ -9,6 +9,7 @@ import 'package:humannet/src/theme/theme_controller.dart';
 import 'package:humannet/src/ui/app.dart';
 import 'package:humannet/src/ui/compose_screen.dart';
 import 'package:humannet/src/ui/cpf.dart';
+import 'package:humannet/src/ui/events_map.dart';
 
 import 'fake_backend.dart';
 
@@ -986,5 +987,33 @@ void main() {
     await tester.tap(find.byKey(const Key('message_button')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('chat_screen')), findsOneWidget);
+  });
+
+  testWidgets('mapa de eventos: pino abre os eventos do lugar', (tester) async {
+    mapOfflineForTests = true;
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byKey(const Key('nav_agenda')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('events_map_button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('events_map_screen')), findsOneWidget);
+    // Espera o debounce do movimento do mapa.
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    expect(backend.calls, contains('GET /v1/events/map'));
+    expect(find.text('1 evento(s) nesta área'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('map_pin_bar-do-ze')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('map_place_sheet')), findsOneWidget);
+    expect(find.text('Samba de sexta'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('map_event_e1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('event_screen')), findsOneWidget);
   });
 }

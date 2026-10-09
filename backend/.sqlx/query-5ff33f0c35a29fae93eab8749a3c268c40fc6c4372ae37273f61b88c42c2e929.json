@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT p.id, p.slug, p.name, p.category, p.description, p.address, p.city, p.cnpj,\n                  (p.verified_at IS NOT NULL) AS \"verified!\", p.cep,\n                  lm.key AS \"logo_key?\", cm.key AS \"cover_key?\"\n           FROM pages p\n           LEFT JOIN media lm ON lm.id = p.logo_media_id\n           LEFT JOIN media cm ON cm.id = p.cover_media_id\n           WHERE p.slug = $1 AND p.deleted_at IS NULL",
+  "query": "SELECT p.id, p.slug, p.name, p.category, p.description, p.address, p.city, p.cnpj,\n                  (p.verified_at IS NOT NULL) AS \"verified!\", p.cep,\n                  lm.key AS \"logo_key?\", cm.key AS \"cover_key?\",\n                  p.lat, p.lng, p.geo_source\n           FROM pages p\n           LEFT JOIN media lm ON lm.id = p.logo_media_id\n           LEFT JOIN media cm ON cm.id = p.cover_media_id\n           WHERE p.slug = $1 AND p.deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -129,6 +129,39 @@
             "name": "key"
           }
         }
+      },
+      {
+        "ordinal": 12,
+        "name": "lat",
+        "type_info": "Float8",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "lat"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "lng",
+        "type_info": "Float8",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "lng"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "geo_source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "geo_source"
+          }
+        }
       }
     ],
     "parameters": {
@@ -148,8 +181,11 @@
       null,
       true,
       true,
+      true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "04ce20a7b9599408a3f3a337f7bc0356d46448fecb5d526a0adbce6603c83530"
+  "hash": "5ff33f0c35a29fae93eab8749a3c268c40fc6c4372ae37273f61b88c42c2e929"
 }

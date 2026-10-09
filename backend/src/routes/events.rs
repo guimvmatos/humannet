@@ -460,3 +460,89 @@ pub async fn clear_interest(
     .await?;
     Ok(StatusCode::NO_CONTENT)
 }
+
+#[derive(Debug, Deserialize)]
+pub struct MapQuery {
+    pub south: f64,
+    pub west: f64,
+    pub north: f64,
+    pub east: f64,
+    /// Próximos N dias (1 a 60; padrão 14).
+    pub days: Option<i64>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct MapEventDto {
+    pub id: Uuid,
+    pub title: String,
+    #[serde(with = "time::serde::rfc3339")]
+    pub starts_at: OffsetDateTime,
+    #[serde(with = "time::serde::rfc3339::option")]
+    pub ends_at: Option<OffsetDateTime>,
+    pub location: String,
+    pub page_slug: String,
+    pub page_name: String,
+    pub page_logo_url: Option<String>,
+    /// Ponto da página (o evento usa o lugar da página).
+    pub lat: f64,
+    pub lng: f64,
+}
+
+/// GET /v1/events/map?south=&west=&north=&east=&days= — eventos que ainda
+/// vão acontecer (ou estão acontecendo) dentro da área do mapa. A posição de
+/// quem pede nunca é enviada: só a área que o mapa mostra.
+pub async fn map(
+    State(state): State<AppState>,
+    _user: AuthUser,
+    Query(q): Query<MapQuery>,
+) -> AppResult<Json<ListDto<MapEventDto>>> {
+    let ok = |v: f64, lim: f64| v.is_finite() && v.abs() <= lim;
+    if !(ok(q.south, 90.0) && ok(q.north, 90.0) && ok(q.west, 180.0) && ok(q.east, 180.0))
+        || q.south > q.north
+        || q.west > q.east
+        // Área de no máximo ~5° (uma região, não o país inteiro).
+        || q.north - q.south > 5.0
+        || q.east - q.west > 5.0
+    {
+        return Err(AppError::Validation("invalid_area"));
+    }
+    let days = q.days.unwrap_or(14).clamp(1, 60);
+    let rows = sqlx::query!(
+        r#"
+        SELECT e.id, e.title, e.starts_at, e.ends_at,
+               CASE WHEN e.location = '' THEN p.address ELSE e.location END AS "location!",
+               p.slug, p.name, p.lat AS "lat!", p.lng AS "lng!", lm.key AS "logo_key?"
+        FROM events e JOIN pages p ON p.id = e.page_id AND p.deleted_at IS NULL
+        LEFT JOIN media lm ON lm.id = p.logo_media_id
+        WHERE e.deleted_at IS NULL AND e.cancelled_at IS NULL
+          AND p.lat BETWEEN $1 AND $2 AND p.lng BETWEEN $3 AND $4
+          AND coalesce(e.ends_at, e.starts_at + interval '6 hours') >= now()
+          AND e.starts_at <= now() + make_interval(days => $5::int)
+        ORDER BY e.starts_at ASC
+        LIMIT 300
+        "#,
+        q.south,
+        q.north,
+        q.west,
+        q.east,
+        i32::try_from(days).unwrap_or(14)
+    )
+    .fetch_all(&state.db)
+    .await?;
+    let items = rows
+        .into_iter()
+        .map(|r| MapEventDto {
+            id: r.id,
+            title: r.title,
+            starts_at: r.starts_at,
+            ends_at: r.ends_at,
+            location: r.location,
+            page_slug: r.slug,
+            page_name: r.name,
+            page_logo_url: r.logo_key.map(|k| state.media.url(&k)),
+            lat: r.lat,
+            lng: r.lng,
+        })
+        .collect();
+    Ok(Json(ListDto { items }))
+}

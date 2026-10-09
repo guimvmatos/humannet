@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE pages SET lat = $2, lng = $3, geo_source = 'auto'\n         WHERE id = $1 AND geo_source IS DISTINCT FROM 'manual'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Float8",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "98018ac486faa8ad1592f8813e858823665e985280a0e2d6b133a9e85e50d78b"
+}

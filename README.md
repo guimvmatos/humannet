@@ -124,6 +124,7 @@ cd app && flutter test
 | PUT / DELETE | `/v1/pages/{slug}/follow` | Acompanhar (única relação unilateral, ADR-0006) |
 | GET / POST / DELETE | `/v1/pages/{slug}/admins[/{username}]` | Quem administra (público) / dono adiciona e remove |
 | PUT / DELETE | `/v1/pages/{slug}/logo` · `/v1/pages/{slug}/cover` | `{media_id}`: logo (foto kind=avatar) e capa 3:1 (kind=cover) |
+| GET | `/v1/events/map?south=&west=&north=&east=&days=` | Eventos na área do mapa (até ~5°), próximos 1–60 dias (padrão 14). Só a área vai ao servidor, nunca a posição de quem usa |
 | GET / POST | `/v1/pages/{slug}/posts` | Mural da página (todos veem) / quem administra publica; vai para o feed de quem acompanha |
 | POST | `/v1/pages/{slug}/conversation` | Abre a conversa com a página (só quem acompanha); quem administra responde como a página |
 | GET / POST | `/v1/pages/{slug}/events?past=` | Eventos da página / criar `{title, starts_at, ends_at?, location?, description?}` |

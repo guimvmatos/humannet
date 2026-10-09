@@ -8,6 +8,8 @@ String errorMessage(Object error) {
   return switch (error.code) {
     'invalid_credentials' => 'Usuário ou senha incorretos.',
     'invalid_cep' => 'CEP inválido: use 8 dígitos.',
+    'invalid_area' => 'Aproxime o mapa para ver os eventos.',
+    'invalid_location' => 'Ponto inválido no mapa.',
     'follow_page_first' =>
       'Acompanhe a página para mandar mensagem para ela.',
     'cannot_message_own_page' =>

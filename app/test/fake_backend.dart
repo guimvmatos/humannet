@@ -284,6 +284,23 @@ class FakeBackend {
           'width': 10,
           'height': 10,
         });
+      case 'GET /v1/events/map':
+        return _json(200, {
+          'items': [
+            {
+              'id': 'e1',
+              'title': 'Samba de sexta',
+              'starts_at': '2030-10-10T23:00:00Z',
+              'ends_at': null,
+              'location': 'Rua Augusta, 100',
+              'page_slug': 'bar-do-ze',
+              'page_name': 'Bar do Zé',
+              'page_logo_url': null,
+              'lat': -23.5015,
+              'lng': -47.4526,
+            },
+          ],
+        });
       case 'GET /v1/events':
         return _json(200, {
           'items': [if (followingBar || interest != null) _event()],

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE pages SET lat = NULL, lng = NULL, geo_source = NULL WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f3b61218f826a25aa5ac68dd1a3f07241583e703f139f8afebb1efe5e3440726"
+}

@@ -2,6 +2,7 @@ pub mod auth;
 pub mod config;
 pub mod crypto;
 pub mod error;
+pub mod geo;
 pub mod media;
 pub mod push;
 pub mod ratelimit;
@@ -36,6 +37,7 @@ pub struct AppState {
     pub auth_limits: std::sync::Arc<ratelimit::AuthLimits>,
     pub media: media::MediaStore,
     pub push: push::Push,
+    pub geocoder: geo::Geocoder,
 }
 
 impl AppState {
@@ -48,6 +50,8 @@ impl AppState {
             media: media::MediaStore::memory(),
             // Testes: guarda os avisos. Produção: `with_push` (main.rs).
             push: push::Push::memory(),
+            // Testes: coordenada fixa (centro de Sorocaba). Produção: Nominatim.
+            geocoder: geo::Geocoder::Fixed(-23.5015, -47.4526),
         }
     }
 
@@ -58,6 +62,11 @@ impl AppState {
 
     pub fn with_push(mut self, push: push::Push) -> Self {
         self.push = push;
+        self
+    }
+
+    pub fn with_geocoder(mut self, geocoder: geo::Geocoder) -> Self {
+        self.geocoder = geocoder;
         self
     }
 }
@@ -164,6 +173,7 @@ pub fn app(state: AppState) -> Router {
         )
         .route("/admin/pages/{slug}/verify", post(routes::pages::verify))
         .route("/events", get(routes::events::agenda))
+        .route("/events/map", get(routes::events::map))
         .route(
             "/events/{id}",
             get(routes::events::get)

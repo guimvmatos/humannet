@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE pages SET lat = $2, lng = $3, geo_source = 'manual' WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Float8",
+        "Float8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b1ba1ad8942855ef65e50a9f84cca85f1c6f798d359b7b289217894e48ed8551"
+}

@@ -860,6 +860,9 @@ class Place {
     this.cep,
     this.logoUrl,
     this.coverUrl,
+    this.lat,
+    this.lng,
+    this.pinManual = false,
   });
 
   factory Place.fromJson(Map<String, dynamic> json) => Place(
@@ -877,6 +880,9 @@ class Place {
     cep: json['cep'] as String?,
     logoUrl: json['logo_url'] as String?,
     coverUrl: json['cover_url'] as String?,
+    lat: (json['lat'] as num?)?.toDouble(),
+    lng: (json['lng'] as num?)?.toDouble(),
+    pinManual: (json['pin_manual'] as bool?) ?? false,
   );
 
   final String slug;
@@ -899,6 +905,12 @@ class Place {
   final String? cep;
   final String? logoUrl;
   final String? coverUrl;
+
+  /// Ponto no mapa (do endereço ou marcado por quem administra).
+  final double? lat;
+  final double? lng;
+  final bool pinManual;
+  bool get hasPin => lat != null && lng != null;
 
   bool get canManage => myRole != null;
   bool get isOwner => myRole == 'owner';
@@ -1090,4 +1102,47 @@ class ChatMessage {
   final DateTime createdAt;
   final bool mine;
   final bool deleted;
+}
+
+/// Evento no mapa (o ponto é o do lugar).
+class MapEvent {
+  const MapEvent({
+    required this.id,
+    required this.title,
+    required this.startsAt,
+    required this.location,
+    required this.pageSlug,
+    required this.pageName,
+    required this.lat,
+    required this.lng,
+    this.endsAt,
+    this.pageLogoUrl,
+  });
+
+  factory MapEvent.fromJson(Map<String, dynamic> json) {
+    final ends = json['ends_at'] as String?;
+    return MapEvent(
+      id: json['id'] as String,
+      title: json['title'] as String,
+      startsAt: DateTime.parse(json['starts_at'] as String),
+      endsAt: ends == null ? null : DateTime.parse(ends),
+      location: (json['location'] as String?) ?? '',
+      pageSlug: json['page_slug'] as String,
+      pageName: json['page_name'] as String,
+      pageLogoUrl: json['page_logo_url'] as String?,
+      lat: (json['lat'] as num).toDouble(),
+      lng: (json['lng'] as num).toDouble(),
+    );
+  }
+
+  final String id;
+  final String title;
+  final DateTime startsAt;
+  final DateTime? endsAt;
+  final String location;
+  final String pageSlug;
+  final String pageName;
+  final String? pageLogoUrl;
+  final double lat;
+  final double lng;
 }

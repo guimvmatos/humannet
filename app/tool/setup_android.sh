@@ -89,7 +89,16 @@ if "android.permission.POST_NOTIFICATIONS" not in s:
                s, count=1)
     main.write_text(s)
 
-# 6) Nome exibido no Android.
+# 6) Mapa: localização aproximada, só para mostrar "você está aqui"
+#    (nunca enviada ao servidor).
+s = main.read_text()
+if "android.permission.ACCESS_COARSE_LOCATION" not in s:
+    s = re.sub(r"(<manifest[^>]*>)",
+               r'\1\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>',
+               s, count=1)
+    main.write_text(s)
+
+# 7) Nome exibido no Android.
 main_manifest = app / "src/main/AndroidManifest.xml"
 m = main_manifest.read_text()
 m = m.replace('android:label="humannet"', 'android:label="HumanNet"')

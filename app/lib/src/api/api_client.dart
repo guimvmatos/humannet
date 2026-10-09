@@ -885,6 +885,9 @@ class ApiClient {
     String? address,
     String? city,
     String? cep,
+    double? lat,
+    double? lng,
+    bool resetPin = false,
   }) async {
     final json = await _send(
       'PATCH',
@@ -897,6 +900,9 @@ class ApiClient {
         'address': ?address,
         'city': ?city,
         'cep': ?cep,
+        'lat': ?lat,
+        'lng': ?lng,
+        if (resetPin) 'reset_pin': true,
       },
     );
     return Place.fromJson(json!);
@@ -964,6 +970,34 @@ class ApiClient {
       Conversation.fromJson(
         (await _send('POST', '${_p(slug)}/conversation', token: token))!,
       );
+
+  /// Eventos dentro da área do mapa, nos próximos `days` dias. Só a área vai
+  /// ao servidor; a posição de quem usa, nunca.
+  Future<List<MapEvent>> mapEvents(
+    String token, {
+    required double south,
+    required double west,
+    required double north,
+    required double east,
+    int days = 14,
+  }) async {
+    String f(double v) => v.toStringAsFixed(4);
+    final json = await _send(
+      'GET',
+      '/v1/events/map',
+      token: token,
+      query: {
+        'south': f(south),
+        'west': f(west),
+        'north': f(north),
+        'east': f(east),
+        'days': '$days',
+      },
+    );
+    return (json!['items'] as List<dynamic>)
+        .map((e) => MapEvent.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
 
   /// Endereço pelo CEP (ViaCEP, base pública dos Correios). `null` se não
   /// existir. Não passa pela API da HumanNet.

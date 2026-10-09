@@ -112,7 +112,14 @@ async fn serve(mut config: Config, db: sqlx::PgPool) -> Result<()> {
     };
     let state = AppState::new(db.clone(), Policy::from(&config))
         .with_media(media.clone())
-        .with_push(push);
+        .with_push(push)
+        .with_geocoder(match humannet_api::geo::Geocoder::nominatim() {
+            Ok(g) => g,
+            Err(e) => {
+                tracing::warn!(error = %e, "mapa: sem busca de endereço");
+                humannet_api::geo::Geocoder::Disabled
+            }
+        });
     // Faxina de hora em hora: fotos enviadas e nunca usadas.
     tokio::spawn(async move {
         let mut tick = tokio::time::interval(std::time::Duration::from_secs(3600));

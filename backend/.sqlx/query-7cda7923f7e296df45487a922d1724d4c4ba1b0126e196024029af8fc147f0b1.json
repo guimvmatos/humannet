@@ -1,0 +1,135 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT e.id, e.title, e.starts_at, e.ends_at,\n               CASE WHEN e.location = '' THEN p.address ELSE e.location END AS \"location!\",\n               p.slug, p.name, p.lat AS \"lat!\", p.lng AS \"lng!\", lm.key AS \"logo_key?\"\n        FROM events e JOIN pages p ON p.id = e.page_id AND p.deleted_at IS NULL\n        LEFT JOIN media lm ON lm.id = p.logo_media_id\n        WHERE e.deleted_at IS NULL AND e.cancelled_at IS NULL\n          AND p.lat BETWEEN $1 AND $2 AND p.lng BETWEEN $3 AND $4\n          AND coalesce(e.ends_at, e.starts_at + interval '6 hours') >= now()\n          AND e.starts_at <= now() + make_interval(days => $5::int)\n        ORDER BY e.starts_at ASC\n        LIMIT 300\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "starts_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "starts_at"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "ends_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "ends_at"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "location!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "slug",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "slug"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "lat!",
+        "type_info": "Float8",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "lat"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "lng!",
+        "type_info": "Float8",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "lng"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "logo_key?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "media",
+            "name": "key"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Float8",
+        "Float8",
+        "Float8",
+        "Float8",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      null,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "7cda7923f7e296df45487a922d1724d4c4ba1b0126e196024029af8fc147f0b1"
+}

@@ -51,6 +51,9 @@ pub struct Page {
     pub cep: Option<String>,
     pub logo_key: Option<String>,
     pub cover_key: Option<String>,
+    pub lat: Option<f64>,
+    pub lng: Option<f64>,
+    pub geo_source: Option<String>,
 }
 
 pub async fn load(state: &AppState, raw: &str) -> AppResult<Page> {
@@ -59,7 +62,8 @@ pub async fn load(state: &AppState, raw: &str) -> AppResult<Page> {
         Page,
         r#"SELECT p.id, p.slug, p.name, p.category, p.description, p.address, p.city, p.cnpj,
                   (p.verified_at IS NOT NULL) AS "verified!", p.cep,
-                  lm.key AS "logo_key?", cm.key AS "cover_key?"
+                  lm.key AS "logo_key?", cm.key AS "cover_key?",
+                  p.lat, p.lng, p.geo_source
            FROM pages p
            LEFT JOIN media lm ON lm.id = p.logo_media_id
            LEFT JOIN media cm ON cm.id = p.cover_media_id
@@ -116,6 +120,10 @@ pub struct PageDto {
     pub cep: Option<String>,
     pub logo_url: Option<String>,
     pub cover_url: Option<String>,
+    /// Ponto no mapa (do endereço ou marcado à mão por quem administra).
+    pub lat: Option<f64>,
+    pub lng: Option<f64>,
+    pub pin_manual: bool,
     pub my_role: Option<String>,
     pub following: bool,
     /// Só para quem administra (R3).
@@ -156,6 +164,9 @@ async fn to_dto(state: &AppState, p: Page, user: &AuthUser) -> AppResult<PageDto
         cep: p.cep,
         logo_url: p.logo_key.map(|k| state.media.url(&k)),
         cover_url: p.cover_key.map(|k| state.media.url(&k)),
+        lat: p.lat,
+        lng: p.lng,
+        pin_manual: p.geo_source.as_deref() == Some("manual"),
         my_role,
         following,
         follower_count,
@@ -346,6 +357,18 @@ pub async fn create(
     .execute(&mut *tx)
     .await?;
     tx.commit().await?;
+    state
+        .geocoder
+        .locate(
+            &state.db,
+            id,
+            crate::geo::Address {
+                address: address.clone(),
+                city: city.clone(),
+                cep: cep.clone(),
+            },
+        )
+        .await;
     let page = load(&state, &slug).await?;
     Ok((
         StatusCode::CREATED,
@@ -371,6 +394,12 @@ pub struct UpdatePage {
     pub address: Option<String>,
     pub city: Option<String>,
     pub cep: Option<String>,
+    /// Ponto marcado no mapa por quem administra (os dois juntos).
+    pub lat: Option<f64>,
+    pub lng: Option<f64>,
+    /// Volta a achar o ponto pelo endereço.
+    #[serde(default)]
+    pub reset_pin: bool,
 }
 
 /// PATCH /v1/pages/{slug} — quem administra. CNPJ e endereço curto não mudam
@@ -400,9 +429,19 @@ pub async fn update(
     if let Some(v) = &req.city {
         p.city = validation::line(v, 0, 80, "invalid_place")?;
     }
+    let before = (p.address.clone(), p.city.clone(), p.cep.clone());
     if let Some(v) = &req.cep {
         p.cep = cep(v)?;
     }
+    let pin = match (req.lat, req.lng) {
+        (Some(lat), Some(lng))
+            if (-90.0..=90.0).contains(&lat) && (-180.0..=180.0).contains(&lng) =>
+        {
+            Some((lat, lng))
+        }
+        (None, None) => None,
+        _ => return Err(AppError::Validation("invalid_location")),
+    };
     sqlx::query!(
         "UPDATE pages SET name = $2, category = $3, description = $4, address = $5, city = $6,
                           cep = $7
@@ -417,6 +456,41 @@ pub async fn update(
     )
     .execute(&state.db)
     .await?;
+    if let Some((lat, lng)) = pin {
+        sqlx::query!(
+            "UPDATE pages SET lat = $2, lng = $3, geo_source = 'manual' WHERE id = $1",
+            p.id,
+            lat,
+            lng
+        )
+        .execute(&state.db)
+        .await?;
+    } else {
+        if req.reset_pin {
+            sqlx::query!(
+                "UPDATE pages SET lat = NULL, lng = NULL, geo_source = NULL WHERE id = $1",
+                p.id
+            )
+            .execute(&state.db)
+            .await?;
+        }
+        let moved = before != (p.address.clone(), p.city.clone(), p.cep.clone());
+        if moved || req.reset_pin || p.lat.is_none() {
+            state
+                .geocoder
+                .locate(
+                    &state.db,
+                    p.id,
+                    crate::geo::Address {
+                        address: p.address.clone(),
+                        city: p.city.clone(),
+                        cep: p.cep.clone(),
+                    },
+                )
+                .await;
+        }
+    }
+    let p = load(&state, &slug).await?;
     Ok(Json(to_dto(&state, p, &user).await?))
 }
 

@@ -7,6 +7,7 @@ import '../auth/session_controller.dart';
 import 'chat_ui.dart';
 import 'compose_screen.dart';
 import 'error_messages.dart';
+import 'events_map.dart';
 import 'events_ui.dart';
 import 'photos.dart';
 import 'post_list.dart';
@@ -92,6 +93,16 @@ class AgendaScreenState extends State<AgendaScreen> {
       appBar: AppBar(
         title: const Text('Agenda'),
         actions: [
+          IconButton(
+            key: const Key('events_map_button'),
+            tooltip: 'Mapa de eventos',
+            icon: const Icon(Icons.map_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => EventsMapScreen(session: widget.session),
+              ),
+            ),
+          ),
           TextButton.icon(
             key: const Key('places_button'),
             onPressed: _places,
@@ -606,6 +617,13 @@ class _PlaceScreenState extends State<PlaceScreen> {
           ),
         );
         if (saved != null) await _load();
+      case 'pin':
+        final saved = await Navigator.of(context).push<Place>(
+          MaterialPageRoute(
+            builder: (_) => PlacePinScreen(session: widget.session, place: p),
+          ),
+        );
+        if (saved != null) await _load();
       case 'logo':
         await _imageMenu(logo: true);
       case 'cover':
@@ -731,6 +749,17 @@ class _PlaceScreenState extends State<PlaceScreen> {
                   'Mensagens para a página chegam nas suas Mensagens.',
                   style: theme.textTheme.bodySmall,
                 ),
+                Text(
+                  p.hasPin
+                      ? (p.pinManual
+                            ? 'No mapa: ponto marcado por você.'
+                            : 'No mapa: ponto achado pelo endereço '
+                                  '(ajuste no menu se estiver errado).')
+                      : 'Ainda sem ponto no mapa: confira o endereço ou '
+                            'marque no menu ⋮ → Ajustar ponto no mapa.',
+                  key: const Key('place_pin_note'),
+                  style: theme.textTheme.bodySmall,
+                ),
               ],
               const SizedBox(height: 12),
               Wrap(
@@ -849,6 +878,10 @@ class _PlaceScreenState extends State<PlaceScreen> {
                 const PopupMenuItem(value: 'edit', child: Text('Editar')),
                 const PopupMenuItem(value: 'logo', child: Text('Trocar logo')),
                 const PopupMenuItem(value: 'cover', child: Text('Trocar capa')),
+                const PopupMenuItem(
+                  value: 'pin',
+                  child: Text('Ajustar ponto no mapa'),
+                ),
                 const PopupMenuItem(
                   value: 'admins',
                   child: Text('Quem administra'),
