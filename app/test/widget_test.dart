@@ -893,7 +893,16 @@ void main() {
     await tester.tap(find.byKey(const Key('publish_button')));
     await tester.pumpAndSettle();
     expect(backend.pagePosts.single['body'], 'Abrimos!');
-    await tester.scrollUntilVisible(find.text('Abrimos!'), 200);
+    await tester.scrollUntilVisible(
+      find.text('Abrimos!'),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const Key('place_screen')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     expect(find.textContaining('por @alice'), findsOneWidget);
   });
 
