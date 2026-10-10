@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        INSERT INTO users (id, username, email, password_hash, invited_by, role, cpf_hmac)\n        VALUES ($1, $2, $3, $4, $5, $6, $7)\n        RETURNING created_at\n        ",
+  "query": "\n        INSERT INTO users (id, username, email, password_hash, invited_by, role, cpf_hmac,\n                           terms_version, terms_accepted_at)\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())\n        RETURNING created_at\n        ",
   "describe": {
     "columns": [
       {
@@ -23,12 +23,13 @@
         "Text",
         "Uuid",
         "Text",
-        "Bytea"
+        "Bytea",
+        "Int2"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "6222a3c6232245cd46bb0ce00ccedc04c6133af9a8a4998677184251d825cbba"
+  "hash": "c31dc6c5e2b6b260a1bf5895aafae729d99476e898fed1affff9d41500784e37"
 }

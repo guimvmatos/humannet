@@ -69,6 +69,7 @@ class SessionController extends ChangeNotifier {
     required String email,
     required String password,
     String? cpf,
+    int? acceptTerms,
   }) async {
     final result = await _api.register(
       inviteCode: inviteCode,
@@ -76,6 +77,7 @@ class SessionController extends ChangeNotifier {
       email: email,
       password: password,
       cpf: cpf,
+      acceptTerms: acceptTerms,
     );
     await _signIn(result);
   }

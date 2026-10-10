@@ -769,7 +769,14 @@ void main() {
     expect(button.onPressed, isNull);
     await tester.ensureVisible(find.byKey(const Key('accept_rules')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('accept_rules')));
+    expect(find.byKey(const Key('read_termos')), findsOneWidget);
+    expect(find.byKey(const Key('read_privacidade')), findsOneWidget);
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('accept_rules')),
+        matching: find.byType(Checkbox),
+      ),
+    );
     await tester.pump();
     expect(
       tester
@@ -785,6 +792,35 @@ void main() {
     expect(isValidCpf('529.982.247-24'), isFalse);
     expect(isValidCpf('111.111.111-11'), isFalse);
     expect(isValidCpf('123'), isFalse);
+  });
+
+  testWidgets('conta antiga sem aceite: pede Termos e Privacidade', (
+    tester,
+  ) async {
+    final backend = FakeBackend()..needsTerms = true;
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    expect(find.byKey(const Key('terms_gate')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('read_termos')));
+    await tester.pumpAndSettle();
+    expect(find.text('Termos de Uso do HumanNet'), findsOneWidget);
+    expect(find.textContaining('18 anos ou mais'), findsOneWidget);
+    expect(find.textContaining('Para quê: Criar a conta'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('terms_gate_accept')));
+    await tester.pump();
+    expect(backend.termsAccepted, isNull, reason: 'sem marcar, não aceita');
+    await tester.tap(find.byKey(const Key('terms_gate_check')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('terms_gate_accept')));
+    await tester.pumpAndSettle();
+    expect(backend.termsAccepted, 1);
+    expect(find.byKey(const Key('feed_screen')), findsOneWidget);
   });
 
   testWidgets('conta antiga sem CPF: pede antes de entrar', (tester) async {

@@ -63,6 +63,8 @@ class FakeBackend {
 
   String? status;
   bool needsCpf = false;
+  bool needsTerms = false;
+  int? termsAccepted;
 
   /// Lugar "bar-do-ze" e um evento.
   bool followingBar = false;
@@ -149,6 +151,18 @@ class FakeBackend {
         return _json(200, {'token': validToken, 'user': _user()});
       }
       return _json(401, {'error': 'invalid_credentials'});
+    }
+    // Textos públicos (fora de /v1, sem token).
+    if (route == 'GET /legal/termos' || route == 'GET /legal/privacidade') {
+      return http.Response.bytes(
+        utf8.encode(
+          '# Termos de Uso do HumanNet\n\nVersão 1\n\n## 2. Quem pode usar\n\n'
+          '- Só pessoas com **18 anos ou mais** durante o beta.\n\n'
+          '| Dado | Para quê |\n|---|---|\n| E-mail | Criar a conta |\n',
+        ),
+        200,
+        headers: {'content-type': 'text/markdown; charset=utf-8'},
+      );
     }
     // ViaCEP (fora da API, sem token).
     if (route == 'GET /ws/18035000/json/') {
@@ -511,6 +525,11 @@ class FakeBackend {
       case 'POST /v1/conversations/cv2/read':
         return http.Response('', 204);
 
+      case 'PUT /v1/me/terms':
+        termsAccepted =
+            (jsonDecode(request.body) as Map<String, dynamic>)['version'] as int;
+        needsTerms = false;
+        return http.Response('', 204);
       case 'PUT /v1/me/cpf':
         cpfSent = (jsonDecode(request.body) as Map<String, dynamic>)['cpf'] as String;
         needsCpf = false;
@@ -704,6 +723,7 @@ class FakeBackend {
     'bio': bio,
     'role': isAdmin ? 'admin' : 'user',
     'needs_cpf': needsCpf,
+    'needs_terms': needsTerms,
     'created_at': '2026-10-03T05:27:07Z',
   };
 

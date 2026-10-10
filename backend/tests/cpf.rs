@@ -26,6 +26,7 @@ async fn register_cpf(
         "username": user,
         "email": format!("{user}@example.com"),
         "password": PASSWORD,
+        "accept_terms": 1,
     });
     if let Some(c) = cpf {
         body["cpf"] = json!(c);

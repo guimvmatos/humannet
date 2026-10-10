@@ -21,6 +21,10 @@ pub struct RegisterRequest {
     /// Obrigatório quando o servidor exige CPF (CPF_HMAC_KEY definida).
     #[serde(default)]
     pub cpf: Option<String>,
+    /// Versão dos Termos/Privacidade aceita (tem que ser a vigente). Quem
+    /// aceita também declara ter 18 anos ou mais (beta).
+    #[serde(default)]
+    pub accept_terms: Option<i16>,
 }
 
 #[derive(Deserialize)]
@@ -47,6 +51,7 @@ pub async fn register(
     let email = validation::email(&req.email)?;
     validation::password(&req.password)?;
     let cpf_hmac = cpf_hmac_for(&state, req.cpf.as_deref())?;
+    crate::routes::legal::check(req.accept_terms)?;
     let code = req.invite_code.trim();
     if code.is_empty() || code.len() > 64 {
         return Err(AppError::InvalidInvite);
@@ -83,8 +88,9 @@ pub async fn register(
     };
     let created_at = sqlx::query_scalar!(
         r#"
-        INSERT INTO users (id, username, email, password_hash, invited_by, role, cpf_hmac)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        INSERT INTO users (id, username, email, password_hash, invited_by, role, cpf_hmac,
+                           terms_version, terms_accepted_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())
         RETURNING created_at
         "#,
         user_id,
@@ -94,6 +100,7 @@ pub async fn register(
         invite.created_by,
         role,
         cpf_hmac,
+        crate::routes::legal::TERMS_VERSION,
     )
     .fetch_one(&mut *tx)
     .await
@@ -127,6 +134,8 @@ pub async fn register(
                 role: role.to_owned(),
                 created_at,
                 needs_cpf: false,
+                needs_terms: false,
+                terms_version: crate::routes::legal::TERMS_VERSION,
             },
         }),
     ))
@@ -153,7 +162,7 @@ pub async fn login(
         UserWithHash,
         r#"
         SELECT id, username, email, display_name, bio, role, suspended_at, password_hash, created_at,
-               (cpf_hmac IS NULL) AS "needs_cpf!"
+               (cpf_hmac IS NULL) AS "needs_cpf!", terms_version
         FROM users
         WHERE username = $1 OR email = $1
         "#,
@@ -202,6 +211,8 @@ pub async fn login(
             role: user.role,
             created_at: user.created_at,
             needs_cpf: user.needs_cpf,
+            needs_terms: false,
+            terms_version: user.terms_version,
         }
         .with_policy(&state),
     }))
@@ -223,6 +234,7 @@ struct UserWithHash {
     bio: String,
     role: String,
     needs_cpf: bool,
+    terms_version: i16,
     suspended_at: Option<OffsetDateTime>,
     password_hash: String,
     created_at: OffsetDateTime,

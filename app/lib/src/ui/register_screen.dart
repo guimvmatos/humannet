@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../auth/session_controller.dart';
 import 'cpf.dart';
 import 'error_messages.dart';
+import 'legal_screen.dart';
 import 'rules_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -50,6 +51,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: _email.text.trim(),
         password: _password.text,
         cpf: _cpf.text.trim(),
+        acceptTerms: termsVersion,
       );
       // Sessão aberta: volta para a raiz, que agora mostra a home.
       if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
@@ -152,19 +154,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   onChanged: (v) => setState(() => _acceptedRules = v ?? false),
                   controlAffinity: ListTileControlAffinity.leading,
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Li e aceito as regras de convivência'),
-                  subtitle: Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton(
-                      key: const Key('read_rules'),
-                      style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const RulesScreen(),
+                  title: const Text(
+                    'Tenho 18 anos ou mais e aceito os Termos de Uso, a '
+                    'Política de Privacidade e as regras de convivência',
+                  ),
+                  subtitle: Wrap(
+                    spacing: 12,
+                    children: [
+                      LegalLink.terms(api: widget.session.api),
+                      LegalLink.privacy(api: widget.session.api),
+                      TextButton(
+                        key: const Key('read_rules'),
+                        style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const RulesScreen(),
+                          ),
                         ),
+                        child: const Text('Regras'),
                       ),
-                      child: const Text('Ler as regras'),
-                    ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 8),

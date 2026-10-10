@@ -18,6 +18,8 @@ String errorMessage(Object error) {
     'location_unavailable' =>
       'Ative a localização do celular para usar a Região. Ela vai '
           'arredondada (~500 m) e não fica guardada.',
+    'terms_required' =>
+      'Para criar a conta, aceite os Termos e a Política de Privacidade.',
     'invalid_radius' => 'O raio vai de 1 a 50 km.',
     'invalid_location' => 'Ponto inválido no mapa.',
     'follow_page_first' =>

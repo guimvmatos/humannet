@@ -38,6 +38,7 @@ class ApiClient {
     required String email,
     required String password,
     String? cpf,
+    int? acceptTerms,
   }) async {
     final json = await _send(
       'POST',
@@ -48,6 +49,7 @@ class ApiClient {
         'email': email,
         'password': password,
         'cpf': ?cpf,
+        'accept_terms': ?acceptTerms,
       },
     );
     return AuthResult.fromJson(json!);
@@ -280,6 +282,33 @@ class ApiClient {
   // ------------------------------------------------------------ conta
 
   /// Contas antigas informam o CPF uma vez (o servidor guarda só um código).
+  /// Aceita a versão vigente dos Termos e da Privacidade.
+  Future<void> acceptTerms(String token, int version) async {
+    await _send(
+      'PUT',
+      '/v1/me/terms',
+      token: token,
+      body: {'version': version},
+    );
+  }
+
+  /// Texto público (Markdown) de "termos" ou "privacidade".
+  Future<String> legalText(String kind) async {
+    try {
+      final r = await _http
+          .get(_baseUri.resolve('/legal/$kind'))
+          .timeout(_timeout);
+      if (r.statusCode != 200) {
+        throw ApiException('http_${r.statusCode}', statusCode: r.statusCode);
+      }
+      return utf8.decode(r.bodyBytes);
+    } on TimeoutException {
+      throw const ApiException('network_error');
+    } on http.ClientException {
+      throw const ApiException('network_error');
+    }
+  }
+
   Future<void> setCpf(String token, String cpf) async {
     await _send('PUT', '/v1/me/cpf', token: token, body: {'cpf': cpf});
   }

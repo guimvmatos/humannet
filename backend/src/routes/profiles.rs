@@ -183,7 +183,7 @@ pub async fn update(
           school       = COALESCE($7, school)
         WHERE id = $1
         RETURNING id, username, email, display_name, bio, role, created_at,
-                  (cpf_hmac IS NULL) AS "needs_cpf!"
+                  (cpf_hmac IS NULL) AS "needs_cpf!", false AS "needs_terms!", terms_version
         "#,
         user.user_id,
         display_name.is_some(),

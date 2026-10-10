@@ -223,3 +223,10 @@ Conversar com outras redes abertas (Mastodon, Bluesky). Tensão com R1: contas d
 - Todo post pessoal leva a área aproximada, com desvio de até 1,5 km.
 - **Pendente:** "Para você" com desconhecidos em escala. Hoje vêm os 300 posts mais recentes com tema/hashtag (48 h). Com volume, criar consulta por tema no servidor sem enviar o perfil de interesses.
 - **Pendente:** posts de menores sem posição, quando houver verificação de idade.
+
+## Decisão 2026-10-10: Termos de Uso e Privacidade (lote 22)
+
+- Textos em `backend/legal/` (versão 1), servidos em `/legal/termos` e `/legal/privacidade`. Aceite obrigatório no cadastro (com declaração de 18+); contas antigas aceitam ao abrir o app.
+- Contato/encarregado: Gmail do Guilherme por enquanto. **Trocar** pelo e-mail do domínio quando houver (mudar o texto e subir a versão só se a mudança for importante).
+- **Pendente (jurídico):** revisão por advogado antes de abrir ao público geral.
+- **Pendente (Marco Civil, art. 15):** se o HumanNet virar atividade organizada com fins econômicos (ex.: com CNPJ), guardar registros de acesso (IP, data e hora) por 6 meses, em sigilo.

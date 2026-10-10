@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        UPDATE users SET\n          display_name = CASE WHEN $2 THEN $3 ELSE display_name END,\n          bio          = COALESCE($4, bio),\n          hometown     = COALESCE($5, hometown),\n          city         = COALESCE($6, city),\n          school       = COALESCE($7, school)\n        WHERE id = $1\n        RETURNING id, username, email, display_name, bio, role, created_at,\n                  (cpf_hmac IS NULL) AS \"needs_cpf!\"\n        ",
+  "query": "\n        UPDATE users SET\n          display_name = CASE WHEN $2 THEN $3 ELSE display_name END,\n          bio          = COALESCE($4, bio),\n          hometown     = COALESCE($5, hometown),\n          city         = COALESCE($6, city),\n          school       = COALESCE($7, school)\n        WHERE id = $1\n        RETURNING id, username, email, display_name, bio, role, created_at,\n                  (cpf_hmac IS NULL) AS \"needs_cpf!\", false AS \"needs_terms!\", terms_version\n        ",
   "describe": {
     "columns": [
       {
@@ -85,6 +85,23 @@
         "name": "needs_cpf!",
         "type_info": "Bool",
         "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "needs_terms!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "terms_version",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "terms_version"
+          }
+        }
       }
     ],
     "parameters": {
@@ -106,8 +123,10 @@
       false,
       false,
       false,
-      null
+      null,
+      null,
+      false
     ]
   },
-  "hash": "2568f3fb61b01a9d859705d22f2aa4d9945641586b56450efb2bc39faf63ace6"
+  "hash": "f6b442dfa3278ad734eaff5256a401b32302a9b711eb0751dddf9e0e9ded4831"
 }

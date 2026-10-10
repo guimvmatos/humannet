@@ -19,12 +19,17 @@ pub struct UserDto {
     pub created_at: OffsetDateTime,
     /// Conta antiga sem CPF, com CPF obrigatório: o app pede antes de seguir.
     pub needs_cpf: bool,
+    /// Ainda não aceitou a versão vigente dos Termos e da Privacidade.
+    pub needs_terms: bool,
+    #[serde(skip)]
+    pub terms_version: i16,
 }
 
 impl UserDto {
     /// `needs_cpf` só vale se o servidor exige CPF.
     pub fn with_policy(mut self, state: &AppState) -> Self {
         self.needs_cpf &= state.policy.cpf_key.is_some();
+        self.needs_terms = self.terms_version < crate::routes::legal::TERMS_VERSION;
         self
     }
 }
@@ -34,7 +39,7 @@ pub async fn get(State(state): State<AppState>, user: AuthUser) -> AppResult<Jso
     let me = sqlx::query_as!(
         UserDto,
         r#"SELECT id, username, email, display_name, bio, role, created_at,
-                  (cpf_hmac IS NULL) AS "needs_cpf!"
+                  (cpf_hmac IS NULL) AS "needs_cpf!", false AS "needs_terms!", terms_version
            FROM users WHERE id = $1"#,
         user.user_id
     )

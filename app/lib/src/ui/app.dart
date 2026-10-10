@@ -5,6 +5,7 @@ import '../theme/backgrounds.dart';
 import '../theme/theme_controller.dart';
 import 'cpf.dart';
 import 'home_shell.dart';
+import 'legal_screen.dart';
 import 'login_screen.dart';
 
 class HumanNetApp extends StatefulWidget {
@@ -49,6 +50,8 @@ class _HumanNetAppState extends State<HumanNetApp> {
                 body: Center(child: CircularProgressIndicator()),
               ),
               SessionStatus.signedOut => LoginScreen(session: session),
+              SessionStatus.signedIn when session.user?.needsTerms ?? false =>
+                TermsGateScreen(session: session),
               SessionStatus.signedIn when session.user?.needsCpf ?? false =>
                 CpfScreen(session: session),
               SessionStatus.signedIn => HomeShell(session: session),

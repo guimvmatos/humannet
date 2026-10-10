@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT id, username, email, display_name, bio, role, suspended_at, password_hash, created_at,\n               (cpf_hmac IS NULL) AS \"needs_cpf!\"\n        FROM users\n        WHERE username = $1 OR email = $1\n        ",
+  "query": "SELECT id, username, email, display_name, bio, role, created_at,\n                  (cpf_hmac IS NULL) AS \"needs_cpf!\", false AS \"needs_terms!\", terms_version\n           FROM users WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -71,28 +71,6 @@
       },
       {
         "ordinal": 6,
-        "name": "suspended_at",
-        "type_info": "Timestamptz",
-        "origin": {
-          "Table": {
-            "table": "users",
-            "name": "suspended_at"
-          }
-        }
-      },
-      {
-        "ordinal": 7,
-        "name": "password_hash",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "users",
-            "name": "password_hash"
-          }
-        }
-      },
-      {
-        "ordinal": 8,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -103,15 +81,32 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 7,
         "name": "needs_cpf!",
         "type_info": "Bool",
         "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "needs_terms!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 9,
+        "name": "terms_version",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "terms_version"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Uuid"
       ]
     },
     "nullable": [
@@ -121,11 +116,11 @@
       true,
       false,
       false,
-      true,
       false,
-      false,
-      null
+      null,
+      null,
+      false
     ]
   },
-  "hash": "e683f7cf06f92bf4d592dfb10ac53b3f27a777ce66d001e68d58e1847f24aa33"
+  "hash": "4e02177f5f919363d56757e7bab348dd90634612920d0e12d07859338da98871"
 }
