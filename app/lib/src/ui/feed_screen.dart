@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import '../api/models.dart';
 import '../auth/session_controller.dart';
-import '../feed/interests.dart';
 import 'activity_screen.dart';
 import 'chat_ui.dart';
 import 'compose_screen.dart';
