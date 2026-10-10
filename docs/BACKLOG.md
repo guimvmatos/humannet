@@ -92,6 +92,10 @@ Várias ideias dependem de **conversa 1:1 e em grupo** (status, chamar atenção
 
 ## Linha do tempo pessoal e reencontros
 
+> **Implementado no lote 18** (2026-10-10): municípios do IBGE, catálogo comum de escolas, faculdades e empresas (sem duplicatas, por nome normalizado e cidade), cursos, visibilidade por item, "quero ser encontrado" e sugestões com motivo.
+> **Pendente:** importar os catálogos oficiais completos do INEP (escolas) e do e-MEC (faculdades e cursos), e juntar instituições duplicadas pela administração.
+
+
 **Ideia:** no começo, a pessoa conta um pouco da própria história: cidade onde nasceu, ano de nascimento, cidades onde morou, escolas e faculdades, trabalhos, cada item com um **período** (ex.: Escola X, 1998–2005). A partir disso, a HumanNet sugere **pessoas da mesma época e do mesmo lugar**: colegas de escola, da faculdade, da cidade antiga ou da nova. É o "reencontro" do Orkut e do Facebook antigo.
 
 - **Fase:** 1c. Logo depois da amizade mútua e da 1b, porque é o principal jeito de **encontrar amigos** num modelo só de amizade.
