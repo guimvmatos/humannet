@@ -379,8 +379,11 @@ class _LifeEntryFormState extends State<LifeEntryForm> {
             ),
         ],
       ),
-      body: ListView(
+      // Formulário curto: tudo construído de uma vez (sem lista preguiçosa).
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
+        child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           ListTile(
             key: const Key('life_city'),
@@ -513,6 +516,7 @@ class _LifeEntryFormState extends State<LifeEntryForm> {
             child: const Text('Salvar'),
           ),
         ],
+      ),
       ),
     );
   }
