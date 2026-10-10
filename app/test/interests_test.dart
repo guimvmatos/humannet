@@ -28,7 +28,7 @@ void main() {
     await p.learn(_post('a', topics: ['esportes.futebol']), weight: 2);
 
     final ranked = p.rank([
-      _post('musica', topics: ['musica']),
+      _post('musica', topics: ['musica'], author: 'dave'),
       _post('jogo', topics: ['esportes.futebol'], hoursAgo: 5),
     ], now: now);
     expect(ranked.first.post.id, 'jogo');
