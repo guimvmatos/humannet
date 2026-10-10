@@ -7,6 +7,7 @@ import '../auth/session_controller.dart';
 import 'error_messages.dart';
 import 'profile_screen.dart';
 import 'photos.dart';
+import 'timeline_ui.dart';
 
 /// Aba "Amigos": pedidos recebidos (aceitar/recusar) e lista de amigos.
 class FriendsScreen extends StatefulWidget {
@@ -183,6 +184,21 @@ class FriendsScreenState extends State<FriendsScreen> {
                 ),
               const Divider(),
             ],
+            if (_suggestions.length < 5)
+              ListTile(
+                key: const Key('complete_timeline'),
+                leading: const Icon(Icons.history_edu_outlined),
+                title: const Text('Reencontre gente da escola e da faculdade'),
+                subtitle: const Text(
+                  'Conte sua história (onde estudou e trabalhou, com os anos) '
+                  'e receba sugestões com o motivo.',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () async {
+                  await openTimeline(context, widget.session);
+                  await refresh();
+                },
+              ),
             if (_suggestions.isNotEmpty) ...[
               const _SectionTitle('Pessoas que você talvez conheça'),
               for (final sg in _suggestions)

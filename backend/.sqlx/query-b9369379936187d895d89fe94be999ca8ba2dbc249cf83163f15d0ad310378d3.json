@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT code, name, uf FROM municipalities\n           WHERE search LIKE $1 || '%' OR search LIKE '% ' || $1 || '%'\n           ORDER BY (search LIKE $1 || '%') DESC, char_length(name), name\n           LIMIT $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "code",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "municipalities",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "municipalities",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "uf",
+        "type_info": "Bpchar",
+        "origin": {
+          "Table": {
+            "table": "municipalities",
+            "name": "uf"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b9369379936187d895d89fe94be999ca8ba2dbc249cf83163f15d0ad310378d3"
+}

@@ -649,6 +649,8 @@ void main() {
       find.text('@dave · 2 amigos em comum · Também é de Recife'),
       findsOneWidget,
     );
+    await tester.ensureVisible(find.byKey(const Key('suggest_add_dave')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('suggest_add_dave')));
     await tester.pumpAndSettle();
     expect(backend.daveSuggestion, 'requested');
@@ -1044,5 +1046,68 @@ void main() {
     await again.load();
     expect(again.backgroundMode, BackgroundMode.none);
     expect(again.palette.id, 'espaco');
+  });
+
+  testWidgets('minha história: adicionar faculdade com curso', (tester) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.byKey(const Key('nav_profile')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('timeline_button')));
+    await tester.tap(find.byKey(const Key('timeline_button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('timeline_empty')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('timeline_add_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('add_kind_faculdade')));
+    await tester.pumpAndSettle();
+
+    // Cidade (IBGE).
+    await tester.tap(find.byKey(const Key('life_city')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('picker_field')), 'soro');
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('picker_result_0')));
+    await tester.pumpAndSettle();
+    expect(find.text('Sorocaba - SP'), findsOneWidget);
+
+    // Faculdade nova (não estava no catálogo).
+    await tester.tap(find.byKey(const Key('life_org')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('picker_field')), 'UFSCar Sorocaba');
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('picker_create')));
+    await tester.pumpAndSettle();
+    expect(backend.createdOrgs, ['UFSCar Sorocaba']);
+
+    // Curso.
+    await tester.tap(find.byKey(const Key('life_course')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('picker_field')), 'comp');
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('picker_result_0')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byKey(const Key('life_start')), '2011');
+    await tester.enterText(find.byKey(const Key('life_end')), '2015');
+    await tester.ensureVisible(find.byKey(const Key('life_save')));
+    await tester.tap(find.byKey(const Key('life_save')));
+    await tester.pumpAndSettle();
+
+    final saved = backend.timeline.single;
+    expect(saved['kind'], 'faculdade');
+    expect(saved['org']! as Map, containsPair('id', 'o1'));
+    expect(saved['start_year'], 2011);
+    expect(saved['end_year'], 2015);
+    expect(saved['visibility'], 'friends');
+    expect(find.text('Ciência da Computação · UFSCar Sorocaba'), findsOneWidget);
   });
 }

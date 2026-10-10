@@ -15,6 +15,7 @@ import 'report_dialog.dart';
 import 'scraps_screen.dart';
 import 'settings_screen.dart';
 import 'testimonials_screen.dart';
+import 'timeline_ui.dart';
 
 /// Perfil de um usuário. `asTab: true` = aba "Perfil" do próprio usuário
 /// (sem botão de voltar).
@@ -483,6 +484,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onDecline: () => _friendAction(decline: true),
       onMessage: () =>
           openDirectChat(context, widget.session, widget.username),
+      onTimeline: () => openTimeline(
+        context,
+        widget.session,
+        username: isSelf ? null : widget.username,
+      ),
       onPlaces: () => Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => PlacesScreen(session: widget.session, adminOnly: true),
@@ -542,6 +548,7 @@ class _Header extends StatelessWidget {
     required this.onDecline,
     required this.onMessage,
     required this.onPlaces,
+    required this.onTimeline,
     required this.onEdit,
     required this.onInvite,
     required this.onTestimonials,
@@ -558,6 +565,7 @@ class _Header extends StatelessWidget {
   final VoidCallback onDecline;
   final VoidCallback onMessage;
   final VoidCallback onPlaces;
+  final VoidCallback onTimeline;
   final VoidCallback onEdit;
   final VoidCallback onInvite;
   final VoidCallback onTestimonials;
@@ -736,6 +744,12 @@ class _Header extends StatelessWidget {
                       label: const Text('Gerar convite'),
                     ),
                     OutlinedButton.icon(
+                      key: const Key('timeline_button'),
+                      onPressed: onTimeline,
+                      icon: const Icon(Icons.history_edu_outlined),
+                      label: const Text('Minha história'),
+                    ),
+                    OutlinedButton.icon(
                       key: const Key('my_places_button'),
                       onPressed: onPlaces,
                       icon: const Icon(Icons.storefront_outlined),
@@ -767,6 +781,13 @@ class _Header extends StatelessWidget {
           ],
           if (profile.relation.canSeePosts) ...[
             const SizedBox(height: 8),
+            if (!profile.isSelf)
+              TextButton.icon(
+                key: const Key('friend_timeline_button'),
+                onPressed: onTimeline,
+                icon: const Icon(Icons.history_edu_outlined),
+                label: const Text('História'),
+              ),
             TextButton.icon(
               key: const Key('scraps_button'),
               onPressed: onScraps,

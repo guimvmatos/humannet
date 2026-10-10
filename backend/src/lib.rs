@@ -7,6 +7,7 @@ pub mod media;
 pub mod push;
 pub mod ratelimit;
 pub mod routes;
+pub mod text;
 pub mod validation;
 
 use std::time::Duration;
@@ -103,6 +104,24 @@ pub fn app(state: AppState) -> Router {
             post(routes::admin::release_cpf),
         )
         .route("/me/counts", get(routes::activity::counts))
+        .route("/geo/municipalities", get(routes::timeline::municipalities))
+        .route(
+            "/orgs",
+            get(routes::timeline::orgs).post(routes::timeline::create_org),
+        )
+        .route(
+            "/courses",
+            get(routes::timeline::courses).post(routes::timeline::create_course),
+        )
+        .route(
+            "/me/timeline",
+            get(routes::timeline::mine).post(routes::timeline::add),
+        )
+        .route(
+            "/me/timeline/{id}",
+            put(routes::timeline::update).delete(routes::timeline::remove),
+        )
+        .route("/users/{username}/timeline", get(routes::timeline::of_user))
         .route("/me/devices", put(routes::devices::register))
         .route("/me/devices/{token}", delete(routes::devices::unregister))
         .route("/me/status", put(routes::scraps::set_status))

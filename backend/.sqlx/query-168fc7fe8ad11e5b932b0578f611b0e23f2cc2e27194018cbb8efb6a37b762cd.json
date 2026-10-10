@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE life_entries SET municipality_code = $3, org_id = $4, course_id = $5, level = $6,\n                start_year = $7, end_year = $8, visibility = $9, discoverable = $10\n         WHERE id = $1 AND user_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int4",
+        "Uuid",
+        "Int4",
+        "Text",
+        "Int2",
+        "Int2",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "168fc7fe8ad11e5b932b0578f611b0e23f2cc2e27194018cbb8efb6a37b762cd"
+}

@@ -1,9 +1,9 @@
 //! "Pessoas que você talvez conheça" (lote 8).
 //!
 //! Sem caixa-preta (R2): cada sugestão diz por quê. Sinais usados, todos
-//! declarados pelas próprias pessoas: amigos em comum, mesma cidade natal,
-//! mesma cidade atual, mesma escola. Nada de contatos do celular nem de
-//! localização (R5, R7).
+//! declarados pelas próprias pessoas: a "Minha história" (escola, faculdade,
+//! curso, trabalho, cidades, sempre com a época), amigos em comum e os campos
+//! simples do perfil. Nada de contatos do celular nem de localização (R5, R7).
 
 use axum::{
     Json,
@@ -34,6 +34,17 @@ pub async fn list(
     State(state): State<AppState>,
     user: AuthUser,
 ) -> AppResult<Json<ListDto<SuggestionDto>>> {
+    // Reencontros pela história: pontos e motivos por pessoa.
+    let mut by_user: std::collections::HashMap<uuid::Uuid, (i64, Vec<String>)> =
+        std::collections::HashMap::new();
+    for m in crate::routes::timeline::matches(&state, user.user_id).await? {
+        let e = by_user.entry(m.user_id).or_default();
+        if !e.1.contains(&m.reason) {
+            e.0 += m.score;
+            e.1.push(m.reason);
+        }
+    }
+    let timeline_ids: Vec<uuid::Uuid> = by_user.keys().copied().collect();
     let rows = sqlx::query!(
         r#"
         WITH me AS (
@@ -59,7 +70,8 @@ pub async fn list(
                c.mutual AS "mutual!", c.same_hometown AS "same_hometown!",
                c.same_city AS "same_city!", c.same_school AS "same_school!"
         FROM cand c
-        WHERE (c.mutual > 0 OR c.same_hometown OR c.same_city OR c.same_school)
+        WHERE (c.mutual > 0 OR c.same_hometown OR c.same_city OR c.same_school
+               OR c.id = ANY($3))
           AND NOT EXISTS (SELECT 1 FROM friends f WHERE f.user_id = $1 AND f.friend_id = c.id)
           AND NOT EXISTS (SELECT 1 FROM friend_requests r
                 WHERE (r.from_id = $1 AND r.to_id = c.id) OR (r.from_id = c.id AND r.to_id = $1))
@@ -68,21 +80,30 @@ pub async fn list(
                    OR (b.blocker_id = c.id AND b.blocked_id = $1))
           AND NOT EXISTS (SELECT 1 FROM suggestion_dismissals d
                 WHERE d.user_id = $1 AND d.dismissed_id = c.id)
-        ORDER BY (c.mutual * 3 + c.same_school::int * 2 + c.same_hometown::int * 2
+        ORDER BY (c.id = ANY($3)) DESC,
+                 (c.mutual * 3 + c.same_school::int * 2 + c.same_hometown::int * 2
                   + c.same_city::int) DESC,
                  c.mutual DESC, lower(c.username)
         LIMIT $2
         "#,
         user.user_id,
-        LIMIT
+        LIMIT * 10,
+        &timeline_ids
     )
     .fetch_all(&state.db)
     .await?;
 
-    let mut items: Vec<SuggestionDto> = rows
+    let mut scored: Vec<(i64, SuggestionDto)> = rows
         .into_iter()
         .map(|r| {
-            let mut reasons = Vec::new();
+            let (life_score, life_reasons) = by_user.remove(&r.id).unwrap_or_default();
+            let score = life_score
+                + r.mutual * 3
+                + i64::from(r.same_school) * 2
+                + i64::from(r.same_hometown) * 2
+                + i64::from(r.same_city);
+            // Os motivos da história vêm primeiro: são os mais fortes.
+            let mut reasons = life_reasons;
             match r.mutual {
                 0 => {}
                 1 => reasons.push("1 amigo em comum".to_owned()),
@@ -97,17 +118,30 @@ pub async fn list(
             if r.same_city {
                 reasons.push(format!("Também mora em {}", r.city));
             }
-            SuggestionDto {
-                user: AuthorDto {
-                    id: r.id,
-                    username: r.username,
-                    display_name: r.display_name,
-                    avatar_url: None,
+            reasons.truncate(4);
+            (
+                score,
+                SuggestionDto {
+                    user: AuthorDto {
+                        id: r.id,
+                        username: r.username,
+                        display_name: r.display_name,
+                        avatar_url: None,
+                    },
+                    mutual_friends: r.mutual,
+                    reasons,
                 },
-                mutual_friends: r.mutual,
-                reasons,
-            }
+            )
         })
+        .collect();
+    scored.sort_by(|a, b| {
+        b.0.cmp(&a.0)
+            .then(a.1.user.username.cmp(&b.1.user.username))
+    });
+    let mut items: Vec<SuggestionDto> = scored
+        .into_iter()
+        .take(usize::try_from(LIMIT).unwrap_or(20))
+        .map(|(_, s)| s)
         .collect();
     crate::routes::posts::fill_avatars(&state, items.iter_mut().map(|s| &mut s.user)).await?;
     Ok(Json(ListDto { items }))

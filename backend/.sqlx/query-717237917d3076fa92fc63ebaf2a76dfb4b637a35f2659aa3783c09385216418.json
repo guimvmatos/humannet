@@ -1,0 +1,234 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT e.id, e.kind, e.level, e.start_year, e.end_year, e.visibility, e.discoverable,\n               m.code AS \"m_code?\", m.name AS \"m_name?\", m.uf AS \"m_uf?\",\n               o.id AS \"o_id?\", o.kind AS \"o_kind?\", o.name AS \"o_name?\",\n               om.code AS \"om_code?\", om.name AS \"om_name?\", om.uf AS \"om_uf?\",\n               c.id AS \"c_id?\", c.name AS \"c_name?\"\n        FROM life_entries e\n        LEFT JOIN municipalities m ON m.code = e.municipality_code\n        LEFT JOIN orgs o ON o.id = e.org_id\n        LEFT JOIN municipalities om ON om.code = o.municipality_code\n        LEFT JOIN courses c ON c.id = e.course_id\n        WHERE e.user_id = $1\n          AND (NOT $2 OR e.visibility = 'friends')\n          AND ($3::uuid IS NULL OR e.id = $3)\n        ORDER BY coalesce(e.start_year, 0), e.created_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "life_entries",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "life_entries",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "level",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "life_entries",
+            "name": "level"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "start_year",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "life_entries",
+            "name": "start_year"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "end_year",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "life_entries",
+            "name": "end_year"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "visibility",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "life_entries",
+            "name": "visibility"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "discoverable",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "life_entries",
+            "name": "discoverable"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "m_code?",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "municipalities",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "m_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "municipalities",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "m_uf?",
+        "type_info": "Bpchar",
+        "origin": {
+          "Table": {
+            "table": "municipalities",
+            "name": "uf"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "o_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "orgs",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "o_kind?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "orgs",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "o_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "orgs",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "om_code?",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "municipalities",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "om_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "municipalities",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "om_uf?",
+        "type_info": "Bpchar",
+        "origin": {
+          "Table": {
+            "table": "municipalities",
+            "name": "uf"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "c_id?",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "courses",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 17,
+        "name": "c_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "courses",
+            "name": "name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "717237917d3076fa92fc63ebaf2a76dfb4b637a35f2659aa3783c09385216418"
+}

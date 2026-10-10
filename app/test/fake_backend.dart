@@ -92,6 +92,10 @@ class FakeBackend {
 
   /// Mural da página "meu-bar" e conversa com "bar-do-ze".
   final List<Map<String, Object?>> pagePosts = [];
+
+  /// "Minha história" da alice e instituições criadas.
+  final List<Map<String, Object?>> timeline = [];
+  final List<String> createdOrgs = [];
   bool pageConversationOpened = false;
 
   Map<String, Object?> _conversation() => {
@@ -283,6 +287,49 @@ class FakeBackend {
           'url': 'memory://m${uploads.length}',
           'width': 10,
           'height': 10,
+        });
+      case 'GET /v1/me/timeline':
+        return _json(200, {'items': timeline});
+      case 'POST /v1/me/timeline':
+        final b = jsonDecode(request.body) as Map<String, dynamic>;
+        final entry = <String, Object?>{
+          'id': 'le${timeline.length + 1}',
+          'kind': b['kind'],
+          'municipality': null,
+          'org': b['org_id'] == null
+              ? null
+              : {'id': b['org_id'], 'kind': 'faculdade', 'name': 'UFSCar Sorocaba', 'municipality': _sorocaba},
+          'course': b['course_id'] == null
+              ? null
+              : {'id': b['course_id'], 'name': 'Ciência da Computação'},
+          'level': b['level'],
+          'start_year': b['start_year'],
+          'end_year': b['end_year'],
+          'visibility': b['visibility'],
+          'discoverable': b['discoverable'],
+        };
+        timeline.add(entry);
+        return _json(201, entry);
+      case 'GET /v1/geo/municipalities':
+        return _json(200, {
+          'items': [_sorocaba],
+        });
+      case 'GET /v1/orgs':
+        return _json(200, {'items': <Object>[]});
+      case 'POST /v1/orgs':
+        final b = jsonDecode(request.body) as Map<String, dynamic>;
+        createdOrgs.add(b['name'] as String);
+        return _json(200, {
+          'id': 'o1',
+          'kind': b['kind'],
+          'name': b['name'],
+          'municipality': _sorocaba,
+        });
+      case 'GET /v1/courses':
+        return _json(200, {
+          'items': [
+            {'id': 8, 'name': 'Ciência da Computação'},
+          ],
         });
       case 'GET /v1/events/map':
         return _json(200, {
@@ -689,6 +736,12 @@ class FakeBackend {
     'can_reply': true,
     'can_delete': true,
     'can_moderate': false,
+  };
+
+  static const Map<String, Object?> _sorocaba = {
+    'code': 3552205,
+    'name': 'Sorocaba',
+    'uf': 'SP',
   };
 
   static Map<String, Object?> _post(String id, String body) => {

@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT count(*) AS \"n!\", bool_or(kind = 'nasceu') AS \"birth!\"\n               FROM (SELECT kind FROM life_entries WHERE user_id = $1\n                     UNION ALL SELECT 'x') t",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "birth!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "d4938b2048338b3e495e015d0c66887755fa051de08a38c7dc91d81d8bb75bf7"
+}

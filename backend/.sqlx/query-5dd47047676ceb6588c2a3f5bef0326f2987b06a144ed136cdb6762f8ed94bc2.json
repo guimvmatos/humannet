@@ -1,0 +1,98 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT o.user_id, me.kind,\n               org.name AS \"org_name?\", mun.name AS \"mun_name?\", crs.name AS \"course_name?\",\n               (me.course_id IS NOT NULL AND me.course_id = o.course_id) AS \"same_course!\",\n               (me.start_year IS NOT NULL AND o.start_year IS NOT NULL) AS \"dated!\",\n               CASE\n                 WHEN me.kind = 'nasceu' THEN abs(me.start_year - o.start_year) <= 2\n                 ELSE me.start_year - (CASE me.kind WHEN 'escola' THEN 2 ELSE 1 END)\n                        <= coalesce(o.end_year, $2::int)\n                      AND o.start_year - (CASE me.kind WHEN 'escola' THEN 2 ELSE 1 END)\n                        <= coalesce(me.end_year, $2::int)\n               END AS \"overlap?\"\n        FROM life_entries me\n        JOIN life_entries o\n          ON o.user_id <> me.user_id AND o.kind = me.kind\n         AND o.discoverable AND o.visibility <> 'private'\n         AND ((me.org_id IS NOT NULL AND o.org_id = me.org_id)\n              OR (me.org_id IS NULL AND o.municipality_code = me.municipality_code))\n        LEFT JOIN orgs org ON org.id = me.org_id\n        LEFT JOIN municipalities mun ON mun.code = me.municipality_code\n        LEFT JOIN courses crs ON crs.id = me.course_id\n        WHERE me.user_id = $1\n        LIMIT 3000\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "life_entries",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "life_entries",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "org_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "orgs",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "mun_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "municipalities",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "course_name?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "courses",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "same_course!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 6,
+        "name": "dated!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "overlap?",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "5dd47047676ceb6588c2a3f5bef0326f2987b06a144ed136cdb6762f8ed94bc2"
+}

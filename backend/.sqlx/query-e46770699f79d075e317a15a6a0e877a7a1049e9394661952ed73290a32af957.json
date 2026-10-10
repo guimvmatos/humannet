@@ -1,0 +1,88 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.id, o.kind, o.name, m.code AS \"code?\", m.name AS \"mname?\", m.uf AS \"uf?\"\n           FROM orgs o LEFT JOIN municipalities m ON m.code = o.municipality_code\n           WHERE o.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "orgs",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "orgs",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "orgs",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "code?",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "municipalities",
+            "name": "code"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "mname?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "municipalities",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "uf?",
+        "type_info": "Bpchar",
+        "origin": {
+          "Table": {
+            "table": "municipalities",
+            "name": "uf"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "e46770699f79d075e317a15a6a0e877a7a1049e9394661952ed73290a32af957"
+}

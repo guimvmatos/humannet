@@ -8,6 +8,12 @@ String errorMessage(Object error) {
   return switch (error.code) {
     'invalid_credentials' => 'Usuário ou senha incorretos.',
     'invalid_cep' => 'CEP inválido: use 8 dígitos.',
+    'invalid_year' => 'Confira os anos (o fim não pode ser antes do início).',
+    'invalid_municipality' => 'Escolha a cidade na lista.',
+    'invalid_org' => 'Escolha ou adicione a instituição.',
+    'birth_exists' => 'Você já informou onde nasceu. Edite o item existente.',
+    'timeline_limit' => 'Limite de itens na sua história atingido.',
+    'org_limit' => 'Muitas instituições novas hoje. Tente amanhã.',
     'invalid_area' => 'Aproxime o mapa para ver os eventos.',
     'invalid_location' => 'Ponto inválido no mapa.',
     'follow_page_first' =>

@@ -1,0 +1,33 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO orgs (id, kind, name, search, municipality_code, created_by)\n                 VALUES ($1, $2, $3, $4, $5, $6)\n                 ON CONFLICT ON CONSTRAINT orgs_unique DO UPDATE SET kind = EXCLUDED.kind\n                 RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "orgs",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Int4",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "754bfaade483dc03810a13792f5c520073b4ea125349dcaeb6d49c8e0fcad53e"
+}

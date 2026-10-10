@@ -999,6 +999,103 @@ class ApiClient {
         .toList();
   }
 
+  // ------------------------------------------------------------ minha história
+
+  List<T> _items<T>(
+    Map<String, dynamic>? json,
+    T Function(Map<String, dynamic>) f,
+  ) => (json!['items'] as List<dynamic>)
+      .map((e) => f(e as Map<String, dynamic>))
+      .toList();
+
+  Future<List<Municipality>> municipalities(String token, String q) async =>
+      _items(
+        await _send(
+          'GET',
+          '/v1/geo/municipalities',
+          token: token,
+          query: {'q': q},
+        ),
+        Municipality.fromJson,
+      );
+
+  Future<List<Org>> orgs(
+    String token,
+    String kind,
+    String q, {
+    int? city,
+  }) async => _items(
+    await _send(
+      'GET',
+      '/v1/orgs',
+      token: token,
+      query: {'kind': kind, 'q': q, if (city != null) 'city': '$city'},
+    ),
+    Org.fromJson,
+  );
+
+  /// Acha ou cria (o mesmo nome na mesma cidade é a mesma instituição).
+  Future<Org> createOrg(
+    String token,
+    String kind,
+    String name, {
+    int? city,
+  }) async => Org.fromJson(
+    (await _send(
+      'POST',
+      '/v1/orgs',
+      token: token,
+      body: {'kind': kind, 'name': name, 'municipality_code': city},
+    ))!,
+  );
+
+  Future<List<Course>> courses(String token, String q) async => _items(
+    await _send('GET', '/v1/courses', token: token, query: {'q': q}),
+    Course.fromJson,
+  );
+
+  Future<Course> createCourse(String token, String name) async =>
+      Course.fromJson(
+        (await _send(
+          'POST',
+          '/v1/courses',
+          token: token,
+          body: {'name': name},
+        ))!,
+      );
+
+  Future<List<LifeEntry>> myTimeline(String token) async => _items(
+    await _send('GET', '/v1/me/timeline', token: token),
+    LifeEntry.fromJson,
+  );
+
+  Future<List<LifeEntry>> userTimeline(String token, String username) async =>
+      _items(
+        await _send(
+          'GET',
+          '/v1/users/${Uri.encodeComponent(username)}/timeline',
+          token: token,
+        ),
+        LifeEntry.fromJson,
+      );
+
+  Future<LifeEntry> saveLifeEntry(
+    String token,
+    LifeEntry entry, {
+    String? id,
+  }) async => LifeEntry.fromJson(
+    (await _send(
+      id == null ? 'POST' : 'PUT',
+      id == null ? '/v1/me/timeline' : '/v1/me/timeline/$id',
+      token: token,
+      body: entry.toJson(),
+    ))!,
+  );
+
+  Future<void> deleteLifeEntry(String token, String id) async {
+    await _send('DELETE', '/v1/me/timeline/$id', token: token);
+  }
+
   /// Endereço pelo CEP (ViaCEP, base pública dos Correios). `null` se não
   /// existir. Não passa pela API da HumanNet.
   Future<CepAddress?> lookupCep(String cep) async {

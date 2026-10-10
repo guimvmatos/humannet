@@ -1146,3 +1146,153 @@ class MapEvent {
   final double lat;
   final double lng;
 }
+
+/// Município (código do IBGE).
+class Municipality {
+  const Municipality({required this.code, required this.name, required this.uf});
+
+  factory Municipality.fromJson(Map<String, dynamic> json) => Municipality(
+    code: json['code'] as int,
+    name: json['name'] as String,
+    uf: json['uf'] as String,
+  );
+
+  final int code;
+  final String name;
+  final String uf;
+  String get label => '$name - $uf';
+}
+
+/// Escola, faculdade ou empresa do catálogo comum.
+class Org {
+  const Org({
+    required this.id,
+    required this.kind,
+    required this.name,
+    this.municipality,
+  });
+
+  factory Org.fromJson(Map<String, dynamic> json) => Org(
+    id: json['id'] as String,
+    kind: json['kind'] as String,
+    name: json['name'] as String,
+    municipality: json['municipality'] == null
+        ? null
+        : Municipality.fromJson(json['municipality'] as Map<String, dynamic>),
+  );
+
+  final String id;
+  final String kind;
+  final String name;
+  final Municipality? municipality;
+  String get label =>
+      municipality == null ? name : '$name · ${municipality!.label}';
+}
+
+class Course {
+  const Course({required this.id, required this.name});
+
+  factory Course.fromJson(Map<String, dynamic> json) =>
+      Course(id: json['id'] as int, name: json['name'] as String);
+
+  final int id;
+  final String name;
+}
+
+/// Tipos de item da "Minha história".
+const lifeKinds = <String, String>{
+  'nasceu': 'Onde nasci',
+  'morou': 'Cidade onde morei / moro',
+  'escola': 'Escola',
+  'faculdade': 'Faculdade',
+  'trabalho': 'Trabalho',
+};
+
+const lifeLevels = <String, String>{
+  'fundamental': 'Ensino fundamental',
+  'medio': 'Ensino médio',
+  'tecnico': 'Técnico',
+  'graduacao': 'Graduação',
+  'pos': 'Pós-graduação',
+};
+
+/// Um item da "Minha história".
+class LifeEntry {
+  const LifeEntry({
+    required this.id,
+    required this.kind,
+    this.municipality,
+    this.org,
+    this.course,
+    this.level,
+    this.startYear,
+    this.endYear,
+    this.visibility,
+    this.discoverable,
+  });
+
+  factory LifeEntry.fromJson(Map<String, dynamic> json) => LifeEntry(
+    id: json['id'] as String,
+    kind: json['kind'] as String,
+    municipality: json['municipality'] == null
+        ? null
+        : Municipality.fromJson(json['municipality'] as Map<String, dynamic>),
+    org: json['org'] == null
+        ? null
+        : Org.fromJson(json['org'] as Map<String, dynamic>),
+    course: json['course'] == null
+        ? null
+        : Course.fromJson(json['course'] as Map<String, dynamic>),
+    level: json['level'] as String?,
+    startYear: json['start_year'] as int?,
+    endYear: json['end_year'] as int?,
+    visibility: json['visibility'] as String?,
+    discoverable: json['discoverable'] as bool?,
+  );
+
+  final String id;
+  final String kind;
+  final Municipality? municipality;
+  final Org? org;
+  final Course? course;
+  final String? level;
+  final int? startYear;
+  final int? endYear;
+
+  /// friends | suggestions | private (só o dono recebe).
+  final String? visibility;
+  final bool? discoverable;
+
+  String get title => switch (kind) {
+    'nasceu' => 'Nasceu em ${municipality?.label ?? ''}',
+    'morou' => 'Morou em ${municipality?.label ?? ''}',
+    'escola' => 'Estudou na ${org?.name ?? ''}',
+    'faculdade' => course != null
+        ? '${course!.name} · ${org?.name ?? ''}'
+        : 'Estudou na ${org?.name ?? ''}',
+    'trabalho' => 'Trabalhou na ${org?.name ?? ''}',
+    _ => kind,
+  };
+
+  String get period {
+    final a = startYear;
+    final b = endYear;
+    if (kind == 'nasceu') return a == null ? '' : 'em $a';
+    if (a == null && b == null) return '';
+    if (b == null) return a == null ? 'até hoje' : 'desde $a';
+    if (a == null) return 'até $b';
+    return a == b ? '$a' : '$a–$b';
+  }
+
+  Map<String, Object?> toJson() => {
+    'kind': kind,
+    'municipality_code': municipality?.code,
+    'org_id': org?.id,
+    'course_id': course?.id,
+    'level': level,
+    'start_year': startYear,
+    'end_year': endYear,
+    'visibility': visibility,
+    'discoverable': discoverable,
+  };
+}
