@@ -124,6 +124,18 @@ class InterestProfile extends ChangeNotifier {
     await _save();
   }
 
+  /// Modo do feed em um só botão: "chrono", "foryou" ou "region"
+  /// (regional é sempre cronológico na tela).
+  String get feedView => feedScope == 'region'
+      ? 'region'
+      : feedMode;
+
+  Future<void> setFeedView(String v) async {
+    feedScope = v == 'region' ? 'region' : 'friends';
+    feedMode = v == 'foryou' ? 'foryou' : 'chrono';
+    await _save();
+  }
+
   Future<void> setRadius(double km) async {
     radiusKm = km.clamp(1, 50).roundToDouble();
     await _save();

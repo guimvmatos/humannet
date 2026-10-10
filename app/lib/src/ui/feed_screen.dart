@@ -47,54 +47,6 @@ class _FeedScreenState extends State<FeedScreen> {
     if (post != null) _listKey.currentState?.prepend(post);
   }
 
-  Future<void> _pickRadius(InterestProfile interests) async {
-    var km = interests.radiusKm;
-    final ok = await showModalBottomSheet<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Raio: ${km.toStringAsFixed(0)} km',
-                  style: Theme.of(ctx).textTheme.titleMedium,
-                ),
-                Slider(
-                  key: const Key('radius_slider'),
-                  value: km,
-                  min: 1,
-                  max: 50,
-                  divisions: 49,
-                  label: '${km.toStringAsFixed(0)} km',
-                  onChanged: (v) => setSheet(() => km = v),
-                ),
-                Text(
-                  'Mostra posts feitos "para a região" dentro deste raio. Sua '
-                  'posição vai arredondada (~500 m) só na consulta e não fica '
-                  'guardada. A distância dos posts nunca aparece.',
-                  style: Theme.of(ctx).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: FilledButton(
-                    key: const Key('radius_done'),
-                    onPressed: () => Navigator.of(ctx).pop(true),
-                    child: const Text('Aplicar'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-    if (ok == true) await interests.setRadius(km);
-  }
-
   Future<void> _openActivity() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -200,8 +152,9 @@ class _FeedScreenState extends State<FeedScreen> {
         listenable: widget.session.interests,
         builder: (context, _) {
           final interests = widget.session.interests;
-          final forYou = interests.feedMode == 'foryou';
-          final region = interests.feedScope == 'region';
+          final view = interests.feedView;
+          final forYou = view == 'foryou';
+          final region = view == 'region';
           final km = interests.radiusKm;
           final api = widget.session.api;
           Future<PostPage> ranked(Future<PostPage> source) async {
@@ -215,87 +168,46 @@ class _FeedScreenState extends State<FeedScreen> {
             return PostPage(items: [for (final x in r) x.post]);
           }
 
-          final PageLoader loader = switch ((region, forYou)) {
-            (false, false) => (before) => api.feed(token, before: before),
-            (false, true) => (_) => ranked(api.feedCandidates(token)),
-            (true, false) => (before) async => api.feedRegion(
+          final PageLoader loader = switch (view) {
+            'foryou' => (_) => ranked(api.feedCandidates(token)),
+            'region' => (before) async => api.feedRegion(
               token,
               at: await approxLocation(),
               radiusKm: km,
               before: before,
             ),
-            (true, true) => (_) async => ranked(
-              api.feedRegionCandidates(
-                token,
-                at: await approxLocation(),
-                radiusKm: km,
-              ),
-            ),
+            _ => (before) => api.feed(token, before: before),
           };
+          Widget chip(String value, String label, IconData icon) => Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: ChoiceChip(
+              key: Key('feed_view_$value'),
+              avatar: Icon(icon, size: 16),
+              showCheckmark: false,
+              visualDensity: VisualDensity.compact,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              labelStyle: Theme.of(context).textTheme.labelMedium,
+              label: Text(label),
+              selected: view == value,
+              onSelected: (_) => interests.setFeedView(value),
+            ),
+          );
           return Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                padding: const EdgeInsets.fromLTRB(12, 6, 4, 0),
                 child: Row(
                   children: [
-                    Expanded(
-                      child: SegmentedButton<String>(
-                        key: const Key('feed_scope'),
-                        segments: const [
-                          ButtonSegment(
-                            value: 'friends',
-                            label: Text('Amigos'),
-                            icon: Icon(Icons.people_outline),
-                          ),
-                          ButtonSegment(
-                            value: 'region',
-                            label: Text('Região'),
-                            icon: Icon(Icons.near_me_outlined),
-                          ),
-                        ],
-                        selected: {interests.feedScope},
-                        onSelectionChanged: (s) =>
-                            interests.setFeedScope(s.first),
-                      ),
-                    ),
-                    if (region)
-                      TextButton(
-                        key: const Key('radius_button'),
-                        onPressed: () => _pickRadius(interests),
-                        child: Text('${km.toStringAsFixed(0)} km'),
-                      ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 6, 12, 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: SegmentedButton<String>(
-                        key: const Key('feed_mode'),
-                        segments: const [
-                          ButtonSegment(
-                            value: 'chrono',
-                            label: Text('Cronológico'),
-                            icon: Icon(Icons.schedule),
-                          ),
-                          ButtonSegment(
-                            value: 'foryou',
-                            label: Text('Para você'),
-                            icon: Icon(Icons.auto_awesome_outlined),
-                          ),
-                        ],
-                        selected: {interests.feedMode},
-                        onSelectionChanged: (s) =>
-                            interests.setFeedMode(s.first),
-                      ),
-                    ),
+                    chip('chrono', 'Cronológico', Icons.schedule),
+                    chip('foryou', 'Para você', Icons.auto_awesome_outlined),
+                    chip('region', 'Regional', Icons.near_me_outlined),
+                    const Spacer(),
                     if (forYou)
                       IconButton(
                         key: const Key('open_interests'),
                         tooltip: 'Meus interesses',
-                        icon: const Icon(Icons.tune),
+                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.tune, size: 20),
                         onPressed: () => Navigator.of(context).push(
                           MaterialPageRoute<void>(
                             builder: (_) =>
@@ -306,28 +218,28 @@ class _FeedScreenState extends State<FeedScreen> {
                   ],
                 ),
               ),
+              if (region) _RadiusBar(interests: interests),
               Expanded(
                 child: PagedPostList(
-                  key: region || forYou
-                      ? ValueKey('feed_${interests.feedScope}_'
-                            '${interests.feedMode}_$km')
-                      : _listKey,
+                  key: view == 'chrono'
+                      ? _listKey
+                      : ValueKey('feed_${view}_$km'),
                   session: widget.session,
                   loader: loader,
                   reasonOf: forYou ? (p) => _why[p.id] : null,
-                  emptyText: switch ((region, forYou)) {
-                    (false, false) =>
-                      'Seu feed está vazio. Adicione amigos (lupa, acima) '
-                          'ou escreva o primeiro post.',
-                    (false, true) when interests.isEmpty =>
+                  emptyText: switch (view) {
+                    'foryou' when interests.isEmpty =>
                       'Nada nos últimos 7 dias. Curta e comente posts: o '
                           '"Para você" aprende só com isso, e só no seu '
                           'celular.',
-                    (false, true) => 'Nada nos últimos 7 dias.',
-                    (true, _) =>
+                    'foryou' => 'Nada nos últimos 7 dias.',
+                    'region' =>
                       'Nenhum post para a região num raio de '
                           '${km.toStringAsFixed(0)} km. Aumente o raio ou '
                           'poste algo para a região.',
+                    _ =>
+                      'Seu feed está vazio. Adicione amigos (lupa, acima) '
+                          'ou escreva o primeiro post.',
                   },
                   endText: forYou
                       ? 'Você viu tudo dos últimos 7 dias.'
@@ -344,6 +256,54 @@ class _FeedScreenState extends State<FeedScreen> {
         onPressed: _compose,
         icon: const Icon(Icons.edit),
         label: const Text('Escrever'),
+      ),
+    );
+  }
+}
+
+/// Barrinha do raio do feed regional (1 a 50 km). Recarrega só ao soltar.
+class _RadiusBar extends StatefulWidget {
+  const _RadiusBar({required this.interests});
+
+  final InterestProfile interests;
+
+  @override
+  State<_RadiusBar> createState() => _RadiusBarState();
+}
+
+class _RadiusBarState extends State<_RadiusBar> {
+  late double _km = widget.interests.radiusKm;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.labelMedium;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+      child: Row(
+        children: [
+          Text('Raio', style: style),
+          Expanded(
+            child: Slider(
+              key: const Key('radius_slider'),
+              value: _km,
+              min: 1,
+              max: 50,
+              divisions: 49,
+              label: '${_km.toStringAsFixed(0)} km',
+              onChanged: (v) => setState(() => _km = v),
+              onChangeEnd: widget.interests.setRadius,
+            ),
+          ),
+          SizedBox(
+            width: 44,
+            child: Text(
+              '${_km.toStringAsFixed(0)} km',
+              key: const Key('radius_value'),
+              style: style,
+              textAlign: TextAlign.end,
+            ),
+          ),
+        ],
       ),
     );
   }

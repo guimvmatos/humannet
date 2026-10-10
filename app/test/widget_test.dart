@@ -1154,27 +1154,18 @@ void main() {
     await tester.pumpWidget(HumanNetApp(session: session));
     await _login(tester);
 
-    await tester.tap(
-      find.descendant(
-        of: find.byKey(const Key('feed_scope')),
-        matching: find.text('Região'),
-      ),
-    );
+    await tester.tap(find.byKey(const Key('feed_view_region')));
     await tester.pumpAndSettle();
     expect(backend.calls, contains('GET /v1/feed/region'));
     expect(backend.lastRegionQuery['radius_km'], '5');
     expect(find.text('Feira na praça amanhã'), findsOneWidget);
     expect(find.byKey(const ValueKey('regional_r1')), findsOneWidget);
 
-    // Muda o raio para 50 km.
-    await tester.tap(find.byKey(const Key('radius_button')));
-    await tester.pumpAndSettle();
+    // Puxa a barrinha até 50 km: recarrega ao soltar.
     await tester.drag(
       find.byKey(const Key('radius_slider')),
-      const Offset(600, 0),
+      const Offset(800, 0),
     );
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('radius_done')));
     await tester.pumpAndSettle();
     expect(session.interests.radiusKm, 50);
     expect(backend.lastRegionQuery['radius_km'], '50');

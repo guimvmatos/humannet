@@ -150,7 +150,18 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       ),
       bottomNavigationBar: ValueListenableBuilder<Counts>(
         valueListenable: _counts,
-        builder: (context, c, _) => NavigationBar(
+        builder: (context, c, _) => NavigationBarTheme(
+          // Rótulo menor e sem espaçamento extra, para "Comunidades" caber
+          // numa linha só.
+          data: NavigationBarTheme.of(context).copyWith(
+            labelTextStyle: WidgetStatePropertyAll(
+              Theme.of(context).textTheme.labelMedium?.copyWith(
+                fontSize: 11.5,
+                letterSpacing: 0,
+              ),
+            ),
+          ),
+          child: NavigationBar(
           selectedIndex: _index,
           onDestinationSelected: _select,
           destinations: [
@@ -185,6 +196,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
               label: 'Perfil',
             ),
           ],
+          ),
         ),
       ),
     );
