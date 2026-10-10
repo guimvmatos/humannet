@@ -318,6 +318,7 @@ class ApiClient {
     String body, {
     List<String> mediaIds = const [],
     List<String> topics = const [],
+    (double, double)? region,
   }) async {
     final json = await _send(
       'POST',
@@ -327,6 +328,11 @@ class ApiClient {
         'body': body,
         if (mediaIds.isNotEmpty) 'media_ids': mediaIds,
         if (topics.isNotEmpty) 'topics': topics,
+        if (region != null) ...{
+          'audience': 'region',
+          'lat': region.$1,
+          'lng': region.$2,
+        },
       },
     );
     return Post.fromJson(json!);
@@ -441,6 +447,48 @@ class ApiClient {
       '/v1/feed',
       token: token,
       query: {'before': ?before},
+    );
+    return PostPage.fromJson(json!);
+  }
+
+  /// Feed regional cronológico (C1). A posição vai só nesta consulta; o
+  /// servidor arredonda e não guarda.
+  Future<PostPage> feedRegion(
+    String token, {
+    required (double, double) at,
+    required double radiusKm,
+    String? before,
+  }) async {
+    final json = await _send(
+      'GET',
+      '/v1/feed/region',
+      token: token,
+      query: {
+        'lat': at.$1.toStringAsFixed(4),
+        'lng': at.$2.toStringAsFixed(4),
+        'radius_km': radiusKm.toStringAsFixed(0),
+        'before': ?before,
+      },
+    );
+    return PostPage.fromJson(json!);
+  }
+
+  /// Candidatos do regional "Para você" (C2), ordenados no aparelho.
+  Future<PostPage> feedRegionCandidates(
+    String token, {
+    required (double, double) at,
+    required double radiusKm,
+  }) async {
+    final json = await _send(
+      'GET',
+      '/v1/feed/region/candidates',
+      token: token,
+      query: {
+        'lat': at.$1.toStringAsFixed(4),
+        'lng': at.$2.toStringAsFixed(4),
+        'radius_km': radiusKm.toStringAsFixed(0),
+        'days': '7',
+      },
     );
     return PostPage.fromJson(json!);
   }

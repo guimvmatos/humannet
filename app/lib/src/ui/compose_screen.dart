@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../auth/session_controller.dart';
 import '../feed/interests.dart';
+import '../geo/location.dart';
 import 'error_messages.dart';
 import 'photos.dart';
 
@@ -38,6 +39,9 @@ class _ComposeScreenState extends State<ComposeScreen> {
   final _text = TextEditingController();
   final List<Uint8List> _photos = [];
   final List<String> _topics = [];
+
+  /// Público: amigos (padrão) ou a região (quem estiver perto, até 50 km).
+  bool _region = false;
   bool _busy = false;
   String? _status;
   String? _error;
@@ -162,6 +166,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
               _text.text,
               mediaIds: ids,
               topics: _topics,
+              region: _region ? await approxLocation() : null,
             )
           : await api.postToPlace(
               token,
@@ -278,6 +283,43 @@ class _ComposeScreenState extends State<ComposeScreen> {
                         ),
                       ),
                   ],
+                ),
+              ),
+            if (widget.placeSlug == null)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: SegmentedButton<bool>(
+                    key: const Key('audience'),
+                    showSelectedIcon: false,
+                    segments: const [
+                      ButtonSegment(
+                        value: false,
+                        label: Text('Amigos'),
+                        icon: Icon(Icons.people_outline),
+                      ),
+                      ButtonSegment(
+                        value: true,
+                        label: Text('Região', key: Key('audience_region')),
+                        icon: Icon(Icons.near_me_outlined),
+                      ),
+                    ],
+                    selected: {_region},
+                    onSelectionChanged: _busy
+                        ? null
+                        : (s) => setState(() => _region = s.first),
+                  ),
+                ),
+              ),
+            if (_region && widget.placeSlug == null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  'Qualquer pessoa num raio de até 50 km pode ver. Vai só a '
+                  'área aproximada (~500 m), nunca o endereço, e a distância '
+                  'não aparece para ninguém.',
+                  style: theme.textTheme.bodySmall,
                 ),
               ),
             Row(

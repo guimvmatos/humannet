@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:humannet/src/api/api_client.dart';
 import 'package:humannet/src/auth/session_controller.dart';
 import 'package:humannet/src/auth/token_store.dart';
+import 'package:humannet/src/geo/location.dart';
 import 'package:humannet/src/theme/theme_controller.dart';
 import 'package:humannet/src/ui/app.dart';
 import 'package:humannet/src/ui/compose_screen.dart';
@@ -1136,5 +1137,60 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Você curte Futebol (Esportes)'), findsOneWidget);
     expect(session.interests.feedMode, 'foryou');
+  });
+
+  testWidgets('feed da região: raio, rótulo e postar para a região', (
+    tester,
+  ) async {
+    locationFakeForTests = true;
+    locationForTests = (-23.5015, -47.4526);
+    addTearDown(() {
+      locationFakeForTests = false;
+      locationForTests = null;
+    });
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('feed_scope')),
+        matching: find.text('Região'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(backend.calls, contains('GET /v1/feed/region'));
+    expect(backend.lastRegionQuery['radius_km'], '5');
+    expect(find.text('Feira na praça amanhã'), findsOneWidget);
+    expect(find.byKey(const ValueKey('regional_r1')), findsOneWidget);
+
+    // Muda o raio para 50 km.
+    await tester.tap(find.byKey(const Key('radius_button')));
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const Key('radius_slider')),
+      const Offset(600, 0),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('radius_done')));
+    await tester.pumpAndSettle();
+    expect(session.interests.radiusKm, 50);
+    expect(backend.lastRegionQuery['radius_km'], '50');
+    expect(find.text('50 km'), findsOneWidget);
+
+    // Postar para a região manda a posição aproximada.
+    await tester.tap(find.byKey(const Key('compose_button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('compose_field')), 'Alguém viu um gato?');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('audience_region')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('publish_button')));
+    await tester.pumpAndSettle();
+    expect(backend.lastCreatedPost?['audience'], 'region');
+    expect(backend.lastCreatedPost?['lat'], -23.5015);
+    expect(backend.regionPosts.first['body'], 'Alguém viu um gato?');
   });
 }

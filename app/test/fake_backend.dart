@@ -98,6 +98,13 @@ class FakeBackend {
   final List<String> createdOrgs = [];
   bool pageConversationOpened = false;
 
+  /// Feed regional: posts "para a região" e a última consulta feita.
+  final List<Map<String, Object?>> regionPosts = [
+    {..._post('r1', 'Feira na praça amanhã'), 'audience': 'region'},
+  ];
+  Map<String, String> lastRegionQuery = const {};
+  Map<String, dynamic>? lastCreatedPost;
+
   Map<String, Object?> _conversation() => {
     'id': 'cv1',
     'kind': 'direct',
@@ -275,10 +282,22 @@ class FakeBackend {
         if (text.isEmpty && lastMediaIds.isEmpty) {
           return _json(422, {'error': 'invalid_post_body'});
         }
+        lastCreatedPost = created;
         final id = '01a10000-0000-7000-8000-${(_seq++).toString().padLeft(12, '0')}';
-        final post = _post(id, text);
-        posts.insert(0, post);
+        final post = {
+          ..._post(id, text),
+          'audience': created['audience'] ?? 'friends',
+        };
+        if (post['audience'] == 'region') {
+          regionPosts.insert(0, post);
+        } else {
+          posts.insert(0, post);
+        }
         return _json(201, post);
+      case 'GET /v1/feed/region':
+      case 'GET /v1/feed/region/candidates':
+        lastRegionQuery = request.url.queryParameters;
+        return _json(200, {'items': regionPosts, 'next_cursor': null});
       case 'POST /v1/media':
         final kind = request.url.queryParameters['kind'] ?? '';
         uploads.add((kind, request.bodyBytes));

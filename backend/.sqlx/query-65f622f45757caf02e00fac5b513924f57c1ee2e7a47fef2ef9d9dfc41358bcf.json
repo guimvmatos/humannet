@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT p.author_id, p.page_id, (pg.deleted_at IS NULL) AS \"page_alive?\"\n           FROM posts p LEFT JOIN pages pg ON pg.id = p.page_id\n           WHERE p.id = $1 AND p.deleted_at IS NULL",
+  "query": "SELECT p.author_id, p.page_id, (pg.deleted_at IS NULL) AS \"page_alive?\",\n                  (p.audience = 'region') AS \"region!\"\n           FROM posts p LEFT JOIN pages pg ON pg.id = p.page_id\n           WHERE p.id = $1 AND p.deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -30,6 +30,12 @@
         "name": "page_alive?",
         "type_info": "Bool",
         "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "region!",
+        "type_info": "Bool",
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -40,8 +46,9 @@
     "nullable": [
       false,
       true,
+      null,
       null
     ]
   },
-  "hash": "a3f5d5dda4ff6fa98fd9eb65f4d1846dfd7ebc978606f9f46d226739434c4da7"
+  "hash": "65f622f45757caf02e00fac5b513924f57c1ee2e7a47fef2ef9d9dfc41358bcf"
 }

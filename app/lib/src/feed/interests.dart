@@ -108,8 +108,24 @@ class InterestProfile extends ChangeNotifier {
   /// Modo do feed escolhido: "chrono" (padrão) ou "foryou".
   String feedMode = 'chrono';
 
+  /// De onde vêm os posts: "friends" (padrão) ou "region".
+  String feedScope = 'friends';
+
+  /// Raio do feed regional, de 1 a 50 km.
+  double radiusKm = 5;
+
   Future<void> setFeedMode(String m) async {
     feedMode = m == 'foryou' ? 'foryou' : 'chrono';
+    await _save();
+  }
+
+  Future<void> setFeedScope(String s) async {
+    feedScope = s == 'region' ? 'region' : 'friends';
+    await _save();
+  }
+
+  Future<void> setRadius(double km) async {
+    radiusKm = km.clamp(1, 50).roundToDouble();
     await _save();
   }
 
@@ -124,6 +140,8 @@ class InterestProfile extends ChangeNotifier {
     paused = false;
     politicsDetail = false;
     feedMode = 'chrono';
+    feedScope = 'friends';
+    radiusKm = 5;
     try {
       final raw = await _store.read(_key);
       if (raw != null) {
@@ -144,6 +162,8 @@ class InterestProfile extends ChangeNotifier {
         paused = (j['paused'] as bool?) ?? false;
         politicsDetail = (j['politics_detail'] as bool?) ?? false;
         feedMode = (j['mode'] as String?) == 'foryou' ? 'foryou' : 'chrono';
+        feedScope = (j['scope'] as String?) == 'region' ? 'region' : 'friends';
+        radiusKm = ((j['radius_km'] as num?) ?? 5).toDouble().clamp(1, 50);
       }
     } catch (_) {
       // Perfil corrompido: começa do zero.
@@ -164,6 +184,8 @@ class InterestProfile extends ChangeNotifier {
         'paused': paused,
         'politics_detail': politicsDetail,
         'mode': feedMode,
+        'scope': feedScope,
+        'radius_km': radiusKm,
       }),
     );
   }

@@ -105,6 +105,7 @@ class Post {
     this.page,
     this.topics = const [],
     this.hashtags = const [],
+    this.audience = 'friends',
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
@@ -127,6 +128,7 @@ class Post {
       topics: ((json['topics'] as List<dynamic>?) ?? const []).cast<String>(),
       hashtags: ((json['hashtags'] as List<dynamic>?) ?? const [])
           .cast<String>(),
+      audience: (json['audience'] as String?) ?? 'friends',
     );
   }
 
@@ -150,6 +152,10 @@ class Post {
   /// Temas marcados pelo autor (ex.: "cidade.transito") e hashtags do texto.
   final List<String> topics;
   final List<String> hashtags;
+
+  /// friends | region (qualquer pessoa perto vê; sem distância).
+  final String audience;
+  bool get isRegional => audience == 'region';
 }
 
 /// Página que publicou um post.

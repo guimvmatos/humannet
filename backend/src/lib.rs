@@ -107,6 +107,11 @@ pub fn app(state: AppState) -> Router {
         .route("/me/counts", get(routes::activity::counts))
         .route("/topics", get(routes::posts::topics))
         .route("/feed/candidates", get(routes::posts::candidates))
+        .route("/feed/region", get(routes::posts::region::feed))
+        .route(
+            "/feed/region/candidates",
+            get(routes::posts::region::candidates),
+        )
         .route("/geo/municipalities", get(routes::timeline::municipalities))
         .route(
             "/orgs",

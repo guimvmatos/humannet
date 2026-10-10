@@ -77,6 +77,8 @@ pub struct PostDto {
     /// Temas marcados pelo autor (lista fixa) e hashtags do texto.
     pub topics: Vec<String>,
     pub hashtags: Vec<String>,
+    /// friends (padrão) | region (qualquer pessoa perto vê; sem distância).
+    pub audience: String,
     /// Post do mural de uma página (o autor é quem administra e publicou).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page: Option<PageRef>,
@@ -103,6 +105,7 @@ struct PostRow {
     page_logo_key: Option<String>,
     topics: Vec<String>,
     hashtags: Vec<String>,
+    audience: String,
 }
 
 impl From<PostRow> for PostDto {
@@ -124,6 +127,7 @@ impl From<PostRow> for PostDto {
             images: Vec::new(),
             topics: r.topics,
             hashtags: r.hashtags,
+            audience: r.audience,
             page: match (r.page_slug, r.page_name) {
                 (Some(slug), Some(name)) => Some(PageRef {
                     slug,
@@ -214,7 +218,8 @@ pub(crate) async fn visible_post(
     post_id: Uuid,
 ) -> AppResult<(Uuid, Option<Uuid>)> {
     let r = sqlx::query!(
-        r#"SELECT p.author_id, p.page_id, (pg.deleted_at IS NULL) AS "page_alive?"
+        r#"SELECT p.author_id, p.page_id, (pg.deleted_at IS NULL) AS "page_alive?",
+                  (p.audience = 'region') AS "region!"
            FROM posts p LEFT JOIN pages pg ON pg.id = p.page_id
            WHERE p.id = $1 AND p.deleted_at IS NULL"#,
         post_id
@@ -224,6 +229,12 @@ pub(crate) async fn visible_post(
     .ok_or(AppError::NotFound)?;
     let ok = match r.page_id {
         Some(_) => r.page_alive == Some(true),
+        // Post para a região: qualquer pessoa vê, menos quem tem bloqueio.
+        None if r.region => {
+            r.author_id == viewer
+                || !crate::routes::safety::is_blocked_either_way(&state.db, viewer, r.author_id)
+                    .await?
+        }
         None => friends::can_see_content(&state.db, viewer, r.author_id).await?,
     };
     if !ok {
@@ -251,6 +262,11 @@ pub struct CreatePost {
     /// Até 3 temas da lista (`GET /v1/topics`), ex.: "cidade.transito".
     #[serde(default)]
     pub topics: Vec<String>,
+    /// "friends" (padrão) ou "region" (com `lat`/`lng` do aparelho, que o
+    /// servidor arredonda para uma célula de ~500 m antes de guardar).
+    pub audience: Option<String>,
+    pub lat: Option<f64>,
+    pub lng: Option<f64>,
 }
 
 /// Fotos por post.
@@ -295,17 +311,29 @@ pub(crate) async fn insert(
         return Err(AppError::Validation("too_many_topics"));
     }
     let hashtags = crate::topics::hashtags(&body);
+    let (audience, cell) = match req.audience.as_deref() {
+        None | Some("friends") => ("friends", None),
+        Some("region") if page_id.is_none() => match (req.lat, req.lng) {
+            (Some(lat), Some(lng)) => ("region", Some(region::cell(lat, lng)?)),
+            _ => return Err(AppError::Validation("invalid_location")),
+        },
+        _ => return Err(AppError::Validation("invalid_audience")),
+    };
     let mut tx = state.db.begin().await?;
     let id = Uuid::now_v7();
     sqlx::query!(
-        "INSERT INTO posts (id, author_id, body, page_id, topics, hashtags)
-         VALUES ($1, $2, $3, $4, $5, $6)",
+        "INSERT INTO posts (id, author_id, body, page_id, topics, hashtags, audience,
+                            cell_lat, cell_lng)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
         id,
         author,
         body,
         page_id,
         &topics,
-        &hashtags
+        &hashtags,
+        audience,
+        cell.map(|c| c.0),
+        cell.map(|c| c.1)
     )
     .execute(&mut *tx)
     .await?;
@@ -336,7 +364,7 @@ async fn fetch_row(state: &AppState, id: Uuid) -> sqlx::Result<Option<PostRow>> 
         r#"
         SELECT p.id, p.body, p.created_at, p.edited_at,
                u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name, p.topics, p.hashtags,
+               u.display_name AS author_display_name, p.topics, p.hashtags, p.audience,
                pg.slug AS "page_slug?", pg.name AS "page_name?", lm.key AS "page_logo_key?"
         FROM posts p JOIN users u ON u.id = p.author_id
         LEFT JOIN pages pg ON pg.id = p.page_id
@@ -414,7 +442,7 @@ pub async fn list_by_user(
         r#"
         SELECT p.id, p.body, p.created_at, p.edited_at,
                u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name, p.topics, p.hashtags,
+               u.display_name AS author_display_name, p.topics, p.hashtags, p.audience,
                NULL::text AS "page_slug?", NULL::text AS "page_name?",
                NULL::text AS "page_logo_key?"
         FROM posts p JOIN users u ON u.id = p.author_id
@@ -447,7 +475,7 @@ pub async fn feed(
         r#"
         SELECT p.id, p.body, p.created_at, p.edited_at,
                u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name, p.topics, p.hashtags,
+               u.display_name AS author_display_name, p.topics, p.hashtags, p.audience,
                pg.slug AS "page_slug?", pg.name AS "page_name?", lm.key AS "page_logo_key?"
         FROM posts p JOIN users u ON u.id = p.author_id
         LEFT JOIN pages pg ON pg.id = p.page_id
@@ -517,7 +545,7 @@ pub(crate) async fn page_wall(
         r#"
         SELECT p.id, p.body, p.created_at, p.edited_at,
                u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name, p.topics, p.hashtags,
+               u.display_name AS author_display_name, p.topics, p.hashtags, p.audience,
                pg.slug AS "page_slug?", pg.name AS "page_name?", lm.key AS "page_logo_key?"
         FROM posts p JOIN users u ON u.id = p.author_id
         JOIN pages pg ON pg.id = p.page_id
@@ -561,7 +589,7 @@ pub async fn candidates(
         r#"
         SELECT p.id, p.body, p.created_at, p.edited_at,
                u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name, p.topics, p.hashtags,
+               u.display_name AS author_display_name, p.topics, p.hashtags, p.audience,
                pg.slug AS "page_slug?", pg.name AS "page_name?", lm.key AS "page_logo_key?"
         FROM posts p JOIN users u ON u.id = p.author_id
         LEFT JOIN pages pg ON pg.id = p.page_id
@@ -587,4 +615,122 @@ pub async fn candidates(
         items,
         next_cursor: None,
     }))
+}
+
+pub mod region {
+    //! Feed regional (C1 cronológico, C2 ordenado no aparelho). A posição de
+    //! quem lê chega só na consulta, já arredondada para a célula, e não é
+    //! guardada nem registrada. Distâncias nunca são devolvidas.
+
+    use super::*;
+
+    /// Grade de ~500 m (0,005° de latitude ≈ 555 m).
+    const STEP: f64 = 0.005;
+
+    pub fn cell(lat: f64, lng: f64) -> AppResult<(f64, f64)> {
+        if !(lat.is_finite() && lng.is_finite() && lat.abs() <= 90.0 && lng.abs() <= 180.0) {
+            return Err(AppError::Validation("invalid_location"));
+        }
+        let snap = |v: f64| ((v / STEP).round() * STEP * 1e6).round() / 1e6;
+        Ok((snap(lat), snap(lng)))
+    }
+
+    #[derive(Debug, Deserialize)]
+    pub struct RegionQuery {
+        pub lat: f64,
+        pub lng: f64,
+        /// 1 a 50 km.
+        pub radius_km: f64,
+        pub before: Option<Uuid>,
+        pub limit: Option<i64>,
+        /// Só para `/candidates`: últimos N dias (1 a 30).
+        pub days: Option<i64>,
+    }
+
+    async fn rows(
+        state: &AppState,
+        viewer: Uuid,
+        q: &RegionQuery,
+        before: Option<Uuid>,
+        days: i32,
+        limit: i64,
+    ) -> AppResult<Vec<PostRow>> {
+        if !(1.0..=50.0).contains(&q.radius_km) {
+            return Err(AppError::Validation("invalid_radius"));
+        }
+        let (lat, lng) = cell(q.lat, q.lng)?;
+        // Folga de meia célula: quem está na borda não perde post vizinho.
+        let r = q.radius_km + 0.4;
+        let dlat = r / 111.0;
+        let dlng = r / (111.0 * lat.to_radians().cos().max(0.05));
+        let rows = sqlx::query_as!(
+            PostRow,
+            r#"
+            SELECT p.id, p.body, p.created_at, p.edited_at,
+                   u.id AS author_id, u.username AS author_username,
+                   u.display_name AS author_display_name, p.topics, p.hashtags, p.audience,
+                   NULL::text AS "page_slug?", NULL::text AS "page_name?",
+                   NULL::text AS "page_logo_key?"
+            FROM posts p JOIN users u ON u.id = p.author_id
+            WHERE p.audience = 'region' AND p.deleted_at IS NULL AND u.suspended_at IS NULL
+              AND p.cell_lat BETWEEN $1::float8 - $3::float8 AND $1::float8 + $3::float8
+              AND p.cell_lng BETWEEN $2::float8 - $4::float8 AND $2::float8 + $4::float8
+              AND 6371 * 2 * asin(sqrt(
+                    power(sin(radians(p.cell_lat - $1::float8) / 2), 2)
+                    + cos(radians($1::float8)) * cos(radians(p.cell_lat))
+                      * power(sin(radians(p.cell_lng - $2::float8) / 2), 2))) <= $5::float8
+              AND p.created_at > now() - make_interval(days => $6::int)
+              AND ($7::uuid IS NULL OR p.id < $7)
+              AND NOT EXISTS (SELECT 1 FROM blocks b
+                WHERE (b.blocker_id = $8 AND b.blocked_id = p.author_id)
+                   OR (b.blocker_id = p.author_id AND b.blocked_id = $8))
+            ORDER BY p.id DESC
+            LIMIT $9
+            "#,
+            lat,
+            lng,
+            dlat,
+            dlng,
+            r,
+            days,
+            before,
+            viewer,
+            limit
+        )
+        .fetch_all(&state.db)
+        .await?;
+        Ok(rows)
+    }
+
+    /// GET /v1/feed/region?lat=&lng=&radius_km=&before= — C1: cronológico.
+    pub async fn feed(
+        State(state): State<AppState>,
+        user: AuthUser,
+        Query(q): Query<RegionQuery>,
+    ) -> AppResult<Json<Page<PostDto>>> {
+        let limit = PageQuery {
+            before: None,
+            limit: q.limit,
+        }
+        .limit();
+        let rows = rows(&state, user.user_id, &q, q.before, 30, limit + 1).await?;
+        Ok(Json(page(&state, user.user_id, rows, limit).await?))
+    }
+
+    /// GET /v1/feed/region/candidates?lat=&lng=&radius_km=&days=7 — C2: o app
+    /// ordena pelo perfil de interesses (no aparelho).
+    pub async fn candidates(
+        State(state): State<AppState>,
+        user: AuthUser,
+        Query(q): Query<RegionQuery>,
+    ) -> AppResult<Json<Page<PostDto>>> {
+        let days = i32::try_from(q.days.unwrap_or(7).clamp(1, 30)).unwrap_or(7);
+        let rows = rows(&state, user.user_id, &q, None, days, 300).await?;
+        let mut items: Vec<PostDto> = rows.into_iter().map(PostDto::from).collect();
+        enrich(&state, user.user_id, &mut items).await?;
+        Ok(Json(Page {
+            items,
+            next_cursor: None,
+        }))
+    }
 }
