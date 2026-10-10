@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../api/models.dart';
 import '../auth/session_controller.dart';
 import 'appearance_screen.dart';
+import 'interests_screen.dart';
 import 'error_messages.dart';
 import 'moderation_screen.dart';
 import 'rules_screen.dart';
@@ -41,6 +42,17 @@ class SettingsScreen extends StatelessWidget {
             title: const Text('Regras de convivência'),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const RulesScreen()),
+            ),
+          ),
+          ListTile(
+            key: const Key('interests_tile'),
+            leading: const Icon(Icons.tune),
+            title: const Text('Meus interesses'),
+            subtitle: const Text('O que o "Para você" aprendeu (só neste celular)'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => InterestsScreen(profile: session.interests),
+              ),
             ),
           ),
           ListTile(

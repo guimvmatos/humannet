@@ -288,6 +288,21 @@ class FakeBackend {
           'width': 10,
           'height': 10,
         });
+      case 'PUT /v1/posts/c2/like':
+        return http.Response('', 204);
+      case 'GET /v1/feed/candidates':
+        return _json(200, {
+          'items': [
+            {..._post('c1', 'Post sem tema'), 'created_at': DateTime.now().toUtc().toIso8601String()},
+            {
+              ..._post('c2', 'Golaço ontem!'),
+              'topics': ['esportes.futebol'],
+              'liked_by_me': false,
+              'created_at': DateTime.now().toUtc().toIso8601String(),
+            },
+          ],
+          'next_cursor': null,
+        });
       case 'GET /v1/me/timeline':
         return _json(200, {'items': timeline});
       case 'POST /v1/me/timeline':

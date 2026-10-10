@@ -8,6 +8,7 @@ pub mod push;
 pub mod ratelimit;
 pub mod routes;
 pub mod text;
+pub mod topics;
 pub mod validation;
 
 use std::time::Duration;
@@ -104,6 +105,8 @@ pub fn app(state: AppState) -> Router {
             post(routes::admin::release_cpf),
         )
         .route("/me/counts", get(routes::activity::counts))
+        .route("/topics", get(routes::posts::topics))
+        .route("/feed/candidates", get(routes::posts::candidates))
         .route("/geo/municipalities", get(routes::timeline::municipalities))
         .route(
             "/orgs",

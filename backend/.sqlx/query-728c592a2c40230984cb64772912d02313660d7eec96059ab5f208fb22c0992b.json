@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT p.id, p.body, p.created_at, p.edited_at,\n               u.id AS author_id, u.username AS author_username,\n               u.display_name AS author_display_name,\n               pg.slug AS \"page_slug?\", pg.name AS \"page_name?\", lm.key AS \"page_logo_key?\"\n        FROM posts p JOIN users u ON u.id = p.author_id\n        LEFT JOIN pages pg ON pg.id = p.page_id\n        LEFT JOIN media lm ON lm.id = pg.logo_media_id\n        WHERE p.id = $1 AND p.deleted_at IS NULL\n        ",
+  "query": "\n        SELECT p.id, p.body, p.created_at, p.edited_at,\n               u.id AS author_id, u.username AS author_username,\n               u.display_name AS author_display_name, p.topics, p.hashtags,\n               pg.slug AS \"page_slug?\", pg.name AS \"page_name?\", lm.key AS \"page_logo_key?\"\n        FROM posts p JOIN users u ON u.id = p.author_id\n        JOIN pages pg ON pg.id = p.page_id\n        LEFT JOIN media lm ON lm.id = pg.logo_media_id\n        WHERE p.page_id = $1 AND p.deleted_at IS NULL\n          AND ($2::uuid IS NULL OR p.id < $2)\n        ORDER BY p.id DESC\n        LIMIT $3\n        ",
   "describe": {
     "columns": [
       {
@@ -82,6 +82,28 @@
       },
       {
         "ordinal": 7,
+        "name": "topics",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "topics"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "hashtags",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "posts",
+            "name": "hashtags"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
         "name": "page_slug?",
         "type_info": "Text",
         "origin": {
@@ -92,7 +114,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 10,
         "name": "page_name?",
         "type_info": "Text",
         "origin": {
@@ -103,7 +125,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 11,
         "name": "page_logo_key?",
         "type_info": "Text",
         "origin": {
@@ -116,7 +138,9 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Uuid",
+        "Uuid",
+        "Int8"
       ]
     },
     "nullable": [
@@ -129,8 +153,10 @@
       true,
       false,
       false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "e66d5e28d62e9610aebba5c5e4895932b0a83eb7aec4f21535427b118c2fe8e2"
+  "hash": "728c592a2c40230984cb64772912d02313660d7eec96059ab5f208fb22c0992b"
 }

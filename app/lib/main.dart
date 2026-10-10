@@ -4,6 +4,7 @@ import 'src/api/api_client.dart';
 import 'src/auth/session_controller.dart';
 import 'src/auth/token_store.dart';
 import 'src/config.dart';
+import 'src/feed/interests.dart';
 import 'src/theme/theme_controller.dart';
 import 'src/ui/app.dart';
 
@@ -15,6 +16,7 @@ void main() {
   final session = SessionController(
     api: api,
     tokenStore: SecureTokenStore(),
+    interests: InterestProfile(SecurePrefsStore()),
   );
   final themes = ThemeController(SecurePrefsStore());
   // Carrega o tema salvo; até lá, mostra o padrão.

@@ -62,6 +62,13 @@ class _PostScreenState extends State<PostScreen> {
         widget.post.id,
         body,
       );
+      unawaited(
+        widget.session.interests.learn(
+          widget.post,
+          weight: 2,
+          me: widget.session.user?.username,
+        ),
+      );
       _text.clear();
       if (mounted) setState(() => _comments = [...?_comments, c]);
     } catch (e) {

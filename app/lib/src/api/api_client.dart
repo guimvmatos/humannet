@@ -317,12 +317,17 @@ class ApiClient {
     String token,
     String body, {
     List<String> mediaIds = const [],
+    List<String> topics = const [],
   }) async {
     final json = await _send(
       'POST',
       '/v1/posts',
       token: token,
-      body: {'body': body, if (mediaIds.isNotEmpty) 'media_ids': mediaIds},
+      body: {
+        'body': body,
+        if (mediaIds.isNotEmpty) 'media_ids': mediaIds,
+        if (topics.isNotEmpty) 'topics': topics,
+      },
     );
     return Post.fromJson(json!);
   }
@@ -436,6 +441,17 @@ class ApiClient {
       '/v1/feed',
       token: token,
       query: {'before': ?before},
+    );
+    return PostPage.fromJson(json!);
+  }
+
+  /// Posts recentes para o feed "Para você" (ordenados no aparelho).
+  Future<PostPage> feedCandidates(String token, {int days = 7}) async {
+    final json = await _send(
+      'GET',
+      '/v1/feed/candidates',
+      token: token,
+      query: {'days': '$days'},
     );
     return PostPage.fromJson(json!);
   }
@@ -955,12 +971,17 @@ class ApiClient {
     String slug,
     String body, {
     List<String> mediaIds = const [],
+    List<String> topics = const [],
   }) async {
     final json = await _send(
       'POST',
       '${_p(slug)}/posts',
       token: token,
-      body: {'body': body, if (mediaIds.isNotEmpty) 'media_ids': mediaIds},
+      body: {
+        'body': body,
+        if (mediaIds.isNotEmpty) 'media_ids': mediaIds,
+        if (topics.isNotEmpty) 'topics': topics,
+      },
     );
     return Post.fromJson(json!);
   }

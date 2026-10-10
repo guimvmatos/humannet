@@ -48,6 +48,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
       (_) => _refreshCounts(),
     );
     unawaited(_push.start());
+    final me = widget.session.user?.id;
+    if (me != null) unawaited(widget.session.interests.loadFor(me));
   }
 
   @override

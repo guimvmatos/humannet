@@ -103,6 +103,8 @@ class Post {
     this.likeCount,
     this.images = const [],
     this.page,
+    this.topics = const [],
+    this.hashtags = const [],
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
@@ -122,6 +124,9 @@ class Post {
       page: json['page'] == null
           ? null
           : PostPageRef.fromJson(json['page'] as Map<String, dynamic>),
+      topics: ((json['topics'] as List<dynamic>?) ?? const []).cast<String>(),
+      hashtags: ((json['hashtags'] as List<dynamic>?) ?? const [])
+          .cast<String>(),
     );
   }
 
@@ -141,6 +146,10 @@ class Post {
 
   /// Post do mural de uma página (o autor é quem publicou por ela).
   final PostPageRef? page;
+
+  /// Temas marcados pelo autor (ex.: "cidade.transito") e hashtags do texto.
+  final List<String> topics;
+  final List<String> hashtags;
 }
 
 /// Página que publicou um post.

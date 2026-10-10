@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 
 import '../api/models.dart';
 import '../auth/session_controller.dart';
+import '../feed/interests.dart';
 import 'activity_screen.dart';
 import 'chat_ui.dart';
 import 'compose_screen.dart';
+import 'interests_screen.dart';
 import 'post_list.dart';
 import 'profile_screen.dart';
 
@@ -33,6 +35,9 @@ final _noCounts = ValueNotifier<Counts>(const Counts());
 
 class _FeedScreenState extends State<FeedScreen> {
   final _listKey = GlobalKey<PagedPostListState>();
+
+  /// "Por que estou vendo isto", por post (feed "Para você").
+  final _why = <String, String>{};
 
   Future<void> _compose() async {
     final post = await Navigator.of(context).push<Post>(
@@ -142,13 +147,93 @@ class _FeedScreenState extends State<FeedScreen> {
           ),
         ],
       ),
-      body: PagedPostList(
-        key: _listKey,
-        session: widget.session,
-        loader: (before) => widget.session.api.feed(token, before: before),
-        emptyText:
-            'Seu feed está vazio. Adicione amigos (lupa, acima) '
-            'ou escreva o primeiro post.',
+      body: ListenableBuilder(
+        listenable: widget.session.interests,
+        builder: (context, _) {
+          final interests = widget.session.interests;
+          final forYou = interests.feedMode == 'foryou';
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: SegmentedButton<String>(
+                        key: const Key('feed_mode'),
+                        segments: const [
+                          ButtonSegment(
+                            value: 'chrono',
+                            label: Text('Cronológico'),
+                            icon: Icon(Icons.schedule),
+                          ),
+                          ButtonSegment(
+                            value: 'foryou',
+                            label: Text('Para você'),
+                            icon: Icon(Icons.auto_awesome_outlined),
+                          ),
+                        ],
+                        selected: {interests.feedMode},
+                        onSelectionChanged: (s) =>
+                            interests.setFeedMode(s.first),
+                      ),
+                    ),
+                    if (forYou)
+                      IconButton(
+                        key: const Key('open_interests'),
+                        tooltip: 'Meus interesses',
+                        icon: const Icon(Icons.tune),
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) =>
+                                InterestsScreen(profile: interests),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: forYou
+                    ? PagedPostList(
+                        key: const ValueKey('foryou_list'),
+                        session: widget.session,
+                        loader: (_) async {
+                          final page = await widget.session.api
+                              .feedCandidates(token);
+                          final ranked = interests.rank(page.items);
+                          _why
+                            ..clear()
+                            ..addEntries(
+                              ranked.map(
+                                (r) => MapEntry(r.post.id, r.reasons.join(' · ')),
+                              ),
+                            );
+                          return PostPage(
+                            items: [for (final r in ranked) r.post],
+                          );
+                        },
+                        reasonOf: (p) => _why[p.id],
+                        emptyText: interests.isEmpty
+                            ? 'Nada nos últimos 7 dias. Curta e comente posts: '
+                                  'o "Para você" aprende só com isso, e só '
+                                  'no seu celular.'
+                            : 'Nada nos últimos 7 dias.',
+                        endText: 'Você viu tudo dos últimos 7 dias.',
+                      )
+                    : PagedPostList(
+                        key: _listKey,
+                        session: widget.session,
+                        loader: (before) =>
+                            widget.session.api.feed(token, before: before),
+                        emptyText:
+                            'Seu feed está vazio. Adicione amigos (lupa, acima) '
+                            'ou escreva o primeiro post.',
+                      ),
+              ),
+            ],
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'compose_fab',

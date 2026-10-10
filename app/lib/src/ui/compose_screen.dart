@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 
 import '../auth/session_controller.dart';
+import '../feed/interests.dart';
 import 'error_messages.dart';
 import 'photos.dart';
 
@@ -36,6 +37,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
 
   final _text = TextEditingController();
   final List<Uint8List> _photos = [];
+  final List<String> _topics = [];
   bool _busy = false;
   String? _status;
   String? _error;
@@ -68,6 +70,76 @@ class _ComposeScreenState extends State<ComposeScreen> {
     }
   }
 
+  /// Até 3 temas (tema ou subtema, ex.: "Trânsito (Cidade e bairro)").
+  Future<void> _pickTopics() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          void toggle(String id) {
+            setState(() {
+              if (_topics.contains(id)) {
+                _topics.remove(id);
+              } else if (_topics.length < 3) {
+                _topics.add(id);
+              }
+            });
+            setSheet(() {});
+          }
+
+          Widget chip(String id, String label) => FilterChip(
+            key: Key('topic_$id'),
+            label: Text(label),
+            selected: _topics.contains(id),
+            onSelected: (_) => toggle(id),
+          );
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Temas do post (até 3)',
+                    style: Theme.of(ctx).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Ajudam quem usa o "Para você" a achar o seu post. Use '
+                    '#hashtags no texto para detalhar.',
+                    style: Theme.of(ctx).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 12),
+                  for (final t in appTopics) ...[
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: [
+                        chip(t.id, t.label),
+                        for (final (sid, label) in t.sub)
+                          chip('${t.id}.$sid', label),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                  ],
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton(
+                      key: const Key('topics_done'),
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('Pronto'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Future<void> _publish() async {
     final token = widget.session.token;
     if (token == null) return;
@@ -85,8 +157,19 @@ class _ComposeScreenState extends State<ComposeScreen> {
       setState(() => _status = 'Publicando…');
       final slug = widget.placeSlug;
       final post = slug == null
-          ? await api.createPost(token, _text.text, mediaIds: ids)
-          : await api.postToPlace(token, slug, _text.text, mediaIds: ids);
+          ? await api.createPost(
+              token,
+              _text.text,
+              mediaIds: ids,
+              topics: _topics,
+            )
+          : await api.postToPlace(
+              token,
+              slug,
+              _text.text,
+              mediaIds: ids,
+              topics: _topics,
+            );
       if (mounted) Navigator.of(context).pop(post);
     } catch (e) {
       if (mounted) setState(() => _error = errorMessage(e));
@@ -140,6 +223,22 @@ class _ComposeScreenState extends State<ComposeScreen> {
                 ),
               ),
             ),
+            if (_topics.isNotEmpty)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  spacing: 6,
+                  children: [
+                    for (final t in _topics)
+                      InputChip(
+                        label: Text(topicLabel(t)),
+                        onDeleted: _busy
+                            ? null
+                            : () => setState(() => _topics.remove(t)),
+                      ),
+                  ],
+                ),
+              ),
             if (_photos.isNotEmpty)
               SizedBox(
                 height: 88,
@@ -183,6 +282,14 @@ class _ComposeScreenState extends State<ComposeScreen> {
               ),
             Row(
               children: [
+                TextButton.icon(
+                  key: const Key('topics_button'),
+                  onPressed: _busy ? null : _pickTopics,
+                  icon: const Icon(Icons.sell_outlined),
+                  label: Text(
+                    _topics.isEmpty ? 'Temas' : 'Temas (${_topics.length}/3)',
+                  ),
+                ),
                 TextButton.icon(
                   key: const Key('add_photos_button'),
                   onPressed: _busy || _photos.length >= _maxPhotos

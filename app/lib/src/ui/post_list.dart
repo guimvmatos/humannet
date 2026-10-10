@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../api/models.dart';
 import '../auth/session_controller.dart';
+import '../feed/interests.dart';
 import 'error_messages.dart';
 import 'photos.dart';
 import 'places_ui.dart';
@@ -23,10 +24,16 @@ class PagedPostList extends StatefulWidget {
     this.header,
     this.onRefresh,
     this.emptyText = 'Nada por aqui ainda.',
+    this.reasonOf,
+    this.endText = 'Você está em dia.',
   });
 
   final SessionController session;
   final PageLoader loader;
+
+  /// "Por que estou vendo isto" (feed "Para você").
+  final String? Function(Post)? reasonOf;
+  final String endText;
   final Widget? header;
 
   /// Chamado junto com o "puxar para atualizar" (ex.: recarregar o cabeçalho).
@@ -97,13 +104,35 @@ class PagedPostListState extends State<PagedPostList> {
     final header = widget.header;
     final children = <Widget>[
       ?header,
-      for (final post in _posts)
+      for (final post in _posts) ...[
+        if (widget.reasonOf?.call(post) case final why?)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 14,
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    why,
+                    key: Key('why_${post.id}'),
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                ),
+              ],
+            ),
+          ),
         PostTile(
           key: ValueKey(post.id),
           post: post,
           session: widget.session,
           onDeleted: _removed,
         ),
+      ],
       _footer(context),
     ];
 
@@ -141,7 +170,7 @@ class PagedPostListState extends State<PagedPostList> {
       content = Text(widget.emptyText, key: const Key('list_empty'));
     } else {
       content = Text(
-        'Você está em dia.',
+        widget.endText,
         key: const Key('list_end'),
         style: theme.textTheme.bodySmall,
       );
@@ -303,6 +332,20 @@ class PostTile extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(0, 8, 12, 0),
                 child: PostImages(images: post.images),
               ),
+            if (post.topics.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Wrap(
+                  spacing: 6,
+                  children: [
+                    for (final t in post.topics)
+                      Text(
+                        '· ${topicLabel(t)}',
+                        style: theme.textTheme.labelSmall,
+                      ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 4),
             EngagementBar(
               key: ValueKey('engagement_${post.id}'),
@@ -370,6 +413,12 @@ class _EngagementBarState extends State<EngagementBar> {
       final api = widget.session.api;
       if (next) {
         await api.like(token, widget.post.id);
+        unawaited(
+          widget.session.interests.learn(
+            widget.post,
+            me: widget.session.user?.username,
+          ),
+        );
       } else {
         await api.unlike(token, widget.post.id);
       }

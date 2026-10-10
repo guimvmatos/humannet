@@ -1110,4 +1110,31 @@ void main() {
     expect(saved['visibility'], 'friends');
     expect(find.text('Ciência da Computação · UFSCar Sorocaba'), findsOneWidget);
   });
+
+  testWidgets('feed "Para você": aprende com curtida e diz o porquê', (
+    tester,
+  ) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.tap(find.text('Para você'));
+    await tester.pumpAndSettle();
+    expect(backend.calls, contains('GET /v1/feed/candidates'));
+    expect(find.byKey(const Key('why_c2')), findsOneWidget);
+    expect(find.text('Recente, de quem você acompanha'), findsNWidgets(2));
+
+    // Curtir o post de futebol ensina o perfil (só no aparelho).
+    await tester.tap(find.byKey(const Key('like_c2')));
+    await tester.pumpAndSettle();
+    expect(session.interests.topics['esportes.futebol'], 1);
+
+    // Recarregar: agora o motivo aparece.
+    await tester.fling(find.byKey(const Key('why_c1')), const Offset(0, 400), 1000);
+    await tester.pumpAndSettle();
+    expect(find.text('Você curte Futebol (Esportes)'), findsOneWidget);
+    expect(session.interests.feedMode, 'foryou');
+  });
 }

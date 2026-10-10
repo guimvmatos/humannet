@@ -74,6 +74,9 @@ pub struct PostDto {
     pub like_count: Option<i64>,
     /// Até 4 fotos, na ordem.
     pub images: Vec<MediaDto>,
+    /// Temas marcados pelo autor (lista fixa) e hashtags do texto.
+    pub topics: Vec<String>,
+    pub hashtags: Vec<String>,
     /// Post do mural de uma página (o autor é quem administra e publicou).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page: Option<PageRef>,
@@ -98,6 +101,8 @@ struct PostRow {
     page_slug: Option<String>,
     page_name: Option<String>,
     page_logo_key: Option<String>,
+    topics: Vec<String>,
+    hashtags: Vec<String>,
 }
 
 impl From<PostRow> for PostDto {
@@ -117,6 +122,8 @@ impl From<PostRow> for PostDto {
             liked_by_me: false,
             like_count: None,
             images: Vec::new(),
+            topics: r.topics,
+            hashtags: r.hashtags,
             page: match (r.page_slug, r.page_name) {
                 (Some(slug), Some(name)) => Some(PageRef {
                     slug,
@@ -241,6 +248,9 @@ pub struct CreatePost {
     /// Fotos enviadas antes em POST /v1/media?kind=post (até 4).
     #[serde(default)]
     pub media_ids: Vec<Uuid>,
+    /// Até 3 temas da lista (`GET /v1/topics`), ex.: "cidade.transito".
+    #[serde(default)]
+    pub topics: Vec<String>,
 }
 
 /// Fotos por post.
@@ -272,14 +282,30 @@ pub(crate) async fn insert(
     } else {
         String::new()
     };
+    let mut topics: Vec<String> = Vec::new();
+    for t in &req.topics {
+        if !crate::topics::valid(t) {
+            return Err(AppError::Validation("invalid_topic"));
+        }
+        if !topics.contains(t) {
+            topics.push(t.clone());
+        }
+    }
+    if topics.len() > 3 {
+        return Err(AppError::Validation("too_many_topics"));
+    }
+    let hashtags = crate::topics::hashtags(&body);
     let mut tx = state.db.begin().await?;
     let id = Uuid::now_v7();
     sqlx::query!(
-        "INSERT INTO posts (id, author_id, body, page_id) VALUES ($1, $2, $3, $4)",
+        "INSERT INTO posts (id, author_id, body, page_id, topics, hashtags)
+         VALUES ($1, $2, $3, $4, $5, $6)",
         id,
         author,
         body,
-        page_id
+        page_id,
+        &topics,
+        &hashtags
     )
     .execute(&mut *tx)
     .await?;
@@ -310,7 +336,7 @@ async fn fetch_row(state: &AppState, id: Uuid) -> sqlx::Result<Option<PostRow>> 
         r#"
         SELECT p.id, p.body, p.created_at, p.edited_at,
                u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name,
+               u.display_name AS author_display_name, p.topics, p.hashtags,
                pg.slug AS "page_slug?", pg.name AS "page_name?", lm.key AS "page_logo_key?"
         FROM posts p JOIN users u ON u.id = p.author_id
         LEFT JOIN pages pg ON pg.id = p.page_id
@@ -388,7 +414,7 @@ pub async fn list_by_user(
         r#"
         SELECT p.id, p.body, p.created_at, p.edited_at,
                u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name,
+               u.display_name AS author_display_name, p.topics, p.hashtags,
                NULL::text AS "page_slug?", NULL::text AS "page_name?",
                NULL::text AS "page_logo_key?"
         FROM posts p JOIN users u ON u.id = p.author_id
@@ -421,7 +447,7 @@ pub async fn feed(
         r#"
         SELECT p.id, p.body, p.created_at, p.edited_at,
                u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name,
+               u.display_name AS author_display_name, p.topics, p.hashtags,
                pg.slug AS "page_slug?", pg.name AS "page_name?", lm.key AS "page_logo_key?"
         FROM posts p JOIN users u ON u.id = p.author_id
         LEFT JOIN pages pg ON pg.id = p.page_id
@@ -491,7 +517,7 @@ pub(crate) async fn page_wall(
         r#"
         SELECT p.id, p.body, p.created_at, p.edited_at,
                u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name,
+               u.display_name AS author_display_name, p.topics, p.hashtags,
                pg.slug AS "page_slug?", pg.name AS "page_name?", lm.key AS "page_logo_key?"
         FROM posts p JOIN users u ON u.id = p.author_id
         JOIN pages pg ON pg.id = p.page_id
@@ -508,4 +534,57 @@ pub(crate) async fn page_wall(
     .fetch_all(&state.db)
     .await?;
     Ok(page(state, viewer, rows, limit).await?)
+}
+
+/// GET /v1/topics — a lista fixa de temas e subtemas.
+pub async fn topics(_user: AuthUser) -> Json<&'static [crate::topics::Topic]> {
+    Json(crate::topics::TOPICS)
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CandidatesQuery {
+    pub days: Option<i64>,
+}
+
+/// GET /v1/feed/candidates?days=7 — posts recentes da mesma fonte do feed
+/// cronológico (amigos, eu, páginas que acompanho), para o app ordenar no
+/// aparelho pelo perfil de interesses (ADR-0004). O servidor não ordena nem
+/// guarda nada sobre interesses.
+pub async fn candidates(
+    State(state): State<AppState>,
+    user: AuthUser,
+    Query(q): Query<CandidatesQuery>,
+) -> AppResult<Json<Page<PostDto>>> {
+    let days = q.days.unwrap_or(7).clamp(1, 30);
+    let rows = sqlx::query_as!(
+        PostRow,
+        r#"
+        SELECT p.id, p.body, p.created_at, p.edited_at,
+               u.id AS author_id, u.username AS author_username,
+               u.display_name AS author_display_name, p.topics, p.hashtags,
+               pg.slug AS "page_slug?", pg.name AS "page_name?", lm.key AS "page_logo_key?"
+        FROM posts p JOIN users u ON u.id = p.author_id
+        LEFT JOIN pages pg ON pg.id = p.page_id
+        LEFT JOIN media lm ON lm.id = pg.logo_media_id
+        WHERE p.deleted_at IS NULL
+          AND p.created_at > now() - make_interval(days => $2::int)
+          AND ((p.page_id IS NULL
+                AND (p.author_id = $1
+                     OR p.author_id IN (SELECT friend_id FROM friends WHERE user_id = $1)))
+               OR (pg.deleted_at IS NULL
+                   AND p.page_id IN (SELECT page_id FROM page_followers WHERE user_id = $1)))
+        ORDER BY p.id DESC
+        LIMIT 300
+        "#,
+        user.user_id,
+        i32::try_from(days).unwrap_or(7)
+    )
+    .fetch_all(&state.db)
+    .await?;
+    let mut items: Vec<PostDto> = rows.into_iter().map(PostDto::from).collect();
+    enrich(&state, user.user_id, &mut items).await?;
+    Ok(Json(Page {
+        items,
+        next_cursor: None,
+    }))
 }

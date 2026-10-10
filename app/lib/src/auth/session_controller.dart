@@ -2,15 +2,24 @@ import 'package:flutter/foundation.dart';
 
 import '../api/api_client.dart';
 import '../api/models.dart';
+import '../feed/interests.dart';
+import '../theme/theme_controller.dart' show InMemoryPrefsStore;
 import 'token_store.dart';
 
 enum SessionStatus { unknown, signedOut, signedIn }
 
 /// Estado de autenticação do app. Única fonte da verdade sobre "quem está logado".
 class SessionController extends ChangeNotifier {
-  SessionController({required ApiClient api, required TokenStore tokenStore})
-    : _api = api,
-      _tokens = tokenStore;
+  SessionController({
+    required ApiClient api,
+    required TokenStore tokenStore,
+    InterestProfile? interests,
+  }) : _api = api,
+       _tokens = tokenStore,
+       interests = interests ?? InterestProfile(InMemoryPrefsStore());
+
+  /// Perfil de interesses do "Para você" (só neste aparelho, ADR-0004).
+  final InterestProfile interests;
 
   final ApiClient _api;
   final TokenStore _tokens;
