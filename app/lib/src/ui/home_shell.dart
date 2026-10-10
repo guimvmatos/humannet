@@ -12,6 +12,7 @@ import 'feed_screen.dart';
 import 'friends_screen.dart';
 import 'places_ui.dart';
 import 'profile_screen.dart';
+import 'wide_layout.dart';
 
 /// Navegação principal após o login: Feed, Amigos, Comunidades, Agenda e Perfil.
 /// Mantém os contadores das bolinhas (atualizados ao trocar de aba, ao voltar
@@ -129,8 +130,7 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final username = widget.session.user?.username ?? '';
-    return Scaffold(
-      body: IndexedStack(
+    final pages = IndexedStack(
         index: _index,
         children: [
           FeedScreen(
@@ -147,7 +147,10 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             asTab: true,
           ),
         ],
-      ),
+      );
+    if (isWide(context)) return _wide(pages);
+    return Scaffold(
+      body: pages,
       bottomNavigationBar: ValueListenableBuilder<Counts>(
         valueListenable: _counts,
         builder: (context, c, _) => NavigationBarTheme(
@@ -198,6 +201,75 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
           ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// Notebook/tablet deitado: menu lateral e conteúdo numa coluna central.
+  Widget _wide(Widget pages) {
+    final width = MediaQuery.sizeOf(context).width;
+    final extended = width >= 1200;
+    final theme = Theme.of(context);
+    return Scaffold(
+      body: Row(
+        children: [
+          ValueListenableBuilder<Counts>(
+            valueListenable: _counts,
+            builder: (context, c, _) => NavigationRail(
+              key: const Key('nav_rail'),
+              extended: extended,
+              minExtendedWidth: 220,
+              labelType: extended
+                  ? NavigationRailLabelType.none
+                  : NavigationRailLabelType.all,
+              backgroundColor: theme.colorScheme.surface.withValues(
+                alpha: 0.9,
+              ),
+              selectedIndex: _index,
+              onDestinationSelected: _select,
+              leading: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  extended ? 'HumanNet' : 'H.',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              destinations: [
+                const NavigationRailDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home),
+                  label: Text('Feed'),
+                ),
+                NavigationRailDestination(
+                  icon: _badge(c.friendRequests, Icons.people_outline),
+                  selectedIcon: _badge(c.friendRequests, Icons.people),
+                  label: const Text('Amigos'),
+                ),
+                NavigationRailDestination(
+                  icon: _badge(c.communityRequests, Icons.forum_outlined),
+                  selectedIcon: _badge(c.communityRequests, Icons.forum),
+                  label: const Text('Comunidades'),
+                ),
+                const NavigationRailDestination(
+                  icon: Icon(Icons.event_outlined),
+                  selectedIcon: Icon(Icons.event),
+                  label: Text('Agenda'),
+                ),
+                NavigationRailDestination(
+                  icon: _badge(c.pendingTestimonials, Icons.person_outline),
+                  selectedIcon: _badge(c.pendingTestimonials, Icons.person),
+                  label: const Text('Perfil'),
+                ),
+              ],
+            ),
+          ),
+          const VerticalDivider(width: 1),
+          // A coluna fica centrada no espaço que sobra.
+          Expanded(child: WideFrame(child: pages)),
+        ],
       ),
     );
   }

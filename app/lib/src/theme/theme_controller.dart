@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../ui/wide_layout.dart';
 import 'backgrounds.dart';
 
 export 'backgrounds.dart' show AppBackground;
@@ -177,15 +178,19 @@ class ThemeController extends ChangeNotifier {
   ThemeData get light => _withBackground(_palette.data(Brightness.light));
   ThemeData get dark => _withBackground(_palette.data(Brightness.dark));
 
+  /// Telas abertas por cima ficam numa coluna central no notebook.
+  static final _pages = widePageTransitions();
+
   /// Com fundo, as telas ficam transparentes para ele aparecer.
   ThemeData _withBackground(ThemeData t) => hasBackground
       ? t.copyWith(
           scaffoldBackgroundColor: Colors.transparent,
+          pageTransitionsTheme: _pages,
           appBarTheme: AppBarTheme(
             backgroundColor: t.colorScheme.surface.withValues(alpha: 0.85),
           ),
         )
-      : t;
+      : t.copyWith(pageTransitionsTheme: _pages);
 
   Future<void> load() async {
     try {

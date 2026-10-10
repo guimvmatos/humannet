@@ -7,6 +7,7 @@ import 'cpf.dart';
 import 'home_shell.dart';
 import 'legal_screen.dart';
 import 'login_screen.dart';
+import 'wide_layout.dart';
 
 class HumanNetApp extends StatefulWidget {
   const HumanNetApp({super.key, required this.session, this.themes});
@@ -37,16 +38,21 @@ class _HumanNetAppState extends State<HumanNetApp> {
           theme: _themes.light,
           darkTheme: _themes.dark,
           themeMode: _themes.mode,
-          builder: (context, child) => ThemedBackground(
-            background: _themes.background,
-            photoPath: _themes.photoPath,
-            strength: _themes.strength,
-            child: child ?? const SizedBox.shrink(),
+          // O fundo de baixo aparece nas laterais do layout largo (notebook).
+          builder: (context, child) => ColoredBox(
+            color: Theme.of(context).colorScheme.surfaceContainer,
+            child: ThemedBackground(
+              background: _themes.background,
+              photoPath: _themes.photoPath,
+              strength: _themes.strength,
+              child: child ?? const SizedBox.shrink(),
+            ),
           ),
           home: ListenableBuilder(
             listenable: session,
             builder: (context, _) => switch (session.status) {
-              SessionStatus.unknown => const Scaffold(
+              SessionStatus.unknown => const WideFrame(
+                child: Scaffold(
                 body: Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -64,12 +70,15 @@ class _HumanNetAppState extends State<HumanNetApp> {
                     ],
                   ),
                 ),
+                ),
               ),
-              SessionStatus.signedOut => LoginScreen(session: session),
+              SessionStatus.signedOut => WideFrame(
+                child: LoginScreen(session: session),
+              ),
               SessionStatus.signedIn when session.user?.needsTerms ?? false =>
-                TermsGateScreen(session: session),
+                WideFrame(child: TermsGateScreen(session: session)),
               SessionStatus.signedIn when session.user?.needsCpf ?? false =>
-                CpfScreen(session: session),
+                WideFrame(child: CpfScreen(session: session)),
               SessionStatus.signedIn => HomeShell(session: session),
             },
           ),

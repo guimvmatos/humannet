@@ -1243,4 +1243,31 @@ void main() {
     expect(backend.lastCreatedPost?['body'], 'Sem GPS');
     expect(backend.lastCreatedPost?.containsKey('lat'), isFalse);
   });
+
+  testWidgets('notebook: menu lateral e telas numa coluna central', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    // Login também fica numa coluna, não esticado.
+    expect(tester.getSize(find.byKey(const Key('login_field'))).width,
+        lessThan(800));
+    await _login(tester);
+
+    expect(find.byKey(const Key('nav_rail')), findsOneWidget);
+    expect(find.byKey(const Key('nav_feed')), findsNothing);
+    expect(find.text('HumanNet'), findsWidgets);
+    final feed = tester.getSize(find.byKey(const Key('feed_screen')));
+    expect(feed.width, lessThanOrEqualTo(720));
+
+    await tester.tap(find.text('Amigos').last);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('friends_screen')), findsOneWidget);
+  });
 }
+

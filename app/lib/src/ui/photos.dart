@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../api/models.dart';
+import 'wide_layout.dart';
 
 /// Abre a galeria (seletor de fotos do Android: não pede permissão).
 /// O app já reduz a foto antes de enviar; o servidor recodifica e tira os
@@ -133,6 +134,7 @@ class PhotoViewer extends StatelessWidget {
         foregroundColor: Colors.white,
       ),
       body: PageView(
+        scrollBehavior: mouseDragScroll,
         controller: PageController(initialPage: initial),
         children: [
           for (final m in images)
