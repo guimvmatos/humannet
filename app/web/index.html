@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <!-- O build troca $FLUTTER_BASE_HREF (ex.: /humannet/ no GitHub Pages). -->
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta name="description" content="HumanNet: rede social ética, humana e autêntica.">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#3D6B5A">
+
+  <!-- iPhone: "Adicionar à Tela de Início" abre em tela cheia, como app. -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="HumanNet">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="manifest" href="manifest.json">
+  <title>HumanNet</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #3D6B5A; }
+    #carregando {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+      color: #fff; font: 16px -apple-system, system-ui, sans-serif;
+    }
+    #carregando img { width: 96px; height: 96px; border-radius: 22px; }
+    #instalar {
+      position: fixed; left: 12px; right: 12px;
+      bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 10000;
+      display: none; padding: 14px 44px 14px 16px; border-radius: 14px;
+      background: #fff; color: #1b1b1b; box-shadow: 0 6px 24px rgba(0,0,0,.25);
+      font: 15px/1.4 -apple-system, system-ui, sans-serif;
+    }
+    #instalar b { color: #3D6B5A; }
+    #instalar button {
+      position: absolute; top: 6px; right: 6px; border: 0; background: none;
+      font-size: 22px; line-height: 1; padding: 8px; color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div id="carregando">
+    <img src="icons/Icon-192.png" alt="">
+    <div>Carregando o HumanNet…</div>
+  </div>
+
+  <!-- Dica só no iPhone/iPad, no Safari, fora do modo "app". -->
+  <div id="instalar" role="dialog" aria-label="Instalar o HumanNet">
+    <button type="button" aria-label="Fechar">×</button>
+    Para usar como app no iPhone: toque em <b>Compartilhar</b> (o quadrado
+    com a seta) e depois em <b>Adicionar à Tela de Início</b>.
+  </div>
+
+  <script>
+    (function () {
+      window.addEventListener('flutter-first-frame', function () {
+        var c = document.getElementById('carregando');
+        if (c) c.remove();
+      });
+      var ua = navigator.userAgent;
+      var ios = /iPhone|iPad|iPod/.test(ua) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      var standalone = window.navigator.standalone === true ||
+        window.matchMedia('(display-mode: standalone)').matches;
+      var dispensado = false;
+      try { dispensado = localStorage.getItem('dica_instalar') === '1'; } catch (e) {}
+      if (ios && !standalone && !dispensado) {
+        var d = document.getElementById('instalar');
+        d.style.display = 'block';
+        d.querySelector('button').addEventListener('click', function () {
+          d.remove();
+          try { localStorage.setItem('dica_instalar', '1'); } catch (e) {}
+        });
+      }
+    })();
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

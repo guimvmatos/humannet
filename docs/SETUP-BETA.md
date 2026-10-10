@@ -317,3 +317,23 @@ com as opções **Descartar**, **Remover post** ou **Suspender**.
 - [ ] 7. Token revogado/renovado, 2FA ligado
 
 Em qualquer passo que travar: tire um print e me mande.
+
+---
+
+## Passo 8 — Versão web para iPhone (GitHub Pages, grátis, 2 min)
+
+A versão web é o mesmo app, publicado em **https://guimvmatos.github.io/humannet/**
+a cada push na `main` (job `web` + `pages` do workflow `app`).
+
+1. **https://github.com/guimvmatos/humannet/settings/pages** → em **Build and
+   deployment → Source**, escolha **GitHub Actions**. (Só uma vez.)
+2. Rode de novo o workflow `app` na `main` (Actions → app → **Run workflow**) ou
+   faça qualquer push em `app/`.
+
+✅ **Confere:** abra o endereço no iPhone (Safari) → **Compartilhar** →
+**Adicionar à Tela de Início**. O ícone abre o HumanNet em tela cheia.
+
+- A API só aceita chamadas do navegador vindas de `https://guimvmatos.github.io`
+  (CORS). Para testar a web em outro endereço (ex.: `http://localhost:8080`),
+  defina no Render `CORS_EXTRA_ORIGINS` com esse endereço.
+- Notificações push no iPhone ainda não estão ligadas na versão web.

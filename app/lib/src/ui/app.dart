@@ -47,7 +47,23 @@ class _HumanNetAppState extends State<HumanNetApp> {
             listenable: session,
             builder: (context, _) => switch (session.status) {
               SessionStatus.unknown => const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
+                body: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 32),
+                        child: Text(
+                          'Conectando… Se o servidor estava parado, a '
+                          'primeira vez pode levar até 1 minuto.',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
               SessionStatus.signedOut => LoginScreen(session: session),
               SessionStatus.signedIn when session.user?.needsTerms ?? false =>

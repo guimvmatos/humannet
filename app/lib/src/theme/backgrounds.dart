@@ -1,7 +1,8 @@
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+
+import 'local_photo.dart';
 
 /// Fundos ilustrados dos temas. Desenhados no código (arte original, sem
 /// imagem de terceiros e sem baixar nada).
@@ -36,12 +37,7 @@ class ThemedBackground extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         if (photo != null)
-          Image.file(
-            File(photo),
-            key: const Key('photo_background'),
-            fit: BoxFit.cover,
-            errorBuilder: (_, _, _) => const SizedBox.shrink(),
-          )
+          localPhotoImage(photo, key: const Key('photo_background'))
         else
           CustomPaint(
             key: const Key('themed_background'),

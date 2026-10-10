@@ -649,7 +649,7 @@ class _Header extends StatelessWidget {
                   radius: 32,
                   backgroundImage: profile.avatarUrl == null
                       ? null
-                      : NetworkImage(profile.avatarUrl!),
+                      : webSafeImage(profile.avatarUrl!),
                   child: profile.avatarUrl == null
                       ? Icon(
                           profile.isSelf

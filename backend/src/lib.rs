@@ -21,12 +21,50 @@ use axum::{
 };
 use sqlx::PgPool;
 use tower_http::{
+    cors::{AllowOrigin, CorsLayer},
     request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
     timeout::TimeoutLayer,
     trace::TraceLayer,
 };
 
 pub use config::{Config, Policy};
+
+/// Sites que podem chamar a API pelo navegador (versão web do app). A sessão
+/// vai no cabeçalho `Authorization` (sem cookies), então CORS aqui só evita
+/// que outros sites usem a API pelo navegador de quem visita.
+pub const WEB_ORIGINS: &[&str] = &["https://guimvmatos.github.io"];
+
+/// CORS: `WEB_ORIGINS` e, opcionalmente, `CORS_EXTRA_ORIGINS` (separados por
+/// vírgula; ex.: `http://localhost:8080` para testar a versão web).
+fn cors() -> CorsLayer {
+    let extra = std::env::var("CORS_EXTRA_ORIGINS").unwrap_or_default();
+    let origins: Vec<axum::http::HeaderValue> = WEB_ORIGINS
+        .iter()
+        .map(|s| (*s).to_owned())
+        .chain(
+            extra
+                .split(',')
+                .map(|s| s.trim().trim_end_matches('/').to_owned())
+                .filter(|s| !s.is_empty()),
+        )
+        .filter_map(|s| s.parse().ok())
+        .collect();
+    CorsLayer::new()
+        .allow_origin(AllowOrigin::list(origins))
+        .allow_methods([
+            axum::http::Method::GET,
+            axum::http::Method::POST,
+            axum::http::Method::PUT,
+            axum::http::Method::PATCH,
+            axum::http::Method::DELETE,
+        ])
+        .allow_headers([
+            axum::http::header::AUTHORIZATION,
+            axum::http::header::CONTENT_TYPE,
+            axum::http::header::ACCEPT,
+        ])
+        .max_age(Duration::from_secs(3600))
+}
 
 /// Limite de corpo para a API JSON. O upload de fotos tem limite próprio.
 const MAX_BODY_BYTES: usize = 64 * 1024;
@@ -338,6 +376,7 @@ pub fn app(state: AppState) -> Router {
         .layer(PropagateRequestIdLayer::new(request_id.clone()))
         .layer(TraceLayer::new_for_http())
         .layer(SetRequestIdLayer::new(request_id, MakeRequestUuid))
+        .layer(cors())
 }
 
 /// Migrações embutidas no binário.

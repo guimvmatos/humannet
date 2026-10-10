@@ -172,7 +172,7 @@ class PlaceLogo extends StatelessWidget {
     final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
     return CircleAvatar(
       radius: radius,
-      backgroundImage: u == null ? null : NetworkImage(u),
+      backgroundImage: u == null ? null : webSafeImage(u),
       child: u == null ? Text(initial) : null,
     );
   }
@@ -660,7 +660,7 @@ class _PlaceScreenState extends State<PlaceScreen> {
                   ? () => _imageMenu(logo: false)
                   : null,
               child: cover != null
-                  ? Image.network(cover, fit: BoxFit.cover)
+                  ? NetPhoto(cover)
                   : DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(

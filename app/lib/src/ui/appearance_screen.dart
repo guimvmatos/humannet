@@ -1,9 +1,7 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../theme/backgrounds.dart';
+import '../theme/local_photo.dart';
 import '../theme/theme_controller.dart';
 import 'photos.dart';
 
@@ -11,20 +9,7 @@ import 'photos.dart';
 Future<String?> _pickBackgroundPhoto() async {
   final photos = await pickPhotos();
   if (photos.isEmpty) return null;
-  final dir = await getApplicationDocumentsDirectory();
-  // Nome novo a cada troca (o Flutter guarda imagens em cache pelo caminho).
-  for (final old in dir.listSync().whereType<File>()) {
-    if (old.path.contains('fundo_')) {
-      try {
-        old.deleteSync();
-      } catch (_) {}
-    }
-  }
-  final file = File(
-    '${dir.path}/fundo_${DateTime.now().millisecondsSinceEpoch}.jpg',
-  );
-  await file.writeAsBytes(photos.first, flush: true);
-  return file.path;
+  return saveLocalPhoto(photos.first);
 }
 
 /// Escolha do tema do app. Fica salvo só neste aparelho.

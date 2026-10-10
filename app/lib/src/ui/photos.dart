@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -18,7 +19,8 @@ Future<List<Uint8List>> pickPhotos({int limit = 1}) async {
       maxWidth: maxSide,
       maxHeight: maxSide,
       imageQuality: quality,
-      limit: limit,
+      // Na web o seletor não aceita limite; cortamos abaixo.
+      limit: kIsWeb ? null : limit,
     );
   } else {
     final f = await picker.pickImage(
@@ -31,6 +33,11 @@ Future<List<Uint8List>> pickPhotos({int limit = 1}) async {
   }
   return [for (final f in files.take(limit)) await f.readAsBytes()];
 }
+
+/// Imagem da rede que também funciona na versão web (cai para <img> quando
+/// o armazenamento não libera CORS).
+ImageProvider webSafeImage(String url) =>
+    NetworkImage(url, webHtmlElementStrategy: WebHtmlElementStrategy.fallback);
 
 /// Foto da rede com carregando e erro discretos.
 class NetPhoto extends StatelessWidget {
@@ -45,6 +52,8 @@ class NetPhoto extends StatelessWidget {
     return Image.network(
       url,
       fit: fit,
+      // Web: se o armazenamento das fotos não liberar CORS, usa <img>.
+      webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
       gaplessPlayback: true,
       loadingBuilder: (context, child, progress) =>
           progress == null ? child : ColoredBox(color: bg),
@@ -150,7 +159,7 @@ class UserAvatar extends StatelessWidget {
     final name = author.displayName ?? author.username;
     return CircleAvatar(
       radius: radius,
-      backgroundImage: url == null ? null : NetworkImage(url),
+      backgroundImage: url == null ? null : webSafeImage(url),
       onBackgroundImageError: url == null ? null : (_, _) {},
       child: url == null
           ? Text(name.isEmpty ? '?' : name.characters.first.toUpperCase())
