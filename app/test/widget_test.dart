@@ -1126,6 +1126,8 @@ void main() {
     expect(backend.calls, contains('GET /v1/feed/candidates'));
     expect(find.byKey(const Key('why_c2')), findsOneWidget);
     expect(find.text('Recente, de quem você acompanha'), findsNWidgets(2));
+    expect(find.text('Show de rock no sábado'), findsNothing,
+        reason: 'de fora da rede, sem interesse em comum');
 
     // Curtir o post de futebol ensina o perfil (só no aparelho).
     await tester.tap(find.byKey(const Key('like_c2')));
@@ -1139,7 +1141,7 @@ void main() {
     expect(session.interests.feedMode, 'foryou');
   });
 
-  testWidgets('feed da região: raio, rótulo e postar para a região', (
+  testWidgets('feed Regional: ordem, raio e post sempre leva a posição', (
     tester,
   ) async {
     locationFakeForTests = true;
@@ -1159,7 +1161,6 @@ void main() {
     expect(backend.calls, contains('GET /v1/feed/region'));
     expect(backend.lastRegionQuery['radius_km'], '5');
     expect(find.text('Feira na praça amanhã'), findsOneWidget);
-    expect(find.byKey(const ValueKey('regional_r1')), findsOneWidget);
 
     // Puxa a barrinha até 50 km: recarrega ao soltar.
     await tester.drag(
@@ -1171,17 +1172,38 @@ void main() {
     expect(backend.lastRegionQuery['radius_km'], '50');
     expect(find.text('50 km'), findsOneWidget);
 
-    // Postar para a região manda a posição aproximada.
+    // Regional "Para você": candidatos ordenados no aparelho.
+    await tester.tap(find.byKey(const Key('region_order_foryou')));
+    await tester.pumpAndSettle();
+    expect(backend.calls, contains('GET /v1/feed/region/candidates'));
+    expect(session.interests.feedView, 'region');
+    expect(session.interests.feedMode, 'foryou');
+    expect(find.text('Feira na praça amanhã'), findsOneWidget);
+
+    // Escrever: sem escolha de público; a posição vai junto.
     await tester.tap(find.byKey(const Key('compose_button')));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('compose_field')), 'Alguém viu um gato?');
-    await tester.pump();
-    await tester.tap(find.byKey(const Key('audience_region')));
+    expect(find.text('Região'), findsNothing);
+    expect(find.byKey(const Key('compose_public_note')), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const Key('compose_field')),
+      'Alguém viu um gato?',
+    );
     await tester.pump();
     await tester.tap(find.byKey(const Key('publish_button')));
     await tester.pumpAndSettle();
-    expect(backend.lastCreatedPost?['audience'], 'region');
     expect(backend.lastCreatedPost?['lat'], -23.5015);
-    expect(backend.regionPosts.first['body'], 'Alguém viu um gato?');
+    expect(backend.lastCreatedPost?.containsKey('audience'), isFalse);
+
+    // Sem localização, o post sai do mesmo jeito (só não vai ao Regional).
+    locationForTests = null;
+    await tester.tap(find.byKey(const Key('compose_button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('compose_field')), 'Sem GPS');
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('publish_button')));
+    await tester.pumpAndSettle();
+    expect(backend.lastCreatedPost?['body'], 'Sem GPS');
+    expect(backend.lastCreatedPost?.containsKey('lat'), isFalse);
   });
 }

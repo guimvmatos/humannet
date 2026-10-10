@@ -792,7 +792,15 @@ async fn report_comment(db: PgPool) {
     .await;
     let comment = c["id"].as_str().unwrap();
     let body = json!({"kind": "comment", "comment_id": comment, "reason": "harassment"});
-    // carol não vê o post → não denuncia.
+    // carol bloqueada por alice não vê o post → não denuncia.
+    call(
+        &app,
+        Method::PUT,
+        "/v1/users/carol/block",
+        Some(&alice),
+        None,
+    )
+    .await;
     let (s, _) = call(
         &app,
         Method::POST,

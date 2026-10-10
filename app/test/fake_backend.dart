@@ -98,9 +98,21 @@ class FakeBackend {
   final List<String> createdOrgs = [];
   bool pageConversationOpened = false;
 
-  /// Feed regional: posts "para a região" e a última consulta feita.
+  /// Feed regional: posts com posição e a última consulta feita.
   final List<Map<String, Object?>> regionPosts = [
-    {..._post('r1', 'Feira na praça amanhã'), 'audience': 'region'},
+    {
+      ..._post('r1', 'Feira na praça amanhã'),
+      'topics': ['eventos'],
+      'created_at': DateTime.now().toUtc().toIso8601String(),
+    },
+    {
+      ..._post('r2', 'Alguém sabe de vaga de estágio?'),
+      'topics': ['trabalho'],
+      'created_at': DateTime.now()
+          .subtract(const Duration(hours: 1))
+          .toUtc()
+          .toIso8601String(),
+    },
   ];
   Map<String, String> lastRegionQuery = const {};
   Map<String, dynamic>? lastCreatedPost;
@@ -284,15 +296,9 @@ class FakeBackend {
         }
         lastCreatedPost = created;
         final id = '01a10000-0000-7000-8000-${(_seq++).toString().padLeft(12, '0')}';
-        final post = {
-          ..._post(id, text),
-          'audience': created['audience'] ?? 'friends',
-        };
-        if (post['audience'] == 'region') {
-          regionPosts.insert(0, post);
-        } else {
-          posts.insert(0, post);
-        }
+        final post = _post(id, text);
+        posts.insert(0, post);
+        if (created['lat'] != null) regionPosts.insert(0, post);
         return _json(201, post);
       case 'GET /v1/feed/region':
       case 'GET /v1/feed/region/candidates':
@@ -317,6 +323,13 @@ class FakeBackend {
               ..._post('c2', 'Golaço ontem!'),
               'topics': ['esportes.futebol'],
               'liked_by_me': false,
+              'created_at': DateTime.now().toUtc().toIso8601String(),
+            },
+            // De fora da rede: só aparece se bater com um interesse.
+            {
+              ..._post('c3', 'Show de rock no sábado'),
+              'topics': ['musica'],
+              'in_network': false,
               'created_at': DateTime.now().toUtc().toIso8601String(),
             },
           ],

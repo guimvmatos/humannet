@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT p.id, p.body, p.created_at, p.edited_at,\n               u.id AS author_id, u.username AS author_username,\n               u.display_name AS author_display_name, p.topics, p.hashtags, p.audience,\n               pg.slug AS \"page_slug?\", pg.name AS \"page_name?\", lm.key AS \"page_logo_key?\"\n        FROM posts p JOIN users u ON u.id = p.author_id\n        LEFT JOIN pages pg ON pg.id = p.page_id\n        LEFT JOIN media lm ON lm.id = pg.logo_media_id\n        WHERE p.id = $1 AND p.deleted_at IS NULL\n        ",
+  "query": "\n        SELECT p.id, p.body, p.created_at, p.edited_at,\n               u.id AS author_id, u.username AS author_username,\n               u.display_name AS author_display_name, p.topics, p.hashtags,\n               NULL::text AS \"page_slug?\", NULL::text AS \"page_name?\",\n               NULL::text AS \"page_logo_key?\"\n        FROM posts p JOIN users u ON u.id = p.author_id\n        WHERE p.author_id = $1\n          AND p.page_id IS NULL\n          AND p.deleted_at IS NULL\n          AND ($2::uuid IS NULL OR p.id < $2)\n        ORDER BY p.id DESC\n        LIMIT $3\n        ",
   "describe": {
     "columns": [
       {
@@ -104,52 +104,28 @@
       },
       {
         "ordinal": 9,
-        "name": "audience",
+        "name": "page_slug?",
         "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "posts",
-            "name": "audience"
-          }
-        }
+        "origin": "Expression"
       },
       {
         "ordinal": 10,
-        "name": "page_slug?",
+        "name": "page_name?",
         "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "pages",
-            "name": "slug"
-          }
-        }
+        "origin": "Expression"
       },
       {
         "ordinal": 11,
-        "name": "page_name?",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "pages",
-            "name": "name"
-          }
-        }
-      },
-      {
-        "ordinal": 12,
         "name": "page_logo_key?",
         "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "media",
-            "name": "key"
-          }
-        }
+        "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Uuid",
+        "Uuid",
+        "Int8"
       ]
     },
     "nullable": [
@@ -162,11 +138,10 @@
       true,
       false,
       false,
-      false,
-      false,
-      false,
-      false
+      null,
+      null,
+      null
     ]
   },
-  "hash": "a3642584fa701549d2508bf36076783732aced1158fdeb9f2fab41ad03cd8a4c"
+  "hash": "15950f5845f7b309779d40d3236607a788c3e2260809c8bc6d9f656b8db37f2d"
 }

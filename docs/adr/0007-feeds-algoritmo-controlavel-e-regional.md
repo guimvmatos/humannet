@@ -23,7 +23,7 @@ O Guilherme quer quatro modos de feed: **A** cronológico, **B** algoritmizado, 
    - O servidor só conhece temas declarados pelos autores e hashtags seguidas explicitamente.
 5. **Regional (C1/C2).**
    - Raio livre de **1 a 50 km**.
-   - Posts regionais são opt-in por post (público "Região").
+   - ~~Posts regionais são opt-in por post (público "Região").~~ Substituído pelo [ADR-0008](0008-posts-globais-e-posicao-com-desvio.md): todo post leva a área aproximada, com desvio de até 1,5 km.
    - A posição do post é **arredondada para uma célula de ~500 m**, e a distância nunca é exibida (proteção contra triangulação).
    - A posição de quem lê vai ao servidor só na consulta, já arredondada, e **não é guardada**.
    - Feed regional fica desligado para menores, quando houver verificação de idade.

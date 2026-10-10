@@ -347,7 +347,8 @@ async fn user_posts_listing(db: PgPool) {
 }
 
 #[sqlx::test]
-async fn single_post_hidden_from_non_friends(db: PgPool) {
+async fn single_post_hidden_when_blocked(db: PgPool) {
+    // Posts são globais (ADR-0008): não-amigo vê; bloqueio esconde.
     let app = test_app(db.clone());
     let alice = signup(&app, &db, "alice").await;
     let bob = signup(&app, &db, "bob").await;
@@ -357,11 +358,22 @@ async fn single_post_hidden_from_non_friends(db: PgPool) {
         .to_owned();
     let uri = format!("/v1/posts/{id}");
 
+    let (s, _) = call(&app, Method::GET, &uri, Some(&alice), None).await;
+    assert_eq!(s, StatusCode::OK);
+
     // 404, não 403: não revela que o post existe.
+    call(&app, Method::PUT, "/v1/users/alice/block", Some(&bob), None).await;
     let (s, _) = call(&app, Method::GET, &uri, Some(&alice), None).await;
     assert_eq!(s, StatusCode::NOT_FOUND);
 
-    befriend(&app, &alice, "alice", &bob, "bob").await;
+    call(
+        &app,
+        Method::DELETE,
+        "/v1/users/alice/block",
+        Some(&bob),
+        None,
+    )
+    .await;
     let (s, _) = call(&app, Method::GET, &uri, Some(&alice), None).await;
     assert_eq!(s, StatusCode::OK);
 }

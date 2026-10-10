@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT p.id, p.body, p.created_at, p.edited_at,\n                   u.id AS author_id, u.username AS author_username,\n                   u.display_name AS author_display_name, p.topics, p.hashtags, p.audience,\n                   NULL::text AS \"page_slug?\", NULL::text AS \"page_name?\",\n                   NULL::text AS \"page_logo_key?\"\n            FROM posts p JOIN users u ON u.id = p.author_id\n            WHERE p.audience = 'region' AND p.deleted_at IS NULL AND u.suspended_at IS NULL\n              AND p.cell_lat BETWEEN $1::float8 - $3::float8 AND $1::float8 + $3::float8\n              AND p.cell_lng BETWEEN $2::float8 - $4::float8 AND $2::float8 + $4::float8\n              AND 6371 * 2 * asin(sqrt(\n                    power(sin(radians(p.cell_lat - $1::float8) / 2), 2)\n                    + cos(radians($1::float8)) * cos(radians(p.cell_lat))\n                      * power(sin(radians(p.cell_lng - $2::float8) / 2), 2))) <= $5::float8\n              AND p.created_at > now() - make_interval(days => $6::int)\n              AND ($7::uuid IS NULL OR p.id < $7)\n              AND NOT EXISTS (SELECT 1 FROM blocks b\n                WHERE (b.blocker_id = $8 AND b.blocked_id = p.author_id)\n                   OR (b.blocker_id = p.author_id AND b.blocked_id = $8))\n            ORDER BY p.id DESC\n            LIMIT $9\n            ",
+  "query": "\n        SELECT p.id, p.body, p.created_at, p.edited_at,\n               u.id AS author_id, u.username AS author_username,\n               u.display_name AS author_display_name, p.topics, p.hashtags,\n               pg.slug AS \"page_slug?\", pg.name AS \"page_name?\", lm.key AS \"page_logo_key?\"\n        FROM posts p JOIN users u ON u.id = p.author_id\n        LEFT JOIN pages pg ON pg.id = p.page_id\n        LEFT JOIN media lm ON lm.id = pg.logo_media_id\n        WHERE p.id = $1 AND p.deleted_at IS NULL\n        ",
   "describe": {
     "columns": [
       {
@@ -104,45 +104,41 @@
       },
       {
         "ordinal": 9,
-        "name": "audience",
+        "name": "page_slug?",
         "type_info": "Text",
         "origin": {
           "Table": {
-            "table": "posts",
-            "name": "audience"
+            "table": "pages",
+            "name": "slug"
           }
         }
       },
       {
         "ordinal": 10,
-        "name": "page_slug?",
+        "name": "page_name?",
         "type_info": "Text",
-        "origin": "Expression"
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "name"
+          }
+        }
       },
       {
         "ordinal": 11,
-        "name": "page_name?",
-        "type_info": "Text",
-        "origin": "Expression"
-      },
-      {
-        "ordinal": 12,
         "name": "page_logo_key?",
         "type_info": "Text",
-        "origin": "Expression"
+        "origin": {
+          "Table": {
+            "table": "media",
+            "name": "key"
+          }
+        }
       }
     ],
     "parameters": {
       "Left": [
-        "Float8",
-        "Float8",
-        "Float8",
-        "Float8",
-        "Float8",
-        "Int4",
-        "Uuid",
-        "Uuid",
-        "Int8"
+        "Uuid"
       ]
     },
     "nullable": [
@@ -156,10 +152,9 @@
       false,
       false,
       false,
-      null,
-      null,
-      null
+      false,
+      false
     ]
   },
-  "hash": "ffeada12f6058bb0422b3e465786e23da0f9981071cc85797ecc086df952fef9"
+  "hash": "5993a220747023164875d7fbc239751dcb343b8fce0434664fede910356f2151"
 }

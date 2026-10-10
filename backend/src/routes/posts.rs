@@ -77,8 +77,10 @@ pub struct PostDto {
     /// Temas marcados pelo autor (lista fixa) e hashtags do texto.
     pub topics: Vec<String>,
     pub hashtags: Vec<String>,
-    /// friends (padrão) | region (qualquer pessoa perto vê; sem distância).
-    pub audience: String,
+    /// Só em `/v1/feed/candidates`: se é de amigo, meu ou de página que
+    /// acompanho (`true`) ou de outra pessoa, achado por tema (`false`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub in_network: Option<bool>,
     /// Post do mural de uma página (o autor é quem administra e publicou).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page: Option<PageRef>,
@@ -105,7 +107,6 @@ struct PostRow {
     page_logo_key: Option<String>,
     topics: Vec<String>,
     hashtags: Vec<String>,
-    audience: String,
 }
 
 impl From<PostRow> for PostDto {
@@ -127,7 +128,7 @@ impl From<PostRow> for PostDto {
             images: Vec::new(),
             topics: r.topics,
             hashtags: r.hashtags,
-            audience: r.audience,
+            in_network: None,
             page: match (r.page_slug, r.page_name) {
                 (Some(slug), Some(name)) => Some(PageRef {
                     slug,
@@ -210,8 +211,9 @@ pub(crate) async fn is_page_admin(
     .await
 }
 
-/// Post visível para `viewer`: de página (ativa) para todos; os demais, só
-/// autor e amigos. 404 caso contrário. Devolve (autor, página).
+/// Post visível para `viewer` (ADR-0008: posts são globais). De página: se a
+/// página está ativa. Pessoal: qualquer pessoa, menos com bloqueio entre os
+/// dois ou autor suspenso. 404 caso contrário. Devolve (autor, página).
 pub(crate) async fn visible_post(
     state: &AppState,
     viewer: Uuid,
@@ -219,8 +221,9 @@ pub(crate) async fn visible_post(
 ) -> AppResult<(Uuid, Option<Uuid>)> {
     let r = sqlx::query!(
         r#"SELECT p.author_id, p.page_id, (pg.deleted_at IS NULL) AS "page_alive?",
-                  (p.audience = 'region') AS "region!"
-           FROM posts p LEFT JOIN pages pg ON pg.id = p.page_id
+                  (u.suspended_at IS NOT NULL) AS "suspended!"
+           FROM posts p JOIN users u ON u.id = p.author_id
+           LEFT JOIN pages pg ON pg.id = p.page_id
            WHERE p.id = $1 AND p.deleted_at IS NULL"#,
         post_id
     )
@@ -229,13 +232,12 @@ pub(crate) async fn visible_post(
     .ok_or(AppError::NotFound)?;
     let ok = match r.page_id {
         Some(_) => r.page_alive == Some(true),
-        // Post para a região: qualquer pessoa vê, menos quem tem bloqueio.
-        None if r.region => {
-            r.author_id == viewer
-                || !crate::routes::safety::is_blocked_either_way(&state.db, viewer, r.author_id)
+        None if r.author_id == viewer => true,
+        None => {
+            !r.suspended
+                && !crate::routes::safety::is_blocked_either_way(&state.db, viewer, r.author_id)
                     .await?
         }
-        None => friends::can_see_content(&state.db, viewer, r.author_id).await?,
     };
     if !ok {
         return Err(AppError::NotFound);
@@ -262,9 +264,9 @@ pub struct CreatePost {
     /// Até 3 temas da lista (`GET /v1/topics`), ex.: "cidade.transito".
     #[serde(default)]
     pub topics: Vec<String>,
-    /// "friends" (padrão) ou "region" (com `lat`/`lng` do aparelho, que o
-    /// servidor arredonda para uma célula de ~500 m antes de guardar).
-    pub audience: Option<String>,
+    /// Posição do aparelho (opcional). O servidor desvia até ~1,5 km, numa
+    /// direção sorteada uma vez, e arredonda para a célula de ~500 m antes de
+    /// guardar: é o que põe o post no feed Regional de quem está perto.
     pub lat: Option<f64>,
     pub lng: Option<f64>,
 }
@@ -311,27 +313,23 @@ pub(crate) async fn insert(
         return Err(AppError::Validation("too_many_topics"));
     }
     let hashtags = crate::topics::hashtags(&body);
-    let (audience, cell) = match req.audience.as_deref() {
-        None | Some("friends") => ("friends", None),
-        Some("region") if page_id.is_none() => match (req.lat, req.lng) {
-            (Some(lat), Some(lng)) => ("region", Some(region::cell(lat, lng)?)),
-            _ => return Err(AppError::Validation("invalid_location")),
-        },
-        _ => return Err(AppError::Validation("invalid_audience")),
+    // Post de página não leva posição (a página tem a dela).
+    let cell = match (page_id, req.lat, req.lng) {
+        (None, Some(lat), Some(lng)) => Some(region::fuzzed_cell(lat, lng)?),
+        _ => None,
     };
     let mut tx = state.db.begin().await?;
     let id = Uuid::now_v7();
     sqlx::query!(
-        "INSERT INTO posts (id, author_id, body, page_id, topics, hashtags, audience,
+        "INSERT INTO posts (id, author_id, body, page_id, topics, hashtags,
                             cell_lat, cell_lng)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
         id,
         author,
         body,
         page_id,
         &topics,
         &hashtags,
-        audience,
         cell.map(|c| c.0),
         cell.map(|c| c.1)
     )
@@ -364,7 +362,7 @@ async fn fetch_row(state: &AppState, id: Uuid) -> sqlx::Result<Option<PostRow>> 
         r#"
         SELECT p.id, p.body, p.created_at, p.edited_at,
                u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name, p.topics, p.hashtags, p.audience,
+               u.display_name AS author_display_name, p.topics, p.hashtags,
                pg.slug AS "page_slug?", pg.name AS "page_name?", lm.key AS "page_logo_key?"
         FROM posts p JOIN users u ON u.id = p.author_id
         LEFT JOIN pages pg ON pg.id = p.page_id
@@ -442,7 +440,7 @@ pub async fn list_by_user(
         r#"
         SELECT p.id, p.body, p.created_at, p.edited_at,
                u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name, p.topics, p.hashtags, p.audience,
+               u.display_name AS author_display_name, p.topics, p.hashtags,
                NULL::text AS "page_slug?", NULL::text AS "page_name?",
                NULL::text AS "page_logo_key?"
         FROM posts p JOIN users u ON u.id = p.author_id
@@ -475,7 +473,7 @@ pub async fn feed(
         r#"
         SELECT p.id, p.body, p.created_at, p.edited_at,
                u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name, p.topics, p.hashtags, p.audience,
+               u.display_name AS author_display_name, p.topics, p.hashtags,
                pg.slug AS "page_slug?", pg.name AS "page_name?", lm.key AS "page_logo_key?"
         FROM posts p JOIN users u ON u.id = p.author_id
         LEFT JOIN pages pg ON pg.id = p.page_id
@@ -545,7 +543,7 @@ pub(crate) async fn page_wall(
         r#"
         SELECT p.id, p.body, p.created_at, p.edited_at,
                u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name, p.topics, p.hashtags, p.audience,
+               u.display_name AS author_display_name, p.topics, p.hashtags,
                pg.slug AS "page_slug?", pg.name AS "page_name?", lm.key AS "page_logo_key?"
         FROM posts p JOIN users u ON u.id = p.author_id
         JOIN pages pg ON pg.id = p.page_id
@@ -574,22 +572,25 @@ pub struct CandidatesQuery {
     pub days: Option<i64>,
 }
 
-/// GET /v1/feed/candidates?days=7 — posts recentes da mesma fonte do feed
-/// cronológico (amigos, eu, páginas que acompanho), para o app ordenar no
-/// aparelho pelo perfil de interesses (ADR-0004). O servidor não ordena nem
-/// guarda nada sobre interesses.
+/// GET /v1/feed/candidates?days=7 — candidatos para o "Para você", que o app
+/// ordena no aparelho pelo perfil de interesses (ADR-0004). O servidor não
+/// ordena nem recebe nada sobre interesses. Vêm dois grupos:
+/// - `in_network: true`: amigos, eu e páginas que acompanho (últimos N dias);
+/// - `in_network: false`: posts de outras pessoas que têm tema ou hashtag
+///   (últimas 48 h, até 300). O app só mostra estes se baterem com um
+///   interesse (ADR-0008).
 pub async fn candidates(
     State(state): State<AppState>,
     user: AuthUser,
     Query(q): Query<CandidatesQuery>,
 ) -> AppResult<Json<Page<PostDto>>> {
     let days = q.days.unwrap_or(7).clamp(1, 30);
-    let rows = sqlx::query_as!(
+    let mine = sqlx::query_as!(
         PostRow,
         r#"
         SELECT p.id, p.body, p.created_at, p.edited_at,
                u.id AS author_id, u.username AS author_username,
-               u.display_name AS author_display_name, p.topics, p.hashtags, p.audience,
+               u.display_name AS author_display_name, p.topics, p.hashtags,
                pg.slug AS "page_slug?", pg.name AS "page_name?", lm.key AS "page_logo_key?"
         FROM posts p JOIN users u ON u.id = p.author_id
         LEFT JOIN pages pg ON pg.id = p.page_id
@@ -609,7 +610,37 @@ pub async fn candidates(
     )
     .fetch_all(&state.db)
     .await?;
-    let mut items: Vec<PostDto> = rows.into_iter().map(PostDto::from).collect();
+    let others = sqlx::query_as!(
+        PostRow,
+        r#"
+        SELECT p.id, p.body, p.created_at, p.edited_at,
+               u.id AS author_id, u.username AS author_username,
+               u.display_name AS author_display_name, p.topics, p.hashtags,
+               NULL::text AS "page_slug?", NULL::text AS "page_name?",
+               NULL::text AS "page_logo_key?"
+        FROM posts p JOIN users u ON u.id = p.author_id
+        WHERE p.deleted_at IS NULL AND p.page_id IS NULL AND u.suspended_at IS NULL
+          AND (cardinality(p.topics) > 0 OR cardinality(p.hashtags) > 0)
+          AND p.created_at > now() - interval '48 hours'
+          AND p.author_id <> $1
+          AND p.author_id NOT IN (SELECT friend_id FROM friends WHERE user_id = $1)
+          AND NOT EXISTS (SELECT 1 FROM blocks b
+                WHERE (b.blocker_id = $1 AND b.blocked_id = p.author_id)
+                   OR (b.blocker_id = p.author_id AND b.blocked_id = $1))
+        ORDER BY p.id DESC
+        LIMIT 300
+        "#,
+        user.user_id
+    )
+    .fetch_all(&state.db)
+    .await?;
+    let mut items: Vec<PostDto> = Vec::with_capacity(mine.len() + others.len());
+    for (rows, net) in [(mine, true), (others, false)] {
+        items.extend(rows.into_iter().map(|r| PostDto {
+            in_network: Some(net),
+            ..PostDto::from(r)
+        }));
+    }
     enrich(&state, user.user_id, &mut items).await?;
     Ok(Json(Page {
         items,
@@ -633,6 +664,35 @@ pub mod region {
         }
         let snap = |v: f64| ((v / STEP).round() * STEP * 1e6).round() / 1e6;
         Ok((snap(lat), snap(lng)))
+    }
+
+    /// Desvio máximo guardado com o post (ADR-0008).
+    pub const MAX_FUZZ_KM: f64 = 1.5;
+
+    fn unit() -> f64 {
+        let mut b = [0u8; 8];
+        rand::fill(&mut b);
+        (u64::from_le_bytes(b) >> 11) as f64 / (1u64 << 53) as f64
+    }
+
+    /// Célula do post: a posição deslocada até `MAX_FUZZ_KM` numa direção
+    /// sorteada (uniforme no disco), depois arredondada. Sorteado uma vez, na
+    /// criação; não muda depois. Assim, mexer no raio de 1 km não revela onde
+    /// a pessoa estava.
+    pub fn fuzzed_cell(lat: f64, lng: f64) -> AppResult<(f64, f64)> {
+        cell(lat, lng)?;
+        let r = MAX_FUZZ_KM * unit().sqrt();
+        let a = unit() * std::f64::consts::TAU;
+        let lat2 = (lat + r * a.cos() / 111.0).clamp(-90.0, 90.0);
+        let lng2 = lng + r * a.sin() / (111.0 * lat.to_radians().cos().max(0.05));
+        let lng2 = if lng2 > 180.0 {
+            lng2 - 360.0
+        } else if lng2 < -180.0 {
+            lng2 + 360.0
+        } else {
+            lng2
+        };
+        cell(lat2, lng2)
     }
 
     #[derive(Debug, Deserialize)]
@@ -660,6 +720,7 @@ pub mod region {
         }
         let (lat, lng) = cell(q.lat, q.lng)?;
         // Folga de meia célula: quem está na borda não perde post vizinho.
+        // (O desvio de até 1,5 km do post é proposital e não é compensado.)
         let r = q.radius_km + 0.4;
         let dlat = r / 111.0;
         let dlng = r / (111.0 * lat.to_radians().cos().max(0.05));
@@ -668,11 +729,12 @@ pub mod region {
             r#"
             SELECT p.id, p.body, p.created_at, p.edited_at,
                    u.id AS author_id, u.username AS author_username,
-                   u.display_name AS author_display_name, p.topics, p.hashtags, p.audience,
+                   u.display_name AS author_display_name, p.topics, p.hashtags,
                    NULL::text AS "page_slug?", NULL::text AS "page_name?",
                    NULL::text AS "page_logo_key?"
             FROM posts p JOIN users u ON u.id = p.author_id
-            WHERE p.audience = 'region' AND p.deleted_at IS NULL AND u.suspended_at IS NULL
+            WHERE p.cell_lat IS NOT NULL AND p.page_id IS NULL AND p.deleted_at IS NULL
+              AND u.suspended_at IS NULL
               AND p.cell_lat BETWEEN $1::float8 - $3::float8 AND $1::float8 + $3::float8
               AND p.cell_lng BETWEEN $2::float8 - $4::float8 AND $2::float8 + $4::float8
               AND 6371 * 2 * asin(sqrt(

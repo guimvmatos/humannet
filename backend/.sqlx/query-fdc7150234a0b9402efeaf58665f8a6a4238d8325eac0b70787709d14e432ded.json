@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT p.id, p.body, p.created_at, p.edited_at,\n               u.id AS author_id, u.username AS author_username,\n               u.display_name AS author_display_name, p.topics, p.hashtags, p.audience,\n               pg.slug AS \"page_slug?\", pg.name AS \"page_name?\", lm.key AS \"page_logo_key?\"\n        FROM posts p JOIN users u ON u.id = p.author_id\n        LEFT JOIN pages pg ON pg.id = p.page_id\n        LEFT JOIN media lm ON lm.id = pg.logo_media_id\n        WHERE p.deleted_at IS NULL\n          AND p.created_at > now() - make_interval(days => $2::int)\n          AND ((p.page_id IS NULL\n                AND (p.author_id = $1\n                     OR p.author_id IN (SELECT friend_id FROM friends WHERE user_id = $1)))\n               OR (pg.deleted_at IS NULL\n                   AND p.page_id IN (SELECT page_id FROM page_followers WHERE user_id = $1)))\n        ORDER BY p.id DESC\n        LIMIT 300\n        ",
+  "query": "\n        SELECT p.id, p.body, p.created_at, p.edited_at,\n               u.id AS author_id, u.username AS author_username,\n               u.display_name AS author_display_name, p.topics, p.hashtags,\n               pg.slug AS \"page_slug?\", pg.name AS \"page_name?\", lm.key AS \"page_logo_key?\"\n        FROM posts p JOIN users u ON u.id = p.author_id\n        LEFT JOIN pages pg ON pg.id = p.page_id\n        LEFT JOIN media lm ON lm.id = pg.logo_media_id\n        WHERE p.deleted_at IS NULL\n          AND ((p.page_id IS NULL\n                AND (p.author_id = $1\n                     OR p.author_id IN (SELECT friend_id FROM friends WHERE user_id = $1)))\n               OR (pg.deleted_at IS NULL\n                   AND p.page_id IN (SELECT page_id FROM page_followers WHERE user_id = $1)))\n          AND ($2::uuid IS NULL OR p.id < $2)\n        ORDER BY p.id DESC\n        LIMIT $3\n        ",
   "describe": {
     "columns": [
       {
@@ -104,17 +104,6 @@
       },
       {
         "ordinal": 9,
-        "name": "audience",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "posts",
-            "name": "audience"
-          }
-        }
-      },
-      {
-        "ordinal": 10,
         "name": "page_slug?",
         "type_info": "Text",
         "origin": {
@@ -125,7 +114,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "page_name?",
         "type_info": "Text",
         "origin": {
@@ -136,7 +125,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 11,
         "name": "page_logo_key?",
         "type_info": "Text",
         "origin": {
@@ -150,7 +139,8 @@
     "parameters": {
       "Left": [
         "Uuid",
-        "Int4"
+        "Uuid",
+        "Int8"
       ]
     },
     "nullable": [
@@ -165,9 +155,8 @@
       false,
       false,
       false,
-      false,
       false
     ]
   },
-  "hash": "b0db23d53ec924af4eede8bd803e62e8eb1bfb460c862b7371d1cd47d044465e"
+  "hash": "fdc7150234a0b9402efeaf58665f8a6a4238d8325eac0b70787709d14e432ded"
 }

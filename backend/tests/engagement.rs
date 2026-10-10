@@ -100,11 +100,20 @@ async fn likes_are_private_to_author(db: PgPool) {
 }
 
 #[sqlx::test]
-async fn non_friends_cannot_like_or_comment(db: PgPool) {
+async fn blocked_cannot_like_or_comment(db: PgPool) {
+    // Posts são globais (ADR-0008); o bloqueio é o que corta o acesso.
     let app = test_app(db.clone());
     let alice = signup(&app, &db, "alice").await;
     let carol = signup(&app, &db, "carol").await;
-    let id = post(&app, &alice, "só amigos").await;
+    let id = post(&app, &alice, "post da alice").await;
+    call(
+        &app,
+        Method::PUT,
+        "/v1/users/carol/block",
+        Some(&alice),
+        None,
+    )
+    .await;
 
     let (s, _) = call(
         &app,

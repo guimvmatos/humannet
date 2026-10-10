@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT p.author_id, p.page_id, (pg.deleted_at IS NULL) AS \"page_alive?\",\n                  (p.audience = 'region') AS \"region!\"\n           FROM posts p LEFT JOIN pages pg ON pg.id = p.page_id\n           WHERE p.id = $1 AND p.deleted_at IS NULL",
+  "query": "SELECT p.author_id, p.page_id, (pg.deleted_at IS NULL) AS \"page_alive?\",\n                  (u.suspended_at IS NOT NULL) AS \"suspended!\"\n           FROM posts p JOIN users u ON u.id = p.author_id\n           LEFT JOIN pages pg ON pg.id = p.page_id\n           WHERE p.id = $1 AND p.deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -33,7 +33,7 @@
       },
       {
         "ordinal": 3,
-        "name": "region!",
+        "name": "suspended!",
         "type_info": "Bool",
         "origin": "Expression"
       }
@@ -50,5 +50,5 @@
       null
     ]
   },
-  "hash": "65f622f45757caf02e00fac5b513924f57c1ee2e7a47fef2ef9d9dfc41358bcf"
+  "hash": "b44da3aaed97743daadd672c64e4578cad9564cd31ecfd1b4deaaa23d27c7931"
 }

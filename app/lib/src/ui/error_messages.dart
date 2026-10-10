@@ -19,7 +19,6 @@ String errorMessage(Object error) {
       'Ative a localização do celular para usar a Região. Ela vai '
           'arredondada (~500 m) e não fica guardada.',
     'invalid_radius' => 'O raio vai de 1 a 50 km.',
-    'invalid_audience' => 'Público inválido para este post.',
     'invalid_location' => 'Ponto inválido no mapa.',
     'follow_page_first' =>
       'Acompanhe a página para mandar mensagem para ela.',

@@ -9,6 +9,7 @@ Post _post(
   List<String> topics = const [],
   List<String> tags = const [],
   int hoursAgo = 1,
+  bool inNetwork = true,
 }) => Post(
   id: id,
   author: Author(id: 'u-$author', username: author),
@@ -16,6 +17,7 @@ Post _post(
   createdAt: DateTime(2026, 10, 10, 12).subtract(Duration(hours: hoursAgo)),
   topics: topics,
   hashtags: tags,
+  inNetwork: inNetwork,
 );
 
 void main() {
@@ -77,5 +79,17 @@ void main() {
     await p.learn(_post('a', topics: ['games']));
     await p.reset();
     expect(p.isEmpty, isTrue);
+  });
+
+  test('de fora da rede só entra com interesse em comum', () async {
+    final p = InterestProfile(InMemoryPrefsStore());
+    await p.loadFor('u1');
+    await p.learn(_post('a', topics: ['musica']));
+    final ranked = p.rank([
+      _post('rock', topics: ['musica'], author: 'zeca', inNetwork: false),
+      _post('bolo', topics: ['comida'], author: 'zeca', inNetwork: false),
+      _post('amigo', author: 'bob'),
+    ], now: now);
+    expect(ranked.map((r) => r.post.id).toSet(), {'rock', 'amigo'});
   });
 }

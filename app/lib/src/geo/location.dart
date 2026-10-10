@@ -10,8 +10,8 @@ bool locationFakeForTests = false;
 (double, double)? locationForTests;
 
 /// Posição aproximada do aparelho (precisão baixa, só o necessário). Usada no
-/// feed regional e ao postar para a região: o servidor arredonda para uma
-/// célula de ~500 m e não guarda a posição de quem lê.
+/// feed regional e ao postar: o servidor desvia o post até ~1,5 km e arredonda
+/// para uma célula de ~500 m (ADR-0008), e não guarda a posição de quem lê.
 Future<(double, double)> approxLocation() async {
   if (locationFakeForTests) {
     final l = locationForTests;
@@ -41,5 +41,15 @@ Future<(double, double)> approxLocation() async {
     rethrow;
   } catch (_) {
     throw const ApiException('location_unavailable');
+  }
+}
+
+/// Posição para guardar com um post, ou `null` se não der (sem permissão,
+/// GPS desligado, demora). Nunca impede de postar.
+Future<(double, double)?> postLocation() async {
+  try {
+    return await approxLocation().timeout(const Duration(seconds: 8));
+  } catch (_) {
+    return null;
   }
 }

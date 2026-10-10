@@ -211,10 +211,10 @@ async fn report_validation(db: PgPool) {
             json!({ "kind": "post", "post_id": own, "reason": "spam" }),
             StatusCode::UNPROCESSABLE_ENTITY,
         ),
-        // Post de não-amigo: não pode ver, não pode denunciar (e não revela).
+        // Posts são globais (ADR-0008): post de não-amigo pode ser denunciado.
         (
             json!({ "kind": "post", "post_id": bob_post, "reason": "spam" }),
-            StatusCode::NOT_FOUND,
+            StatusCode::ACCEPTED,
         ),
         (
             json!({ "kind": "user", "username": "ninguem", "reason": "spam" }),

@@ -37,7 +37,7 @@ Toda feature nova é validada contra estas regras:
 | **R4. Sem amplificação em massa** | Não existe repost nem compartilhamento. O conteúdo circula por autoria, comentários e comunidades. |
 | **R5. Dados mínimos** | Coletar só o necessário. Preferir processamento no aparelho. Não usar dado pessoal para anúncios. |
 | **R6. Sem métricas de vício** | Tempo de tela e dwell time nunca alimentam ranking. |
-| **R7. Segurança antes de alcance** | Toda feature que expõe localização ou presença física é opt-in, com padrão restritivo. |
+| **R7. Segurança antes de alcance** | Toda feature que expõe localização ou presença física é opt-in, com padrão restritivo. **Exceção:** a área aproximada dos posts no feed Regional, com desvio de até 1,5 km e sem distância visível ([ADR-0008](adr/0008-posts-globais-e-posicao-com-desvio.md)). |
 | **R8. IA não se passa por humano** | Nenhuma IA posta, comenta ou interage com terceiros. A IA conversa só com o próprio usuário e é rotulada como IA. |
 | **R9. Relações são mútuas** | Entre pessoas não existe "seguir". Só existe **amizade**: um pede, o outro aceita. Sem relação unilateral. Ver [ADR-0006](adr/0006-amizade-mutua.md). |
 
@@ -95,6 +95,8 @@ Toda feature nova é validada contra estas regras:
 - **Sem repost/compartilhar** (R4).
 
 ### 4.4 Feed (Fase 1)
+
+> **Atualizado (ADR-0007 e ADR-0008):** posts são globais. Quem lê escolhe **Cronológico** (amigos e páginas seguidas), **Para você** (rede + desconhecidos com interesses em comum) ou **Regional** (1 a 50 km, cronológico ou "Para você"). A tabela abaixo é o desenho original da Fase 1.
 
 **Dois modos, escolhidos pelo usuário (R2):**
 

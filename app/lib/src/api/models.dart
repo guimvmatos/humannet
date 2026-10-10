@@ -105,7 +105,7 @@ class Post {
     this.page,
     this.topics = const [],
     this.hashtags = const [],
-    this.audience = 'friends',
+    this.inNetwork = true,
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
@@ -128,7 +128,7 @@ class Post {
       topics: ((json['topics'] as List<dynamic>?) ?? const []).cast<String>(),
       hashtags: ((json['hashtags'] as List<dynamic>?) ?? const [])
           .cast<String>(),
-      audience: (json['audience'] as String?) ?? 'friends',
+      inNetwork: (json['in_network'] as bool?) ?? true,
     );
   }
 
@@ -153,9 +153,9 @@ class Post {
   final List<String> topics;
   final List<String> hashtags;
 
-  /// friends | region (qualquer pessoa perto vê; sem distância).
-  final String audience;
-  bool get isRegional => audience == 'region';
+  /// Só nos candidatos do "Para você": `false` = de alguém fora da sua rede,
+  /// achado por tema/hashtag (só aparece se bater com um interesse).
+  final bool inNetwork;
 }
 
 /// Página que publicou um post.

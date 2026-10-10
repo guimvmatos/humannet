@@ -124,15 +124,17 @@ class InterestProfile extends ChangeNotifier {
     await _save();
   }
 
-  /// Modo do feed em um só botão: "chrono", "foryou" ou "region"
-  /// (regional é sempre cronológico na tela).
-  String get feedView => feedScope == 'region'
-      ? 'region'
-      : feedMode;
+  /// Botão de cima do feed: "chrono", "foryou" ou "region". No Regional,
+  /// `feedMode` escolhe a ordem (cronológico ou "Para você").
+  String get feedView => feedScope == 'region' ? 'region' : feedMode;
 
   Future<void> setFeedView(String v) async {
-    feedScope = v == 'region' ? 'region' : 'friends';
-    feedMode = v == 'foryou' ? 'foryou' : 'chrono';
+    if (v == 'region') {
+      feedScope = 'region';
+    } else {
+      feedScope = 'friends';
+      feedMode = v == 'foryou' ? 'foryou' : 'chrono';
+    }
     await _save();
   }
 
@@ -301,6 +303,8 @@ class InterestProfile extends ChangeNotifier {
       final pw = people[p.author.username] ?? 0;
       if (pw > 0) parts.add((pw, 'Você interage com @${p.author.username}'));
       final interest = parts.fold<double>(0, (a, b) => a + b.$1);
+      // De fora da rede: só entra se bater com algum interesse (ADR-0008).
+      if (!p.inNetwork && interest <= 0) continue;
       final ageH = t0.difference(p.createdAt).inMinutes / 60;
       final recency = math.exp(-math.max(0, ageH) / 36);
       final score = recency * (1 + math.log(1 + interest));

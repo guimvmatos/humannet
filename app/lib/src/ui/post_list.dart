@@ -332,18 +332,12 @@ class PostTile extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(0, 8, 12, 0),
                 child: PostImages(images: post.images),
               ),
-            if (post.topics.isNotEmpty || post.isRegional)
+            if (post.topics.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Wrap(
                   spacing: 6,
                   children: [
-                    if (post.isRegional)
-                      Text(
-                        '📍 Região',
-                        key: ValueKey('regional_${post.id}'),
-                        style: theme.textTheme.labelSmall,
-                      ),
                     for (final t in post.topics)
                       Text(
                         '· ${topicLabel(t)}',

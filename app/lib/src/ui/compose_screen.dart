@@ -39,9 +39,6 @@ class _ComposeScreenState extends State<ComposeScreen> {
   final _text = TextEditingController();
   final List<Uint8List> _photos = [];
   final List<String> _topics = [];
-
-  /// Público: amigos (padrão) ou a região (quem estiver perto, até 50 km).
-  bool _region = false;
   bool _busy = false;
   String? _status;
   String? _error;
@@ -166,7 +163,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
               _text.text,
               mediaIds: ids,
               topics: _topics,
-              region: _region ? await approxLocation() : null,
+              at: await postLocation(),
             )
           : await api.postToPlace(
               token,
@@ -285,43 +282,6 @@ class _ComposeScreenState extends State<ComposeScreen> {
                   ],
                 ),
               ),
-            if (widget.placeSlug == null)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: SegmentedButton<bool>(
-                    key: const Key('audience'),
-                    showSelectedIcon: false,
-                    segments: const [
-                      ButtonSegment(
-                        value: false,
-                        label: Text('Amigos'),
-                        icon: Icon(Icons.people_outline),
-                      ),
-                      ButtonSegment(
-                        value: true,
-                        label: Text('Região', key: Key('audience_region')),
-                        icon: Icon(Icons.near_me_outlined),
-                      ),
-                    ],
-                    selected: {_region},
-                    onSelectionChanged: _busy
-                        ? null
-                        : (s) => setState(() => _region = s.first),
-                  ),
-                ),
-              ),
-            if (_region && widget.placeSlug == null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  'Qualquer pessoa num raio de até 50 km pode ver. Vai só a '
-                  'área aproximada (~500 m), nunca o endereço, e a distância '
-                  'não aparece para ninguém.',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
             Row(
               children: [
                 TextButton.icon(
@@ -351,6 +311,15 @@ class _ComposeScreenState extends State<ComposeScreen> {
             ),
             if (_error != null)
               Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+            if (widget.placeSlug == null)
+              Text(
+                'Todo post é público: amigos veem no Cronológico, e quem tem '
+                'os mesmos interesses ou está perto pode ver no Para você e '
+                'no Regional. Vai só uma área aproximada (desviada até '
+                '~1,5 km), nunca a distância.',
+                key: const Key('compose_public_note'),
+                style: theme.textTheme.bodySmall,
+              ),
           ],
         ),
       ),

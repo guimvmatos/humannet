@@ -153,8 +153,10 @@ class _FeedScreenState extends State<FeedScreen> {
         builder: (context, _) {
           final interests = widget.session.interests;
           final view = interests.feedView;
-          final forYou = view == 'foryou';
           final region = view == 'region';
+          // "Para você" no topo ou dentro do Regional: ordenado no aparelho.
+          final forYou = interests.feedMode == 'foryou';
+          final key = region ? 'region_${interests.feedMode}' : view;
           final km = interests.radiusKm;
           final api = widget.session.api;
           Future<PostPage> ranked(Future<PostPage> source) async {
@@ -168,15 +170,22 @@ class _FeedScreenState extends State<FeedScreen> {
             return PostPage(items: [for (final x in r) x.post]);
           }
 
-          final PageLoader loader = switch (view) {
-            'foryou' => (_) => ranked(api.feedCandidates(token)),
-            'region' => (before) async => api.feedRegion(
+          final PageLoader loader = switch ((region, forYou)) {
+            (false, false) => (before) => api.feed(token, before: before),
+            (false, true) => (_) => ranked(api.feedCandidates(token)),
+            (true, false) => (before) async => api.feedRegion(
               token,
               at: await approxLocation(),
               radiusKm: km,
               before: before,
             ),
-            _ => (before) => api.feed(token, before: before),
+            (true, true) => (_) async => ranked(
+              api.feedRegionCandidates(
+                token,
+                at: await approxLocation(),
+                radiusKm: km,
+              ),
+            ),
           };
           Widget chip(String value, String label, IconData icon) => Padding(
             padding: const EdgeInsets.only(right: 6),
@@ -218,31 +227,31 @@ class _FeedScreenState extends State<FeedScreen> {
                   ],
                 ),
               ),
-              if (region) _RadiusBar(interests: interests),
+              if (region) _RegionBar(interests: interests),
               Expanded(
                 child: PagedPostList(
-                  key: view == 'chrono'
+                  key: key == 'chrono'
                       ? _listKey
-                      : ValueKey('feed_${view}_$km'),
+                      : ValueKey('feed_${key}_$km'),
                   session: widget.session,
                   loader: loader,
                   reasonOf: forYou ? (p) => _why[p.id] : null,
                   emptyText: switch (view) {
+                    'region' =>
+                      'Nenhum post num raio de ${km.toStringAsFixed(0)} km '
+                          'nos últimos dias. Aumente o raio.',
                     'foryou' when interests.isEmpty =>
                       'Nada nos últimos 7 dias. Curta e comente posts: o '
                           '"Para você" aprende só com isso, e só no seu '
                           'celular.',
                     'foryou' => 'Nada nos últimos 7 dias.',
-                    'region' =>
-                      'Nenhum post para a região num raio de '
-                          '${km.toStringAsFixed(0)} km. Aumente o raio ou '
-                          'poste algo para a região.',
                     _ =>
-                      'Seu feed está vazio. Adicione amigos (lupa, acima) '
-                          'ou escreva o primeiro post.',
+                      'Aqui aparecem seus amigos e as páginas que você '
+                          'acompanha. Para conhecer gente nova, veja o '
+                          '"Para você" e o "Regional" (acima).',
                   },
                   endText: forYou
-                      ? 'Você viu tudo dos últimos 7 dias.'
+                      ? 'Você viu tudo dos últimos dias.'
                       : 'Você está em dia.',
                 ),
               ),
@@ -261,27 +270,43 @@ class _FeedScreenState extends State<FeedScreen> {
   }
 }
 
-/// Barrinha do raio do feed regional (1 a 50 km). Recarrega só ao soltar.
-class _RadiusBar extends StatefulWidget {
-  const _RadiusBar({required this.interests});
+/// Opções do Regional: ordem (cronológico ou "Para você") e raio de 1 a
+/// 50 km. O raio só recarrega ao soltar a barrinha.
+class _RegionBar extends StatefulWidget {
+  const _RegionBar({required this.interests});
 
   final InterestProfile interests;
 
   @override
-  State<_RadiusBar> createState() => _RadiusBarState();
+  State<_RegionBar> createState() => _RegionBarState();
 }
 
-class _RadiusBarState extends State<_RadiusBar> {
+class _RegionBarState extends State<_RegionBar> {
   late double _km = widget.interests.radiusKm;
 
   @override
   Widget build(BuildContext context) {
     final style = Theme.of(context).textTheme.labelMedium;
+    final mode = widget.interests.feedMode;
+    Widget order(String value, String label) => Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: ChoiceChip(
+        key: Key('region_order_$value'),
+        showCheckmark: false,
+        visualDensity: VisualDensity.compact,
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        labelStyle: Theme.of(context).textTheme.labelSmall,
+        label: Text(label),
+        selected: mode == value,
+        onSelected: (_) => widget.interests.setFeedMode(value),
+      ),
+    );
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
       child: Row(
         children: [
-          Text('Raio', style: style),
+          order('chrono', 'Cronológico'),
+          order('foryou', 'Para você'),
           Expanded(
             child: Slider(
               key: const Key('radius_slider'),

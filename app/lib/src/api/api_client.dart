@@ -318,7 +318,7 @@ class ApiClient {
     String body, {
     List<String> mediaIds = const [],
     List<String> topics = const [],
-    (double, double)? region,
+    (double, double)? at,
   }) async {
     final json = await _send(
       'POST',
@@ -328,11 +328,7 @@ class ApiClient {
         'body': body,
         if (mediaIds.isNotEmpty) 'media_ids': mediaIds,
         if (topics.isNotEmpty) 'topics': topics,
-        if (region != null) ...{
-          'audience': 'region',
-          'lat': region.$1,
-          'lng': region.$2,
-        },
+        if (at != null) ...{'lat': at.$1, 'lng': at.$2},
       },
     );
     return Post.fromJson(json!);
