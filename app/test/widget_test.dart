@@ -34,6 +34,12 @@ Future<void> _login(WidgetTester tester) async {
 }
 
 void main() {
+  // Sem GPS nos testes: por padrão "sem localização" (o post sai sem posição).
+  setUp(() {
+    locationFakeForTests = true;
+    locationForTests = null;
+  });
+
   testWidgets('login abre o feed; logout pelo perfil volta ao login', (
     tester,
   ) async {
@@ -1144,12 +1150,7 @@ void main() {
   testWidgets('feed Regional: ordem, raio e post sempre leva a posição', (
     tester,
   ) async {
-    locationFakeForTests = true;
     locationForTests = (-23.5015, -47.4526);
-    addTearDown(() {
-      locationFakeForTests = false;
-      locationForTests = null;
-    });
     final backend = FakeBackend();
     final session = _session(backend, InMemoryTokenStore());
     await session.restore();
