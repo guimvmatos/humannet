@@ -24,7 +24,7 @@ O HumanNet é mantido por Guilherme Matos, pessoa física, no Brasil. Contato: g
 
 - O conteúdo é seu. Você nos dá permissão (não exclusiva e gratuita) para guardar, exibir e transmitir esse conteúdo dentro do HumanNet, só para fazer o serviço funcionar. A permissão termina quando você apaga o conteúdo ou a conta.
 - **Posts são públicos**: amigos veem no feed Cronológico, e qualquer pessoa pode vê-los pelo "Para você" (por temas e hashtags) ou pelo "Regional" (por proximidade). Quem você bloqueia não vê.
-- Quando o aparelho permite, o post leva uma **área aproximada**, deslocada até cerca de 1,5 km do lugar real. A distância nunca é mostrada. Detalhes na Política de Privacidade.
+- Quando o aparelho permite, o post leva uma **área aproximada** (cerca de 500 m). A distância nunca é mostrada. Detalhes na Política de Privacidade.
 - "Quem visitou meu perfil" vem ligado e é recíproco: quem desliga não vê e não aparece. Detalhes na Política de Privacidade.
 - Recados aparecem para os amigos do perfil. Depoimentos só aparecem no perfil depois que o dono aprova.
 - Não existe repost nem compartilhamento: o conteúdo circula por autoria, comentários e comunidades.

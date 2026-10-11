@@ -1,5 +1,5 @@
 //! Feed regional (C1/C2) com posts globais (ADR-0008): todo post pessoal
-//! com posição entra, guardado com desvio de até ~1,5 km.
+//! com posição entra, arredondado para a célula de ~500 m.
 
 mod common;
 
@@ -61,7 +61,7 @@ async fn region_posts_and_feed(db: PgPool) {
     .await;
     assert_eq!(s, StatusCode::CREATED);
 
-    // Guardado com desvio (até 1,5 km) e arredondado para a célula de ~500 m.
+    // Sem desvio (ADR-0009): só arredondado para a célula de ~500 m.
     let cell: (f64, f64) =
         sqlx::query_as("SELECT cell_lat, cell_lng FROM posts WHERE body = 'Rua XV alagada'")
             .fetch_one(&db)
@@ -72,7 +72,7 @@ async fn region_posts_and_feed(db: PgPool) {
         let dx = (a.1 - b.1) * 111.0 * a.0.to_radians().cos();
         (dx * dx + dy * dy).sqrt()
     };
-    assert!(km(cell, HERE) <= 1.5 + 0.4, "desvio limitado: {cell:?}");
+    assert!(km(cell, HERE) <= 0.4, "sem desvio, só a grade: {cell:?}");
     let snapped = |v: f64| ((v / 0.005).round() * 0.005 - v).abs() < 1e-6;
     assert!(snapped(cell.0) && snapped(cell.1), "na grade: {cell:?}");
     let (s, _) = call(&app, Method::GET, &feed_url(HERE, 1.0), Some(&alice), None).await;

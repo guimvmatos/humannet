@@ -358,8 +358,8 @@ class _ComposeScreenState extends State<ComposeScreen> {
               Text(
                 'Todo post é público: amigos veem no Cronológico, e quem tem '
                 'os mesmos interesses ou está perto pode ver no Para você e '
-                'no Regional. Vai só uma área aproximada (desviada até '
-                '~1,5 km), nunca a distância.',
+                'no Regional. Vai só uma área aproximada (~500 m), nunca a '
+                'distância.',
                 key: const Key('compose_public_note'),
                 style: theme.textTheme.bodySmall,
               ),

@@ -273,9 +273,9 @@ pub struct CreatePost {
     /// Até 3 temas da lista (`GET /v1/topics`), ex.: "cidade.transito".
     #[serde(default)]
     pub topics: Vec<String>,
-    /// Posição do aparelho (opcional). O servidor desvia até ~1,5 km, numa
-    /// direção sorteada uma vez, e arredonda para a célula de ~500 m antes de
-    /// guardar: é o que põe o post no feed Regional de quem está perto.
+    /// Posição do aparelho (opcional). O servidor arredonda para a célula de
+    /// ~500 m antes de guardar (ADR-0009): é o que põe o post no feed
+    /// Regional de quem está perto.
     pub lat: Option<f64>,
     pub lng: Option<f64>,
     /// "Com fulano": nomes de usuário de amigos (até 10). Ficam pendentes até
@@ -333,7 +333,7 @@ pub(crate) async fn insert(
     };
     // Post de página não leva posição (a página tem a dela).
     let cell = match (page_id, req.lat, req.lng) {
-        (None, Some(lat), Some(lng)) => Some(region::fuzzed_cell(lat, lng)?),
+        (None, Some(lat), Some(lng)) => Some(region::cell(lat, lng)?),
         _ => None,
     };
     let mut tx = state.db.begin().await?;
@@ -725,35 +725,6 @@ pub mod region {
         Ok((snap(lat), snap(lng)))
     }
 
-    /// Desvio máximo guardado com o post (ADR-0008).
-    pub const MAX_FUZZ_KM: f64 = 1.5;
-
-    fn unit() -> f64 {
-        let mut b = [0u8; 8];
-        rand::fill(&mut b);
-        (u64::from_le_bytes(b) >> 11) as f64 / (1u64 << 53) as f64
-    }
-
-    /// Célula do post: a posição deslocada até `MAX_FUZZ_KM` numa direção
-    /// sorteada (uniforme no disco), depois arredondada. Sorteado uma vez, na
-    /// criação; não muda depois. Assim, mexer no raio de 1 km não revela onde
-    /// a pessoa estava.
-    pub fn fuzzed_cell(lat: f64, lng: f64) -> AppResult<(f64, f64)> {
-        cell(lat, lng)?;
-        let r = MAX_FUZZ_KM * unit().sqrt();
-        let a = unit() * std::f64::consts::TAU;
-        let lat2 = (lat + r * a.cos() / 111.0).clamp(-90.0, 90.0);
-        let lng2 = lng + r * a.sin() / (111.0 * lat.to_radians().cos().max(0.05));
-        let lng2 = if lng2 > 180.0 {
-            lng2 - 360.0
-        } else if lng2 < -180.0 {
-            lng2 + 360.0
-        } else {
-            lng2
-        };
-        cell(lat2, lng2)
-    }
-
     #[derive(Debug, Deserialize)]
     pub struct RegionQuery {
         pub lat: f64,
@@ -779,7 +750,6 @@ pub mod region {
         }
         let (lat, lng) = cell(q.lat, q.lng)?;
         // Folga de meia célula: quem está na borda não perde post vizinho.
-        // (O desvio de até 1,5 km do post é proposital e não é compensado.)
         let r = q.radius_km + 0.4;
         let dlat = r / 111.0;
         let dlng = r / (111.0 * lat.to_radians().cos().max(0.05));

@@ -1,6 +1,6 @@
 # ADR-0008: Posts globais e posição do post com desvio
 
-- **Status:** aceito
+- **Status:** aceito; o desvio de 1,5 km (item 4) foi retirado pelo [ADR-0009](0009-posts-sem-desvio.md)
 - **Data:** 2026-10-10
 - **Substitui:** o item 5 do [ADR-0007](0007-feeds-algoritmo-controlavel-e-regional.md) ("posts regionais são opt-in por post").
 - **Altera:** a regra R7 da SPEC, para o feed Regional.

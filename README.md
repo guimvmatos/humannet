@@ -126,7 +126,7 @@ cd app && flutter test
 | DELETE | `/v1/comments/{id}` | Bearer | Apagar comentário (autor do comentário ou do post) |
 | GET | `/v1/feed` | Bearer | Cronológico: amigos + você. `POST /v1/posts` aceita `tags` (amigos, até 10, pendentes) e grava @menções do texto |
 | GET | `/v1/feed/candidates` | Bearer | "Para você": rede (7 dias) + desconhecidos com tema/hashtag (48 h), com `in_network`; o app ordena e filtra no aparelho |
-| GET | `/v1/feed/region?lat&lng&radius_km` | Bearer | Posts num raio de 1 a 50 km (cronológico; posição de quem lê não é guardada; posts guardados com desvio de até 1,5 km) |
+| GET | `/v1/feed/region?lat&lng&radius_km` | Bearer | Posts num raio de 1 a 50 km (cronológico; posição de quem lê não é guardada; posts guardados na célula de ~500 m) |
 | GET | `/v1/feed/region/candidates?lat&lng&radius_km` | Bearer | Idem, últimos 7 dias, para o "Para você" regional |
 
 **Depoimentos** (SPEC 4.2): só amigos escrevem; o dono do perfil aprova antes de aparecer. Quem vê: o dono, os amigos dele e o autor.

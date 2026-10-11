@@ -237,7 +237,7 @@ class _TermsGateScreenState extends State<TermsGateScreen> {
           const Text(
             'A HumanNet publicou os Termos de Uso e a Política de '
             'Privacidade. Resumo: posts são públicos; o post leva só uma '
-            'área aproximada (desviada até ~1,5 km); não vendemos dados nem '
+            'área aproximada (~500 m); não vendemos dados nem '
             'mostramos anúncios; o beta é só para maiores de 18 anos.',
           ),
           const SizedBox(height: 8),

@@ -36,7 +36,7 @@ Esta política explica quais dados o HumanNet trata, por quê, com quem comparti
 
 ## 4. Localização
 
-- **Seus posts:** ao publicar, o app manda a posição aproximada do aparelho. O servidor **desloca até cerca de 1,5 km**, numa direção sorteada uma vez, arredonda para uma área de ~500 m e só guarda o resultado. A posição real não é guardada. A distância nunca aparece para ninguém. Se você negar a localização, o post sai do mesmo jeito, só fora do Regional.
+- **Seus posts:** ao publicar, o app manda a posição aproximada do aparelho. O servidor arredonda para uma área de ~500 m e só guarda o resultado. A posição exata não é guardada. A distância nunca aparece para ninguém. Se você negar a localização, o post sai do mesmo jeito, só fora do Regional.
 - **Feed Regional:** quando você lê, sua posição vai ao servidor só para aquela consulta, arredondada, e **não é guardada**.
 - **Mapa de eventos:** usa a posição do aparelho só para centralizar o mapa, no próprio celular.
 - **Páginas de lugares:** o endereço que o administrador informa é público e vira um ponto no mapa.
