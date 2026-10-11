@@ -3,6 +3,7 @@ pub mod config;
 pub mod crypto;
 pub mod error;
 pub mod geo;
+pub mod mail;
 pub mod media;
 pub mod push;
 pub mod ratelimit;
@@ -78,6 +79,7 @@ pub struct AppState {
     pub media: media::MediaStore,
     pub push: push::Push,
     pub geocoder: geo::Geocoder,
+    pub mailer: mail::Mailer,
 }
 
 impl AppState {
@@ -92,7 +94,14 @@ impl AppState {
             push: push::Push::memory(),
             // Testes: coordenada fixa (centro de Sorocaba). Produção: Nominatim.
             geocoder: geo::Geocoder::Fixed(-23.5015, -47.4526),
+            // Testes: guarda os e-mails. Produção: `with_mailer` (main.rs).
+            mailer: mail::Mailer::memory(),
         }
+    }
+
+    pub fn with_mailer(mut self, mailer: mail::Mailer) -> Self {
+        self.mailer = mailer;
+        self
     }
 
     pub fn with_media(mut self, media: media::MediaStore) -> Self {
@@ -142,6 +151,36 @@ pub fn app(state: AppState) -> Router {
         .route("/me/history", get(routes::history::list))
         .route("/me/history/delete", post(routes::history::delete))
         .route("/me/export", post(routes::history::create_export))
+        .route("/organizer-requests", post(routes::coletivos::create))
+        .route("/organizer-requests/mine", get(routes::coletivos::mine))
+        .route(
+            "/organizer-requests/verify",
+            post(routes::coletivos::verify),
+        )
+        .route(
+            "/organizer-requests/resend",
+            post(routes::coletivos::resend),
+        )
+        .route(
+            "/admin/organizer-requests",
+            get(routes::coletivos::admin_list),
+        )
+        .route(
+            "/admin/organizer-requests/{id}/approve",
+            post(routes::coletivos::approve),
+        )
+        .route(
+            "/admin/organizer-requests/{id}/reject",
+            post(routes::coletivos::reject),
+        )
+        .route(
+            "/admin/events/pending",
+            get(routes::coletivos::pending_events),
+        )
+        .route(
+            "/admin/events/{id}/review",
+            post(routes::coletivos::review_event),
+        )
         .route("/me/tags/pending", get(routes::tags::pending))
         .route(
             "/me/mentions",

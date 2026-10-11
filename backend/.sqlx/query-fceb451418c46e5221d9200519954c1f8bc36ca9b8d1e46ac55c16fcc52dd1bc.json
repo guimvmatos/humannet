@@ -1,0 +1,21 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE events SET title = $2, description = $3, location = $4, starts_at = $5,\n           ends_at = $6,\n           cancelled_at = CASE WHEN $7::bool IS NULL THEN cancelled_at\n                               WHEN $7 THEN coalesce(cancelled_at, now()) ELSE NULL END,\n           address_hidden = coalesce($8, address_hidden)\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Timestamptz",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "fceb451418c46e5221d9200519954c1f8bc36ca9b8d1e46ac55c16fcc52dd1bc"
+}

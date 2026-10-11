@@ -110,7 +110,33 @@ async fn serve(mut config: Config, db: sqlx::PgPool) -> Result<()> {
             humannet_api::push::Push::Disabled
         }
     };
+    let mailer = match (
+        std::env::var("RESEND_API_KEY")
+            .ok()
+            .filter(|s| !s.trim().is_empty()),
+        std::env::var("MAIL_FROM")
+            .ok()
+            .filter(|s| !s.trim().is_empty()),
+    ) {
+        (Some(key), Some(from)) => {
+            match humannet_api::mail::Mailer::resend(key.trim(), from.trim()) {
+                Ok(m) => {
+                    tracing::info!("e-mail ligado (Resend)");
+                    m
+                }
+                Err(e) => {
+                    tracing::error!(error = %e, "e-mail desligado");
+                    humannet_api::mail::Mailer::Disabled
+                }
+            }
+        }
+        _ => {
+            tracing::warn!("e-mail desligado: faltam RESEND_API_KEY e MAIL_FROM");
+            humannet_api::mail::Mailer::Disabled
+        }
+    };
     let state = AppState::new(db.clone(), Policy::from(&config))
+        .with_mailer(mailer)
         .with_media(media.clone())
         .with_push(push)
         .with_geocoder(match humannet_api::geo::Geocoder::nominatim() {

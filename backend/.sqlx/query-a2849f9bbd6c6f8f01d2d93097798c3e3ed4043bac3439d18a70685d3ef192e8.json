@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT e.id, e.page_id, p.slug AS page_slug, p.name AS page_name, e.title, e.description,\n               e.starts_at, e.ends_at,\n               CASE WHEN e.location = '' THEN p.address ELSE e.location END AS \"location!\",\n               (e.cancelled_at IS NOT NULL) AS \"cancelled!\",\n               i.status AS \"my_interest?\"\n        FROM events e JOIN pages p ON p.id = e.page_id\n        LEFT JOIN event_interests i ON i.event_id = e.id AND i.user_id = $2\n        WHERE e.page_id = $1 AND e.deleted_at IS NULL\n          AND (CASE WHEN $3 THEN coalesce(e.ends_at, e.starts_at) < now()\n                    ELSE coalesce(e.ends_at, e.starts_at + interval '6 hours') >= now() END)\n        ORDER BY CASE WHEN $3 THEN NULL ELSE e.starts_at END ASC,\n                 CASE WHEN $3 THEN e.starts_at END DESC\n        LIMIT 100\n        ",
+  "query": "\n        SELECT e.id, e.page_id, p.slug AS page_slug, p.name AS page_name, e.title, e.description,\n               e.starts_at, e.ends_at,\n               CASE WHEN e.location = '' THEN p.address ELSE e.location END AS \"location!\",\n               (e.cancelled_at IS NOT NULL) AS \"cancelled!\",\n               i.status AS \"my_interest?\", e.status, e.address_hidden, p.kind AS page_kind,\n               (SELECT u.username FROM page_admins a JOIN users u ON u.id = a.user_id\n                 WHERE a.page_id = p.id AND a.role = 'owner' AND p.kind = 'coletivo')\n                 AS \"responsible?\"\n        FROM events e JOIN pages p ON p.id = e.page_id\n        LEFT JOIN event_interests i ON i.event_id = e.id AND i.user_id = $2\n        WHERE e.page_id = $1 AND e.deleted_at IS NULL\n          AND (CASE WHEN $3 THEN coalesce(e.ends_at, e.starts_at) < now()\n                    ELSE coalesce(e.ends_at, e.starts_at + interval '6 hours') >= now() END)\n        ORDER BY CASE WHEN $3 THEN NULL ELSE e.starts_at END ASC,\n                 CASE WHEN $3 THEN e.starts_at END DESC\n        LIMIT 100\n        ",
   "describe": {
     "columns": [
       {
@@ -113,6 +113,45 @@
             "name": "status"
           }
         }
+      },
+      {
+        "ordinal": 11,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "address_hidden",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "address_hidden"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "page_kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "responsible?",
+        "type_info": "Text",
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -133,8 +172,12 @@
       true,
       null,
       null,
-      false
+      false,
+      false,
+      false,
+      false,
+      null
     ]
   },
-  "hash": "229731c987390864584e9ed4286b7a7f7e00015c29b6560607e531fa7278fca2"
+  "hash": "a2849f9bbd6c6f8f01d2d93097798c3e3ed4043bac3439d18a70685d3ef192e8"
 }

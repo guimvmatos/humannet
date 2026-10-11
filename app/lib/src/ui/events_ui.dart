@@ -239,6 +239,20 @@ class _EventScreenState extends State<EventScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           Text(e.title, style: theme.textTheme.headlineSmall),
+          if (e.status != 'published')
+            Card(
+              key: const Key('event_review_banner'),
+              color: theme.colorScheme.tertiaryContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Text(
+                  e.status == 'rejected'
+                      ? 'Este evento não foi aprovado pela equipe e não aparece para ninguém.'
+                      : 'Aguardando revisão da equipe (os 2 primeiros eventos de '
+                            'um coletivo passam por revisão). Só quem administra vê.',
+                ),
+              ),
+            ),
           if (e.cancelled)
             Text(
               'Evento cancelado',
@@ -258,6 +272,24 @@ class _EventScreenState extends State<EventScreen> {
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.place_outlined),
               title: Text(e.location),
+              subtitle: e.addressHidden
+                  ? const Text('Endereço visível só para quem marcou "vou".')
+                  : null,
+            )
+          else if (e.addressHidden)
+            const ListTile(
+              key: Key('event_address_hidden'),
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(Icons.lock_outline),
+              title: Text('Endereço liberado para quem marcar "vou".'),
+            ),
+          if (e.responsible case final r?)
+            ListTile(
+              key: const Key('event_responsible'),
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.verified_user_outlined),
+              title: Text('Responsável: @$r'),
+              subtitle: const Text('Coletivo estudantil (sem CNPJ)'),
             ),
           ListTile(
             contentPadding: EdgeInsets.zero,
@@ -354,6 +386,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
   late final _location = TextEditingController();
   late DateTime? _start = widget.existing?.startsAt.toLocal();
   late DateTime? _end = widget.existing?.endsAt?.toLocal();
+  late bool _hidden = widget.existing?.addressHidden ?? false;
   bool _busy = false;
   String? _error;
 
@@ -406,6 +439,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
               location: _location.text.trim(),
               startsAt: start,
               endsAt: _end,
+              addressHidden: _hidden,
             )
           : await api.updateEvent(
               token,
@@ -414,6 +448,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
               description: _description.text.trim(),
               startsAt: start,
               endsAt: _end,
+              addressHidden: _hidden,
             );
       if (mounted) Navigator.of(context).pop(saved);
     } catch (e) {
@@ -480,6 +515,16 @@ class _EventFormScreenState extends State<EventFormScreen> {
                 helperText: 'Vazio = endereço da página.',
               ),
             ),
+          SwitchListTile(
+            key: const Key('event_address_hidden_switch'),
+            contentPadding: EdgeInsets.zero,
+            value: _hidden,
+            onChanged: (v) => setState(() => _hidden = v),
+            title: const Text('Endereço só para quem marcar "vou"'),
+            subtitle: const Text(
+              'Bom para festa em casa ou república. No mapa aparece só a região.',
+            ),
+          ),
           TextField(
             key: const Key('event_description_field'),
             controller: _description,

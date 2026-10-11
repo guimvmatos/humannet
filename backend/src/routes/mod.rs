@@ -2,6 +2,7 @@ pub mod account;
 pub mod activity;
 pub mod admin;
 pub mod auth;
+pub mod coletivos;
 pub mod comments;
 pub mod communities;
 pub mod devices;

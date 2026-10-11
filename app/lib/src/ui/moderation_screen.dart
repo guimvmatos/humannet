@@ -8,6 +8,7 @@ import '../auth/session_controller.dart';
 import 'error_messages.dart';
 import 'post_list.dart';
 import 'report_dialog.dart';
+import 'coletivos_ui.dart';
 
 /// Fila de denúncias abertas (só administradores) e código de senha.
 class ModerationScreen extends StatefulWidget {
@@ -183,6 +184,16 @@ class _ModerationScreenState extends State<ModerationScreen> {
       appBar: AppBar(
         title: const Text('Moderação'),
         actions: [
+          IconButton(
+            key: const Key('collective_review_button'),
+            tooltip: 'Coletivos e eventos para revisar',
+            icon: const Icon(Icons.groups_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => CollectiveReviewScreen(session: widget.session),
+              ),
+            ),
+          ),
           IconButton(
             tooltip: 'Liberar CPF',
             icon: const Icon(Icons.badge_outlined),

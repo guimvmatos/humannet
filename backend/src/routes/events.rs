@@ -56,6 +56,14 @@ pub struct EventDto {
     pub interested_count: Option<i64>,
     pub going_count: Option<i64>,
     pub can_edit: bool,
+    /// published | pending_review (só quem administra vê) | rejected
+    pub status: String,
+    /// Endereço só para quem marcou "vou" (e quem administra).
+    pub address_hidden: bool,
+    /// Página de coletivo estudantil (sem CNPJ).
+    pub page_kind: String,
+    /// Coletivo: quem responde pelo evento (dono da página).
+    pub responsible: Option<String>,
 }
 
 struct Row {
@@ -70,6 +78,10 @@ struct Row {
     location: String,
     cancelled: bool,
     my_interest: Option<String>,
+    status: String,
+    address_hidden: bool,
+    page_kind: String,
+    responsible: Option<String>,
 }
 
 async fn build(state: &AppState, user: &AuthUser, rows: Vec<Row>) -> AppResult<Vec<EventDto>> {
@@ -119,6 +131,16 @@ async fn build(state: &AppState, user: &AuthUser, rows: Vec<Row>) -> AppResult<V
             .collect();
         let friends_count = i64::try_from(mine.len()).unwrap_or(0);
         let c = counts.iter().find(|c| c.event_id == r.id);
+        // Evento ainda em revisão (ou recusado): só quem administra vê.
+        if r.status != "published" && !is_admin {
+            continue;
+        }
+        let going = r.my_interest.as_deref() == Some("going");
+        let location = if r.address_hidden && !(is_admin || going) {
+            String::new()
+        } else {
+            r.location
+        };
         out.push(EventDto {
             id: r.id,
             page: PageRef {
@@ -129,7 +151,7 @@ async fn build(state: &AppState, user: &AuthUser, rows: Vec<Row>) -> AppResult<V
             description: r.description,
             starts_at: r.starts_at,
             ends_at: r.ends_at,
-            location: r.location,
+            location,
             cancelled: r.cancelled,
             my_interest: r.my_interest,
             friends: mine.into_iter().take(10).collect(),
@@ -137,6 +159,10 @@ async fn build(state: &AppState, user: &AuthUser, rows: Vec<Row>) -> AppResult<V
             interested_count: is_admin.then(|| c.map_or(0, |c| c.interested)),
             going_count: is_admin.then(|| c.map_or(0, |c| c.going)),
             can_edit: is_admin,
+            status: r.status,
+            address_hidden: r.address_hidden,
+            page_kind: r.page_kind,
+            responsible: r.responsible,
         });
     }
     let all = out.iter_mut().flat_map(|e| e.friends.iter_mut());
@@ -166,7 +192,10 @@ pub async fn list_for_page(
                e.starts_at, e.ends_at,
                CASE WHEN e.location = '' THEN p.address ELSE e.location END AS "location!",
                (e.cancelled_at IS NOT NULL) AS "cancelled!",
-               i.status AS "my_interest?"
+               i.status AS "my_interest?", e.status, e.address_hidden, p.kind AS page_kind,
+               (SELECT u.username FROM page_admins a JOIN users u ON u.id = a.user_id
+                 WHERE a.page_id = p.id AND a.role = 'owner' AND p.kind = 'coletivo')
+                 AS "responsible?"
         FROM events e JOIN pages p ON p.id = e.page_id
         LEFT JOIN event_interests i ON i.event_id = e.id AND i.user_id = $2
         WHERE e.page_id = $1 AND e.deleted_at IS NULL
@@ -200,7 +229,10 @@ pub async fn agenda(
                e.starts_at, e.ends_at,
                CASE WHEN e.location = '' THEN p.address ELSE e.location END AS "location!",
                (e.cancelled_at IS NOT NULL) AS "cancelled!",
-               i.status AS "my_interest?"
+               i.status AS "my_interest?", e.status, e.address_hidden, p.kind AS page_kind,
+               (SELECT u.username FROM page_admins a JOIN users u ON u.id = a.user_id
+                 WHERE a.page_id = p.id AND a.role = 'owner' AND p.kind = 'coletivo')
+                 AS "responsible?"
         FROM events e JOIN pages p ON p.id = e.page_id AND p.deleted_at IS NULL
         LEFT JOIN event_interests i ON i.event_id = e.id AND i.user_id = $1
         WHERE e.deleted_at IS NULL
@@ -228,7 +260,10 @@ async fn load_row(state: &AppState, user: &AuthUser, id: Uuid) -> AppResult<Row>
                e.starts_at, e.ends_at,
                CASE WHEN e.location = '' THEN p.address ELSE e.location END AS "location!",
                (e.cancelled_at IS NOT NULL) AS "cancelled!",
-               i.status AS "my_interest?"
+               i.status AS "my_interest?", e.status, e.address_hidden, p.kind AS page_kind,
+               (SELECT u.username FROM page_admins a JOIN users u ON u.id = a.user_id
+                 WHERE a.page_id = p.id AND a.role = 'owner' AND p.kind = 'coletivo')
+                 AS "responsible?"
         FROM events e JOIN pages p ON p.id = e.page_id AND p.deleted_at IS NULL
         LEFT JOIN event_interests i ON i.event_id = e.id AND i.user_id = $2
         WHERE e.id = $1 AND e.deleted_at IS NULL
@@ -267,6 +302,8 @@ pub struct EventInput {
     pub location: Option<String>,
     /// Só no PATCH: true cancela, false reabre.
     pub cancelled: Option<bool>,
+    /// Endereço só para quem marcar "vou" (ex.: festa em casa/república).
+    pub address_hidden: Option<bool>,
 }
 
 fn check_times(starts: OffsetDateTime, ends: Option<OffsetDateTime>) -> AppResult<()> {
@@ -324,10 +361,32 @@ pub async fn create(
     if today >= MAX_EVENTS_PER_DAY {
         return Err(AppError::LimitReached("event_limit"));
     }
+    // Coletivo estudantil: até 3 por semana e os 2 primeiros passam por
+    // revisão da administração.
+    let mut status = "published";
+    if p.kind == "coletivo" {
+        let r = sqlx::query!(
+            r#"SELECT
+                 (SELECT count(*) FROM events WHERE page_id = $1
+                   AND created_at > now() - interval '7 days') AS "week!",
+                 (SELECT count(*) FROM events WHERE page_id = $1
+                   AND status = 'published' AND deleted_at IS NULL) AS "published!""#,
+            p.id
+        )
+        .fetch_one(&state.db)
+        .await?;
+        if r.week >= crate::routes::coletivos::MAX_EVENTS_PER_WEEK {
+            return Err(AppError::LimitReached("event_week_limit"));
+        }
+        if r.published < crate::routes::coletivos::REVIEWED_EVENTS && !user.is_admin {
+            status = "pending_review";
+        }
+    }
     let id = Uuid::now_v7();
     sqlx::query!(
-        "INSERT INTO events (id, page_id, title, description, starts_at, ends_at, location, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+        "INSERT INTO events (id, page_id, title, description, starts_at, ends_at, location,
+                             created_by, status, address_hidden)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
         id,
         p.id,
         title,
@@ -335,7 +394,9 @@ pub async fn create(
         starts,
         req.ends_at,
         location,
-        user.user_id
+        user.user_id,
+        status,
+        req.address_hidden.unwrap_or(false)
     )
     .execute(&state.db)
     .await?;
@@ -382,7 +443,8 @@ pub async fn update(
         "UPDATE events SET title = $2, description = $3, location = $4, starts_at = $5,
            ends_at = $6,
            cancelled_at = CASE WHEN $7::bool IS NULL THEN cancelled_at
-                               WHEN $7 THEN coalesce(cancelled_at, now()) ELSE NULL END
+                               WHEN $7 THEN coalesce(cancelled_at, now()) ELSE NULL END,
+           address_hidden = coalesce($8, address_hidden)
          WHERE id = $1",
         id,
         title,
@@ -390,7 +452,8 @@ pub async fn update(
         location,
         starts,
         ends,
-        req.cancelled
+        req.cancelled,
+        req.address_hidden
     )
     .execute(&state.db)
     .await?;
@@ -493,7 +556,7 @@ pub struct MapEventDto {
 /// quem pede nunca é enviada: só a área que o mapa mostra.
 pub async fn map(
     State(state): State<AppState>,
-    _user: AuthUser,
+    user: AuthUser,
     Query(q): Query<MapQuery>,
 ) -> AppResult<Json<ListDto<MapEventDto>>> {
     let ok = |v: f64, lim: f64| v.is_finite() && v.abs() <= lim;
@@ -511,10 +574,16 @@ pub async fn map(
         r#"
         SELECT e.id, e.title, e.starts_at, e.ends_at,
                CASE WHEN e.location = '' THEN p.address ELSE e.location END AS "location!",
-               p.slug, p.name, p.lat AS "lat!", p.lng AS "lng!", lm.key AS "logo_key?"
+               p.slug, p.name, p.lat AS "lat!", p.lng AS "lng!", lm.key AS "logo_key?",
+               (e.address_hidden AND NOT EXISTS (
+                  SELECT 1 FROM event_interests i
+                  WHERE i.event_id = e.id AND i.user_id = $6 AND i.status = 'going')
+                AND NOT EXISTS (
+                  SELECT 1 FROM page_admins a WHERE a.page_id = p.id AND a.user_id = $6))
+                 AS "hide!"
         FROM events e JOIN pages p ON p.id = e.page_id AND p.deleted_at IS NULL
         LEFT JOIN media lm ON lm.id = p.logo_media_id
-        WHERE e.deleted_at IS NULL AND e.cancelled_at IS NULL
+        WHERE e.deleted_at IS NULL AND e.cancelled_at IS NULL AND e.status = 'published'
           AND p.lat BETWEEN $1 AND $2 AND p.lng BETWEEN $3 AND $4
           AND coalesce(e.ends_at, e.starts_at + interval '6 hours') >= now()
           AND e.starts_at <= now() + make_interval(days => $5::int)
@@ -525,10 +594,13 @@ pub async fn map(
         q.north,
         q.west,
         q.east,
-        i32::try_from(days).unwrap_or(14)
+        i32::try_from(days).unwrap_or(14),
+        user.user_id
     )
     .fetch_all(&state.db)
     .await?;
+    // Endereço escondido: no mapa só a região (~1 km), sem o texto.
+    let round = |v: f64| (v * 100.0).round() / 100.0;
     let items = rows
         .into_iter()
         .map(|r| MapEventDto {
@@ -536,12 +608,12 @@ pub async fn map(
             title: r.title,
             starts_at: r.starts_at,
             ends_at: r.ends_at,
-            location: r.location,
+            location: if r.hide { String::new() } else { r.location },
             page_slug: r.slug,
             page_name: r.name,
             page_logo_url: r.logo_key.map(|k| state.media.url(&k)),
-            lat: r.lat,
-            lng: r.lng,
+            lat: if r.hide { round(r.lat) } else { r.lat },
+            lng: if r.hide { round(r.lng) } else { r.lng },
         })
         .collect();
     Ok(Json(ListDto { items }))

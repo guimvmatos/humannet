@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE events SET status = $2 WHERE id = $1 AND status = 'pending_review'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f6a7c1bff583dc6c086531d96fdaf6e394b4715aadd42a8f40706b2c70e38afe"
+}

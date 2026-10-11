@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT p.id, p.slug, p.name, p.category, p.description, p.address, p.city, p.cnpj,\n                  (p.verified_at IS NOT NULL) AS \"verified!\", p.cep,\n                  lm.key AS \"logo_key?\", cm.key AS \"cover_key?\",\n                  p.lat, p.lng, p.geo_source\n           FROM pages p\n           LEFT JOIN media lm ON lm.id = p.logo_media_id\n           LEFT JOIN media cm ON cm.id = p.cover_media_id\n           WHERE p.slug = $1 AND p.deleted_at IS NULL",
+  "query": "SELECT p.id, p.slug, p.name, p.category, p.description, p.address, p.city,\n                  p.cnpj AS \"cnpj?\", p.kind,\n                  (p.verified_at IS NOT NULL) AS \"verified!\", p.cep,\n                  lm.key AS \"logo_key?\", cm.key AS \"cover_key?\",\n                  p.lat, p.lng, p.geo_source\n           FROM pages p\n           LEFT JOIN media lm ON lm.id = p.logo_media_id\n           LEFT JOIN media cm ON cm.id = p.cover_media_id\n           WHERE p.slug = $1 AND p.deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -82,7 +82,7 @@
       },
       {
         "ordinal": 7,
-        "name": "cnpj",
+        "name": "cnpj?",
         "type_info": "Bpchar",
         "origin": {
           "Table": {
@@ -93,12 +93,23 @@
       },
       {
         "ordinal": 8,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
         "name": "verified!",
         "type_info": "Bool",
         "origin": "Expression"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "cep",
         "type_info": "Bpchar",
         "origin": {
@@ -109,7 +120,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "logo_key?",
         "type_info": "Text",
         "origin": {
@@ -120,7 +131,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "cover_key?",
         "type_info": "Text",
         "origin": {
@@ -131,7 +142,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "lat",
         "type_info": "Float8",
         "origin": {
@@ -142,7 +153,7 @@
         }
       },
       {
-        "ordinal": 13,
+        "ordinal": 14,
         "name": "lng",
         "type_info": "Float8",
         "origin": {
@@ -153,7 +164,7 @@
         }
       },
       {
-        "ordinal": 14,
+        "ordinal": 15,
         "name": "geo_source",
         "type_info": "Text",
         "origin": {
@@ -177,6 +188,7 @@
       false,
       false,
       false,
+      true,
       false,
       null,
       true,
@@ -187,5 +199,5 @@
       true
     ]
   },
-  "hash": "5ff33f0c35a29fae93eab8749a3c268c40fc6c4372ae37273f61b88c42c2e929"
+  "hash": "e3c5392f600e914b88cb7ba035bc7c6cc527f46b014bbd2a98db890524c5c2a5"
 }

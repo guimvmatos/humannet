@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE organizer_requests SET status = 'rejected', reason = $3, decided_by = $2,\n           decided_at = now(), email_code_hash = NULL\n         WHERE id = $1 AND status = 'pending'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7838114f6ca49a8d566fb40c57eca7d603a783c80970a68d6fb26879217e0226"
+}

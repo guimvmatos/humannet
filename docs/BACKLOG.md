@@ -253,3 +253,11 @@ Conversar com outras redes abertas (Mastodon, Bluesky). Tensão com R1: contas d
   - Registro apagado em 30 dias; mostra só o dia da visita.
   - Sem notificação nem contador (R6).
   - Exige atualizar a Política de Privacidade (versão 2, novo aceite).
+
+## Feito 2026-10-11: coletivos estudantis (lote 28)
+
+- Página `kind = coletivo` (sem CNPJ), criada só por aprovação da administração (Moderação → ícone de grupos).
+- Pedido com e-mail institucional (`INSTITUTION_EMAIL_DOMAINS`, padrão `ufscar.br`) e código por e-mail quando `RESEND_API_KEY`/`MAIL_FROM` estão no Render (sem isso: conferência manual).
+- 2 primeiros eventos de cada coletivo em revisão; no máximo 3 por semana; responsável visível; endereço opcionalmente só para quem marcou "vou" (no mapa, só a região ~1 km).
+- **Pendente:** suspensão do coletivo por denúncia procedente é manual (apagar a página / suspender a conta); falta um botão próprio.
+- **Pendente:** domínio próprio para enviar e-mail aos alunos (com `onboarding@resend.dev` a Resend só entrega para o dono da conta).

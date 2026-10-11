@@ -90,6 +90,13 @@ cd app && flutter test
 | POST | `/v1/posts/{id}/tag/approve` | Bearer | Aprovo aparecer no post |
 | DELETE | `/v1/posts/{id}/tags/{username}` | Bearer | Recusar/tirar a minha marcação, ou o autor tirar a de alguém |
 | GET | `/v1/users/{username}/tagged` | Bearer | Aba "Marcado": posts com marcação aprovada |
+| POST | `/v1/organizer-requests` | Bearer | Pedir coletivo estudantil `{name, category: republica\|atletica\|centro_academico\|coletivo, description?, institution_email}` (e-mail de `INSTITUTION_EMAIL_DOMAINS`, padrão `ufscar.br`). Com `RESEND_API_KEY`+`MAIL_FROM`, manda código |
+| GET | `/v1/organizer-requests/mine` | Bearer | Meu pedido mais recente (404 se nenhum) |
+| POST | `/v1/organizer-requests/verify`, `/resend` | Bearer | `{code}`: confirma o e-mail institucional / manda outro código |
+| GET | `/v1/admin/organizer-requests` | Admin | Pedidos pendentes |
+| POST | `/v1/admin/organizer-requests/{id}/approve`, `/reject` | Admin | Aprovar (cria página `kind=coletivo`, sem CNPJ, dono = quem pediu) / recusar `{reason}` |
+| GET | `/v1/admin/events/pending` | Admin | Eventos de coletivos em revisão (os 2 primeiros de cada coletivo) |
+| POST | `/v1/admin/events/{id}/review` | Admin | `{approve}` publicar ou recusar |
 | GET | `/v1/me/visits` | Bearer | Quem visitou meu perfil (30 dias, só o dia; recíproco, ligado por padrão) |
 | PUT | `/v1/me/visits` | Bearer | `{enabled}`: desligar apaga as visitas feitas e recebidas |
 | PUT | `/v1/me/password` | Bearer | `{current_password, new_password}`: encerra as outras sessões |

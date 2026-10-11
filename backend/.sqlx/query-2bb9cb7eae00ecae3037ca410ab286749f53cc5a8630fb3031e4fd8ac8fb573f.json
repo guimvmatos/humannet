@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE organizer_requests SET email_code_hash = $2, email_code_expires_at = $3\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bytea",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2bb9cb7eae00ecae3037ca410ab286749f53cc5a8630fb3031e4fd8ac8fb573f"
+}

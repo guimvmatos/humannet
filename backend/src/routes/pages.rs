@@ -46,7 +46,10 @@ pub struct Page {
     pub description: String,
     pub address: String,
     pub city: String,
-    pub cnpj: String,
+    /// Só em página de empresa (`kind = empresa`).
+    pub cnpj: Option<String>,
+    /// empresa | coletivo
+    pub kind: String,
     pub verified: bool,
     pub cep: Option<String>,
     pub logo_key: Option<String>,
@@ -60,7 +63,8 @@ pub async fn load(state: &AppState, raw: &str) -> AppResult<Page> {
     let slug = validation::community_slug(raw).map_err(|_| AppError::NotFound)?;
     sqlx::query_as!(
         Page,
-        r#"SELECT p.id, p.slug, p.name, p.category, p.description, p.address, p.city, p.cnpj,
+        r#"SELECT p.id, p.slug, p.name, p.category, p.description, p.address, p.city,
+                  p.cnpj AS "cnpj?", p.kind,
                   (p.verified_at IS NOT NULL) AS "verified!", p.cep,
                   lm.key AS "logo_key?", cm.key AS "cover_key?",
                   p.lat, p.lng, p.geo_source
@@ -114,7 +118,12 @@ pub struct PageDto {
     pub description: String,
     pub address: String,
     pub city: String,
+    /// Formatado; vazio em coletivo (sem CNPJ).
     pub cnpj: String,
+    /// empresa | coletivo (estudantil, sem CNPJ, aprovado pela administração).
+    pub kind: String,
+    /// Coletivo: quem responde por ele (o dono).
+    pub responsible: Option<String>,
     pub verified: bool,
     /// Só dígitos (8) ou nulo.
     pub cep: Option<String>,
@@ -151,6 +160,17 @@ async fn to_dto(state: &AppState, p: Page, user: &AuthUser) -> AppResult<PageDto
     } else {
         None
     };
+    let responsible = if p.kind == "coletivo" {
+        sqlx::query_scalar!(
+            "SELECT u.username FROM page_admins a JOIN users u ON u.id = a.user_id
+             WHERE a.page_id = $1 AND a.role = 'owner'",
+            p.id
+        )
+        .fetch_optional(&state.db)
+        .await?
+    } else {
+        None
+    };
     Ok(PageDto {
         id: p.id,
         slug: p.slug,
@@ -159,7 +179,9 @@ async fn to_dto(state: &AppState, p: Page, user: &AuthUser) -> AppResult<PageDto
         description: p.description,
         address: p.address,
         city: p.city,
-        cnpj: format_cnpj(&p.cnpj),
+        cnpj: p.cnpj.as_deref().map(format_cnpj).unwrap_or_default(),
+        kind: p.kind,
+        responsible,
         verified: p.verified,
         cep: p.cep,
         logo_url: p.logo_key.map(|k| state.media.url(&k)),
@@ -179,6 +201,7 @@ pub struct PageItemDto {
     pub name: String,
     pub category: String,
     pub city: String,
+    pub kind: String,
     pub verified: bool,
     pub following: bool,
     pub my_role: Option<String>,
@@ -214,7 +237,7 @@ pub async fn list(
             });
     let rows = sqlx::query!(
         r#"
-        SELECT p.slug, p.name, p.category, p.city,
+        SELECT p.slug, p.name, p.category, p.city, p.kind,
                (p.verified_at IS NOT NULL) AS "verified!",
                (f.user_id IS NOT NULL) AS "following!",
                a.role AS "my_role?", lm.key AS "logo_key?"
@@ -241,6 +264,7 @@ pub async fn list(
             name: r.name,
             category: r.category,
             city: r.city,
+            kind: r.kind,
             verified: r.verified,
             following: r.following,
             my_role: r.my_role,

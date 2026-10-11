@@ -1380,6 +1380,7 @@ class ApiClient {
     DateTime? endsAt,
     String description = '',
     String location = '',
+    bool addressHidden = false,
   }) async {
     final json = await _send(
       'POST',
@@ -1391,6 +1392,7 @@ class ApiClient {
         'location': location,
         'starts_at': startsAt.toUtc().toIso8601String(),
         'ends_at': ?endsAt?.toUtc().toIso8601String(),
+        if (addressHidden) 'address_hidden': true,
       },
     );
     return PlaceEvent.fromJson(json!);
@@ -1405,6 +1407,7 @@ class ApiClient {
     DateTime? startsAt,
     DateTime? endsAt,
     bool? cancelled,
+    bool? addressHidden,
   }) async {
     final json = await _send(
       'PATCH',
@@ -1417,9 +1420,108 @@ class ApiClient {
         'starts_at': ?startsAt?.toUtc().toIso8601String(),
         'ends_at': ?endsAt?.toUtc().toIso8601String(),
         'cancelled': ?cancelled,
+        'address_hidden': ?addressHidden,
       },
     );
     return PlaceEvent.fromJson(json!);
+  }
+
+  // ------------------------------------------------------------ coletivos
+
+  /// Meu pedido mais recente para criar coletivo (null se nunca pedi).
+  Future<OrganizerRequest?> myOrganizerRequest(String token) async {
+    try {
+      final json = await _send(
+        'GET',
+        '/v1/organizer-requests/mine',
+        token: token,
+      );
+      return OrganizerRequest.fromJson(json!);
+    } on ApiException catch (e) {
+      if (e.statusCode == 404) return null;
+      rethrow;
+    }
+  }
+
+  Future<OrganizerRequest> requestCollective(
+    String token, {
+    required String name,
+    required String category,
+    required String institutionEmail,
+    String description = '',
+  }) async {
+    final json = await _send(
+      'POST',
+      '/v1/organizer-requests',
+      token: token,
+      body: {
+        'name': name,
+        'category': category,
+        'description': description,
+        'institution_email': institutionEmail,
+      },
+    );
+    return OrganizerRequest.fromJson(json!);
+  }
+
+  Future<OrganizerRequest> verifyCollectiveEmail(
+    String token,
+    String code,
+  ) async {
+    final json = await _send(
+      'POST',
+      '/v1/organizer-requests/verify',
+      token: token,
+      body: {'code': code},
+    );
+    return OrganizerRequest.fromJson(json!);
+  }
+
+  Future<void> resendCollectiveCode(String token) async {
+    await _send('POST', '/v1/organizer-requests/resend', token: token);
+  }
+
+  Future<List<OrganizerRequest>> pendingCollectives(String token) async {
+    final json = await _send(
+      'GET',
+      '/v1/admin/organizer-requests',
+      token: token,
+    );
+    return [
+      for (final r in json!['items'] as List<dynamic>)
+        OrganizerRequest.fromJson(r as Map<String, dynamic>),
+    ];
+  }
+
+  Future<void> decideCollective(
+    String token,
+    String id, {
+    required bool approve,
+    String reason = '',
+  }) async {
+    await _send(
+      'POST',
+      '/v1/admin/organizer-requests/$id/${approve ? 'approve' : 'reject'}',
+      token: token,
+      body: approve ? null : {'reason': reason},
+    );
+  }
+
+  Future<List<PendingEvent>> pendingEvents(String token) async {
+    final json = await _send('GET', '/v1/admin/events/pending', token: token);
+    return [
+      for (final e in json!['items'] as List<dynamic>)
+        PendingEvent.fromJson(e as Map<String, dynamic>),
+    ];
+  }
+
+  Future<void> reviewEvent(String token, String id, {required bool approve}) async {
+    await _send(
+      'POST',
+      '/v1/admin/events/$id/review',
+      token: token,
+      body: {'approve': approve},
+    );
   }
 
   Future<void> deleteEvent(String token, String id) async {

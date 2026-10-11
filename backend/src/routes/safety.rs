@@ -312,7 +312,10 @@ pub async fn report(
             .unwrap_or(Uuid::nil());
             let snap = format!(
                 "{} ({}) CNPJ {}\n\n{}",
-                p.name, p.slug, p.cnpj, p.description
+                p.name,
+                p.slug,
+                p.cnpj.unwrap_or_default(),
+                p.description
             );
             ("page", p.id, snap, owner)
         }

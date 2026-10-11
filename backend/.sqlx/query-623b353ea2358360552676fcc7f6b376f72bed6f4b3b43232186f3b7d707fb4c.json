@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE organizer_requests\n         SET email_verified_at = now(), email_code_hash = NULL, email_code_expires_at = NULL\n         WHERE user_id = $1 AND status = 'pending' AND email_code_hash = $2\n           AND email_code_expires_at > now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "623b353ea2358360552676fcc7f6b376f72bed6f4b3b43232186f3b7d707fb4c"
+}

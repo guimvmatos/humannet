@@ -12,6 +12,7 @@ import 'events_ui.dart';
 import 'photos.dart';
 import 'post_list.dart';
 import 'report_dialog.dart';
+import 'coletivos_ui.dart';
 
 /// Abre a página de um lugar.
 Future<void> openPlace(
@@ -289,6 +290,20 @@ class _PlacesScreenState extends State<PlacesScreen> {
       body: ListView(
         padding: const EdgeInsets.only(bottom: 88),
         children: [
+          ListTile(
+            key: const Key('collective_tile'),
+            leading: const Icon(Icons.groups_outlined),
+            title: const Text('Coletivo estudantil (sem CNPJ)'),
+            subtitle: const Text(
+              'República, atlética, CA ou grupo da UFSCar: peça para criar eventos.',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => CollectiveRequestScreen(session: widget.session),
+              ),
+            ),
+          ),
           if (!widget.adminOnly)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -731,7 +746,13 @@ class _PlaceScreenState extends State<PlaceScreen> {
                 Text(p.description),
               ],
               const SizedBox(height: 4),
-              Text('CNPJ ${p.cnpj}', style: theme.textTheme.bodySmall),
+              Text(
+                p.isCollective
+                    ? 'Coletivo estudantil (sem CNPJ) · responsável @${p.responsible ?? '?'}'
+                    : 'CNPJ ${p.cnpj}',
+                key: const Key('place_identity'),
+                style: theme.textTheme.bodySmall,
+              ),
               if (p.canManage) ...[
                 Text(
                   p.isOwner

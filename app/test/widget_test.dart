@@ -8,6 +8,7 @@ import 'package:humannet/src/auth/token_store.dart';
 import 'package:humannet/src/geo/location.dart';
 import 'package:humannet/src/theme/theme_controller.dart';
 import 'package:humannet/src/ui/app.dart';
+import 'package:humannet/src/ui/coletivos_ui.dart';
 import 'package:humannet/src/ui/compose_screen.dart';
 import 'package:humannet/src/ui/cpf.dart';
 import 'package:humannet/src/ui/events_map.dart';
@@ -1426,6 +1427,55 @@ void main() {
     await tester.pumpAndSettle();
     expect(backend.approvedTags, ['01a10000-0000-7000-8000-000000000001']);
     expect(find.text('Nenhuma marcação esperando você.'), findsOneWidget);
+  });
+
+  testWidgets('coletivo estudantil: pedido com e-mail da UFSCar e código', (
+    tester,
+  ) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    final nav = tester.state<NavigatorState>(find.byType(Navigator).first);
+    nav.push(
+      MaterialPageRoute<void>(
+        builder: (_) => CollectiveRequestScreen(session: session),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('collective_name')),
+      'República Toca',
+    );
+    await tester.tap(find.byKey(const Key('collective_cat_atletica')));
+    await tester.enterText(
+      find.byKey(const Key('collective_email')),
+      'alice@gmail.com',
+    );
+    await tester.pump();
+    await _tapInList(tester, 'collective_submit');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('e-mail institucional da UFSCar'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('collective_email')),
+      'alice@estudante.ufscar.br',
+    );
+    await tester.pump();
+    await _tapInList(tester, 'collective_submit');
+    await tester.pumpAndSettle();
+    expect(backend.collectiveRequest?['category'], 'atletica');
+    expect(find.byKey(const Key('collective_code')), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('collective_code')), '123456');
+    await tester.tap(find.byKey(const Key('collective_verify')));
+    await tester.pumpAndSettle();
+    expect(backend.collectiveCode, '123456');
+    expect(
+      find.textContaining('E-mail confirmado. Aguardando a aprovação'),
+      findsOneWidget,
+    );
   });
 }
 

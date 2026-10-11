@@ -80,6 +80,10 @@ class FakeBackend {
   bool exportRequested = false;
   bool visitsEnabled = true;
 
+  /// Coletivo: pedido de alice.
+  Map<String, Object?>? collectiveRequest;
+  String? collectiveCode;
+
   /// Marcações.
   String mentionPolicy = 'everyone';
   final List<String> pendingTagPosts = ['01a10000-0000-7000-8000-000000000001'];
@@ -618,6 +622,35 @@ class FakeBackend {
         mentionPolicy =
             (jsonDecode(request.body) as Map<String, dynamic>)['policy'] as String;
         return _json(200, {'policy': mentionPolicy});
+      case 'GET /v1/organizer-requests/mine':
+        final r = collectiveRequest;
+        return r == null ? _json(404, {'error': 'not_found'}) : _json(200, r);
+      case 'POST /v1/organizer-requests':
+        final b = jsonDecode(request.body) as Map<String, dynamic>;
+        final email = b['institution_email'] as String;
+        if (!email.endsWith('ufscar.br')) {
+          return _json(422, {'error': 'invalid_institution_email'});
+        }
+        collectiveRequest = {
+          'id': 'or1',
+          'name': b['name'],
+          'category': b['category'],
+          'description': b['description'] ?? '',
+          'institution_email': email,
+          'email_verified': false,
+          'email_check': 'code',
+          'status': 'pending',
+          'reason': '',
+          'page_slug': null,
+          'created_at': '2026-10-11T12:00:00Z',
+        };
+        return _json(201, collectiveRequest);
+      case 'POST /v1/organizer-requests/verify':
+        collectiveCode =
+            (jsonDecode(request.body) as Map<String, dynamic>)['code'] as String;
+        if (collectiveCode != '123456') return _json(422, {'error': 'invalid_code'});
+        collectiveRequest = {...?collectiveRequest, 'email_verified': true};
+        return _json(200, collectiveRequest);
       case 'GET /v1/me/visits':
         return _json(200, _visits());
       case 'PUT /v1/me/visits':

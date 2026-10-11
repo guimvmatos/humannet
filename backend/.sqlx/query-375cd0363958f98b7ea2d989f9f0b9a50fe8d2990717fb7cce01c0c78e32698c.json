@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT e.id, e.page_id, p.slug AS page_slug, p.name AS page_name, e.title, e.description,\n               e.starts_at, e.ends_at,\n               CASE WHEN e.location = '' THEN p.address ELSE e.location END AS \"location!\",\n               (e.cancelled_at IS NOT NULL) AS \"cancelled!\",\n               i.status AS \"my_interest?\"\n        FROM events e JOIN pages p ON p.id = e.page_id AND p.deleted_at IS NULL\n        LEFT JOIN event_interests i ON i.event_id = e.id AND i.user_id = $1\n        WHERE e.deleted_at IS NULL\n          AND coalesce(e.ends_at, e.starts_at + interval '6 hours') >= now()\n          AND (i.user_id IS NOT NULL\n               OR EXISTS (SELECT 1 FROM page_followers f WHERE f.page_id = p.id AND f.user_id = $1)\n               OR EXISTS (SELECT 1 FROM page_admins a WHERE a.page_id = p.id AND a.user_id = $1))\n        ORDER BY e.starts_at ASC\n        LIMIT 100\n        ",
+  "query": "\n        SELECT e.id, e.page_id, p.slug AS page_slug, p.name AS page_name, e.title, e.description,\n               e.starts_at, e.ends_at,\n               CASE WHEN e.location = '' THEN p.address ELSE e.location END AS \"location!\",\n               (e.cancelled_at IS NOT NULL) AS \"cancelled!\",\n               i.status AS \"my_interest?\", e.status, e.address_hidden, p.kind AS page_kind,\n               (SELECT u.username FROM page_admins a JOIN users u ON u.id = a.user_id\n                 WHERE a.page_id = p.id AND a.role = 'owner' AND p.kind = 'coletivo')\n                 AS \"responsible?\"\n        FROM events e JOIN pages p ON p.id = e.page_id AND p.deleted_at IS NULL\n        LEFT JOIN event_interests i ON i.event_id = e.id AND i.user_id = $2\n        WHERE e.id = $1 AND e.deleted_at IS NULL\n        ",
   "describe": {
     "columns": [
       {
@@ -113,10 +113,50 @@
             "name": "status"
           }
         }
+      },
+      {
+        "ordinal": 11,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "address_hidden",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "events",
+            "name": "address_hidden"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "page_kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "pages",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "responsible?",
+        "type_info": "Text",
+        "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
+        "Uuid",
         "Uuid"
       ]
     },
@@ -131,8 +171,12 @@
       true,
       null,
       null,
-      false
+      true,
+      false,
+      false,
+      false,
+      null
     ]
   },
-  "hash": "0a8ad32de3242709e31d7860e750702d4bced4a9cdf1c1f382a602906d1af6c3"
+  "hash": "375cd0363958f98b7ea2d989f9f0b9a50fe8d2990717fb7cce01c0c78e32698c"
 }

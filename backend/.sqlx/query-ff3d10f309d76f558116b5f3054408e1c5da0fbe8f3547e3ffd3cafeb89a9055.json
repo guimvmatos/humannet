@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE organizer_requests SET status = 'approved', decided_by = $2, decided_at = now(),\n           page_id = $3\n         WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ff3d10f309d76f558116b5f3054408e1c5da0fbe8f3547e3ffd3cafeb89a9055"
+}

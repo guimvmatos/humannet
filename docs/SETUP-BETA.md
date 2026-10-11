@@ -337,3 +337,25 @@ a cada push na `main` (job `web` + `pages` do workflow `app`).
   (CORS). Para testar a web em outro endereço (ex.: `http://localhost:8080`),
   defina no Render `CORS_EXTRA_ORIGINS` com esse endereço.
 - Notificações push no iPhone ainda não estão ligadas na versão web.
+
+---
+
+## Passo 9 — E-mail para o código dos coletivos (opcional, grátis, 10 min)
+
+Sem isso, os pedidos de coletivo ficam com "e-mail NÃO confirmado" e a
+administração decide só olhando o pedido. Com isso, o aluno recebe um código
+no e-mail da UFSCar.
+
+1. Crie uma conta grátis em **https://resend.com** (100 e-mails/dia).
+2. **API Keys → Create API Key** (permissão "Sending access").
+3. Render → **humannet-api** → **Environment** → adicione:
+   - `RESEND_API_KEY` = a chave criada;
+   - `MAIL_FROM` = `HumanNet <onboarding@resend.dev>` (endereço de teste da
+     Resend; para usar o seu domínio, verifique o domínio lá antes).
+4. **Save, rebuild, and deploy**.
+
+- Domínios aceitos: `INSTITUTION_EMAIL_DOMAINS` (padrão `ufscar.br`, vale para
+  subdomínios como `estudante.ufscar.br`).
+- ⚠️ Com o endereço de teste `onboarding@resend.dev`, a Resend só entrega para
+  o e-mail da própria conta. Para mandar para os alunos, é preciso verificar
+  um domínio seu na Resend.

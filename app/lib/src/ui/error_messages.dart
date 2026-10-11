@@ -18,6 +18,12 @@ String errorMessage(Object error) {
     'location_unavailable' =>
       'Ative a localização do celular para usar a Região. Ela vai '
           'arredondada (~500 m) e não fica guardada.',
+    'invalid_institution_email' =>
+      'Use seu e-mail institucional da UFSCar (ex.: voce@estudante.ufscar.br).',
+    'request_pending' => 'Você já tem um pedido em análise.',
+    'invalid_code' => 'Código errado ou vencido. Peça outro.',
+    'email_send_failed' => 'Não conseguimos mandar o e-mail agora. Tente de novo.',
+    'event_week_limit' => 'Coletivos podem criar até 3 eventos por semana.',
     'terms_required' =>
       'Para criar a conta, aceite os Termos e a Política de Privacidade.',
     'invalid_radius' => 'O raio vai de 1 a 50 km.',

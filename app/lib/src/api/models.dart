@@ -875,6 +875,18 @@ const placeCategories = <String, String>{
   'livraria': 'Livraria',
   'esporte': 'Esporte',
   'outro': 'Outro',
+  'republica': 'República',
+  'atletica': 'Atlética',
+  'centro_academico': 'Centro acadêmico',
+  'coletivo': 'Coletivo / grupo',
+};
+
+/// Tipos de coletivo estudantil (sem CNPJ).
+const collectiveCategories = <String, String>{
+  'republica': 'República',
+  'atletica': 'Atlética',
+  'centro_academico': 'Centro acadêmico',
+  'coletivo': 'Coletivo / grupo',
 };
 
 /// Página de lugar na lista.
@@ -933,6 +945,8 @@ class Place {
     this.lat,
     this.lng,
     this.pinManual = false,
+    this.kind = 'empresa',
+    this.responsible,
   });
 
   factory Place.fromJson(Map<String, dynamic> json) => Place(
@@ -953,6 +967,8 @@ class Place {
     lat: (json['lat'] as num?)?.toDouble(),
     lng: (json['lng'] as num?)?.toDouble(),
     pinManual: (json['pin_manual'] as bool?) ?? false,
+    kind: (json['kind'] as String?) ?? 'empresa',
+    responsible: json['responsible'] as String?,
   );
 
   final String slug;
@@ -981,6 +997,13 @@ class Place {
   final double? lng;
   final bool pinManual;
   bool get hasPin => lat != null && lng != null;
+
+  /// empresa | coletivo (estudantil, sem CNPJ).
+  final String kind;
+  bool get isCollective => kind == 'coletivo';
+
+  /// Coletivo: quem responde por ele.
+  final String? responsible;
 
   bool get canManage => myRole != null;
   bool get isOwner => myRole == 'owner';
@@ -1035,6 +1058,9 @@ class PlaceEvent {
     this.myInterest,
     this.interestedCount,
     this.goingCount,
+    this.status = 'published',
+    this.addressHidden = false,
+    this.responsible,
   });
 
   factory PlaceEvent.fromJson(Map<String, dynamic> json) {
@@ -1058,6 +1084,9 @@ class PlaceEvent {
       interestedCount: json['interested_count'] as int?,
       goingCount: json['going_count'] as int?,
       canEdit: (json['can_edit'] as bool?) ?? false,
+      status: (json['status'] as String?) ?? 'published',
+      addressHidden: (json['address_hidden'] as bool?) ?? false,
+      responsible: json['responsible'] as String?,
     );
   }
 
@@ -1080,6 +1109,101 @@ class PlaceEvent {
   final int? interestedCount;
   final int? goingCount;
   final bool canEdit;
+
+  /// published | pending_review | rejected (os dois últimos só quem administra vê).
+  final String status;
+
+  /// Endereço só para quem marcou "vou".
+  final bool addressHidden;
+
+  /// Coletivo: quem responde pelo evento.
+  final String? responsible;
+}
+
+/// Pedido para criar um coletivo estudantil.
+class OrganizerRequest {
+  const OrganizerRequest({
+    required this.id,
+    required this.name,
+    required this.category,
+    required this.institutionEmail,
+    required this.emailVerified,
+    required this.emailCheck,
+    required this.status,
+    this.description = '',
+    this.reason = '',
+    this.pageSlug,
+    this.user,
+  });
+
+  factory OrganizerRequest.fromJson(Map<String, dynamic> json) =>
+      OrganizerRequest(
+        id: json['id'] as String,
+        name: json['name'] as String,
+        category: json['category'] as String,
+        description: (json['description'] as String?) ?? '',
+        institutionEmail: json['institution_email'] as String,
+        emailVerified: (json['email_verified'] as bool?) ?? false,
+        emailCheck: (json['email_check'] as String?) ?? 'manual',
+        status: json['status'] as String,
+        reason: (json['reason'] as String?) ?? '',
+        pageSlug: json['page_slug'] as String?,
+        user: json['user'] == null
+            ? null
+            : Author.fromJson(json['user'] as Map<String, dynamic>),
+      );
+
+  final String id;
+  final String name;
+  final String category;
+  final String description;
+  final String institutionEmail;
+  final bool emailVerified;
+
+  /// code: o servidor manda código por e-mail; manual: a administração confere.
+  final String emailCheck;
+
+  /// pending | approved | rejected
+  final String status;
+  final String reason;
+  final String? pageSlug;
+
+  /// Só na lista da administração.
+  final Author? user;
+}
+
+/// Evento de coletivo esperando revisão (administração).
+class PendingEvent {
+  const PendingEvent({
+    required this.id,
+    required this.title,
+    required this.startsAt,
+    required this.pageName,
+    required this.pageSlug,
+    this.description = '',
+    this.location = '',
+    this.responsible,
+  });
+
+  factory PendingEvent.fromJson(Map<String, dynamic> json) => PendingEvent(
+    id: json['id'] as String,
+    title: json['title'] as String,
+    description: (json['description'] as String?) ?? '',
+    startsAt: DateTime.parse(json['starts_at'] as String),
+    location: (json['location'] as String?) ?? '',
+    pageName: json['page_name'] as String,
+    pageSlug: json['page_slug'] as String,
+    responsible: json['responsible'] as String?,
+  );
+
+  final String id;
+  final String title;
+  final String description;
+  final DateTime startsAt;
+  final String location;
+  final String pageName;
+  final String pageSlug;
+  final String? responsible;
 }
 
 // ---------------------------------------------------------------- mensagens
