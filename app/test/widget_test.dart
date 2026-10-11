@@ -11,6 +11,7 @@ import 'package:humannet/src/ui/app.dart';
 import 'package:humannet/src/ui/compose_screen.dart';
 import 'package:humannet/src/ui/cpf.dart';
 import 'package:humannet/src/ui/events_map.dart';
+import 'package:humannet/src/ui/history_screen.dart';
 
 import 'fake_backend.dart';
 
@@ -1269,5 +1270,55 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('friends_screen')), findsOneWidget);
   });
+
+  testWidgets('minha atividade: apagar vários e baixar meus dados', (
+    tester,
+  ) async {
+    final opened = <Uri>[];
+    openExportLink = (uri) async {
+      opened.add(uri);
+      return true;
+    };
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    await tester.pushHistoryScreen(session);
+    expect(find.byKey(const Key('history_empty_posts')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('history_tab_comments')));
+    await tester.pumpAndSettle();
+    expect(find.text('Comentário 1'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('history_check_mc1')));
+    await tester.tap(find.byKey(const Key('history_check_mc3')));
+    await tester.pump();
+    expect(find.text('2 selecionado(s)'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('history_delete_comments')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('history_delete_confirm')));
+    await tester.pumpAndSettle();
+    expect(backend.historyDeleted.single.$1, 'comments');
+    expect(backend.historyDeleted.single.$2.toSet(), {'mc1', 'mc3'});
+    expect(find.text('Comentário 1'), findsNothing);
+    expect(find.text('Comentário 2'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('export_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('export_confirm')));
+    await tester.pumpAndSettle();
+    expect(backend.exportRequested, isTrue);
+    expect(opened.single.path, '/export/abc123');
+  });
 }
 
+extension on WidgetTester {
+  Future<void> pushHistoryScreen(SessionController session) async {
+    final nav = state<NavigatorState>(find.byType(Navigator).first);
+    nav.push(
+      MaterialPageRoute<void>(builder: (_) => HistoryScreen(session: session)),
+    );
+    await pumpAndSettle();
+  }
+}

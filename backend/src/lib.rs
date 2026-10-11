@@ -139,6 +139,9 @@ pub fn app(state: AppState) -> Router {
         .route("/me/password", put(routes::account::change_password))
         .route("/me/cpf", put(routes::account::set_cpf))
         .route("/me/terms", put(routes::legal::accept))
+        .route("/me/history", get(routes::history::list))
+        .route("/me/history/delete", post(routes::history::delete))
+        .route("/me/export", post(routes::history::create_export))
         .route(
             "/admin/users/{username}/release-cpf",
             post(routes::admin::release_cpf),
@@ -364,6 +367,7 @@ pub fn app(state: AppState) -> Router {
         .route("/health", get(routes::health::health))
         .route("/legal/termos", get(routes::legal::terms))
         .route("/legal/privacidade", get(routes::legal::privacy))
+        .route("/export/{token}", get(routes::history::download_export))
         .nest("/v1", v1)
         .with_state(state)
         // Camadas: a última adicionada é a mais externa.

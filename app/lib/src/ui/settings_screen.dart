@@ -6,6 +6,7 @@ import '../api/models.dart';
 import '../auth/session_controller.dart';
 import 'appearance_screen.dart';
 import 'error_messages.dart';
+import 'history_screen.dart';
 import 'interests_screen.dart';
 import 'legal_screen.dart';
 import 'moderation_screen.dart';
@@ -43,6 +44,19 @@ class SettingsScreen extends StatelessWidget {
             title: const Text('Regras de convivência'),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const RulesScreen()),
+            ),
+          ),
+          ListTile(
+            key: const Key('history_tile'),
+            leading: const Icon(Icons.history),
+            title: const Text('Minha atividade'),
+            subtitle: const Text(
+              'Posts, comentários, curtidas e recados; apagar e baixar meus dados',
+            ),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => HistoryScreen(session: session),
+              ),
             ),
           ),
           ListTile(

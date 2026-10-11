@@ -1316,3 +1316,46 @@ class LifeEntry {
     'discoverable': discoverable,
   };
 }
+
+/// Um item de "Minha atividade".
+class HistoryItem {
+  const HistoryItem({
+    required this.id,
+    required this.body,
+    required this.createdAt,
+    this.postId,
+    this.otherUsername,
+  });
+
+  factory HistoryItem.fromJson(Map<String, dynamic> json) => HistoryItem(
+    id: json['id'] as String,
+    postId: json['post_id'] as String?,
+    otherUsername: json['other_username'] as String?,
+    body: json['body'] as String,
+    createdAt: DateTime.parse(json['created_at'] as String),
+  );
+
+  /// O que apagar (em curtidas, o post).
+  final String id;
+  final String? postId;
+
+  /// Autor do post (comentários/curtidas), destinatário (recados/depoimentos)
+  /// ou página (posts no mural).
+  final String? otherUsername;
+  final String body;
+  final DateTime createdAt;
+}
+
+class HistoryPage {
+  const HistoryPage({required this.items, this.nextCursor});
+
+  factory HistoryPage.fromJson(Map<String, dynamic> json) => HistoryPage(
+    items: (json['items'] as List<dynamic>)
+        .map((e) => HistoryItem.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    nextCursor: json['next_cursor'] as String?,
+  );
+
+  final List<HistoryItem> items;
+  final String? nextCursor;
+}

@@ -8,6 +8,7 @@ pub mod devices;
 pub mod events;
 pub mod friends;
 pub mod health;
+pub mod history;
 pub mod invites;
 pub mod legal;
 pub mod me;

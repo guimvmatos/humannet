@@ -282,6 +282,38 @@ class ApiClient {
   // ------------------------------------------------------------ conta
 
   /// Contas antigas informam o CPF uma vez (o servidor guarda só um código).
+  /// Minha atividade: `kind` = posts | comments | likes | scraps | testimonials.
+  Future<HistoryPage> history(
+    String token,
+    String kind, {
+    String? before,
+  }) async {
+    final json = await _send(
+      'GET',
+      '/v1/me/history',
+      token: token,
+      query: {'kind': kind, 'before': ?before},
+    );
+    return HistoryPage.fromJson(json!);
+  }
+
+  /// Apaga (ou descurte) itens meus; devolve quantos saíram.
+  Future<int> deleteHistory(String token, String kind, List<String> ids) async {
+    final json = await _send(
+      'POST',
+      '/v1/me/history/delete',
+      token: token,
+      body: {'kind': kind, 'ids': ids},
+    );
+    return (json?['deleted'] as int?) ?? 0;
+  }
+
+  /// Link de uso único (10 min) para baixar meus dados no navegador.
+  Future<Uri> exportLink(String token) async {
+    final json = await _send('POST', '/v1/me/export', token: token);
+    return _baseUri.resolve(json!['url'] as String);
+  }
+
   /// Aceita a versão vigente dos Termos e da Privacidade.
   Future<void> acceptTerms(String token, int version) async {
     await _send(

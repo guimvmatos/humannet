@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT u.username,\n        json_build_object(\n          'formato', 'HumanNet — exportação de dados (LGPD art. 18)',\n          'gerado_em', now(),\n          'conta', json_build_object(\n            'usuario', u.username, 'email', u.email, 'nome', u.display_name,\n            'bio', u.bio, 'cidade_natal', u.hometown, 'cidade', u.city,\n            'escola', u.school, 'criada_em', u.created_at,\n            'termos_aceitos_versao', u.terms_version,\n            'termos_aceitos_em', u.terms_accepted_at),\n          'posts', (SELECT coalesce(json_agg(json_build_object(\n              'id', p.id, 'texto', p.body, 'temas', p.topics, 'hashtags', p.hashtags,\n              'fotos', (SELECT count(*) FROM post_media pm WHERE pm.post_id = p.id),\n              'tem_area_aproximada', p.cell_lat IS NOT NULL,\n              'criado_em', p.created_at, 'editado_em', p.edited_at)\n              ORDER BY p.created_at), '[]')\n            FROM posts p WHERE p.author_id = u.id AND p.deleted_at IS NULL),\n          'comentarios', (SELECT coalesce(json_agg(json_build_object(\n              'id', c.id, 'post', c.post_id, 'texto', c.body, 'criado_em', c.created_at)\n              ORDER BY c.created_at), '[]')\n            FROM comments c WHERE c.author_id = u.id AND c.deleted_at IS NULL),\n          'curtidas', (SELECT coalesce(json_agg(json_build_object(\n              'post', l.post_id, 'em', l.created_at) ORDER BY l.created_at), '[]')\n            FROM likes l WHERE l.user_id = u.id),\n          'amigos', (SELECT coalesce(json_agg(json_build_object(\n              'usuario', f2.username, 'desde', f.created_at) ORDER BY f.created_at), '[]')\n            FROM friends f JOIN users f2 ON f2.id = f.friend_id WHERE f.user_id = u.id),\n          'recados_escritos', (SELECT coalesce(json_agg(json_build_object(\n              'para', r2.username, 'texto', s.body, 'em', s.created_at)\n              ORDER BY s.created_at), '[]')\n            FROM scraps s JOIN users r2 ON r2.id = s.recipient_id WHERE s.author_id = u.id),\n          'recados_recebidos', (SELECT coalesce(json_agg(json_build_object(\n              'de', a2.username, 'texto', s.body, 'em', s.created_at)\n              ORDER BY s.created_at), '[]')\n            FROM scraps s JOIN users a2 ON a2.id = s.author_id WHERE s.recipient_id = u.id),\n          'depoimentos_escritos', (SELECT coalesce(json_agg(json_build_object(\n              'para', r2.username, 'texto', t.body, 'situacao', t.status, 'em', t.created_at)\n              ORDER BY t.created_at), '[]')\n            FROM testimonials t JOIN users r2 ON r2.id = t.recipient_id\n            WHERE t.author_id = u.id),\n          'depoimentos_recebidos', (SELECT coalesce(json_agg(json_build_object(\n              'de', a2.username, 'texto', t.body, 'situacao', t.status, 'em', t.created_at)\n              ORDER BY t.created_at), '[]')\n            FROM testimonials t JOIN users a2 ON a2.id = t.author_id\n            WHERE t.recipient_id = u.id),\n          'mensagens_enviadas', (SELECT coalesce(json_agg(json_build_object(\n              'conversa', m.conversation_id, 'texto', m.body, 'em', m.created_at)\n              ORDER BY m.created_at), '[]')\n            FROM messages m WHERE m.author_id = u.id AND m.deleted_at IS NULL),\n          'linha_do_tempo', (SELECT coalesce(json_agg(json_build_object(\n              'tipo', e.kind, 'nivel', e.level, 'inicio', e.start_year, 'fim', e.end_year,\n              'visibilidade', e.visibility) ORDER BY e.start_year), '[]')\n            FROM life_entries e WHERE e.user_id = u.id)\n        )::text AS \"json!\"\n        FROM users u WHERE u.id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "username",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "username"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "json!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "4627d4f53178fc1b7baca4bb7e84265da0fffb694fb91f66fb4e5b53064f1265"
+}

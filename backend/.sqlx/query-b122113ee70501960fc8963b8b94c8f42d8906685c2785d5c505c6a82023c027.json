@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE comments SET deleted_at = now(), body = '[removido]'\n             WHERE id = ANY($2) AND author_id = $1 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b122113ee70501960fc8963b8b94c8f42d8906685c2785d5c505c6a82023c027"
+}

@@ -64,6 +64,20 @@ class FakeBackend {
   String? status;
   bool needsCpf = false;
   bool needsTerms = false;
+
+  /// Minha atividade: comentários meus e o que foi apagado.
+  final List<Map<String, Object?>> myComments = [
+    for (var i = 1; i <= 3; i++)
+      {
+        'id': 'mc$i',
+        'post_id': '01a10000-0000-7000-8000-000000000001',
+        'other_username': 'bob',
+        'body': 'Comentário $i',
+        'created_at': '2026-10-0${i}T12:00:00Z',
+      },
+  ];
+  final List<(String, List<String>)> historyDeleted = [];
+  bool exportRequested = false;
   int? termsAccepted;
 
   /// Lugar "bar-do-ze" e um evento.
@@ -525,6 +539,24 @@ class FakeBackend {
       case 'POST /v1/conversations/cv2/read':
         return http.Response('', 204);
 
+      case 'GET /v1/me/history':
+        final kind = request.url.queryParameters['kind'];
+        return _json(200, {
+          'items': kind == 'comments' ? myComments : <Object>[],
+          'next_cursor': null,
+        });
+      case 'POST /v1/me/history/delete':
+        final r = jsonDecode(request.body) as Map<String, dynamic>;
+        final ids = (r['ids'] as List<dynamic>).cast<String>();
+        historyDeleted.add((r['kind'] as String, ids));
+        myComments.removeWhere((c) => ids.contains(c['id']));
+        return _json(200, {'deleted': ids.length});
+      case 'POST /v1/me/export':
+        exportRequested = true;
+        return _json(201, {
+          'url': '/export/abc123',
+          'expires_at': '2026-10-10T12:10:00Z',
+        });
       case 'PUT /v1/me/terms':
         termsAccepted =
             (jsonDecode(request.body) as Map<String, dynamic>)['version'] as int;

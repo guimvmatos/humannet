@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM data_exports WHERE user_id = $1 OR expires_at < now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1c6b0ba60dc1ec3b1dc69e1db3a8b962977c9368a28f8afcef25d73f9172486d"
+}

@@ -68,6 +68,7 @@ cd app && flutter test
 | Método | Rota | Auth | Descrição |
 |---|---|---|---|
 | GET | `/health` | — | Liveness + banco |
+| GET | `/export/{token}` | — (link de uso único) | JSON com meus dados (LGPD art. 18): conta, posts, comentários, curtidas, amigos, recados, depoimentos, mensagens enviadas, linha do tempo. Sem CPF/senha |
 | GET | `/legal/termos`, `/legal/privacidade` | — | Termos de Uso e Política de Privacidade (Markdown, públicos; link para a Play Store) |
 | POST | `/v1/auth/register` | — | `{invite_code, username, email, password, cpf}` (CPF obrigatório se o servidor tem `CPF_HMAC_KEY`) → `{token, expires_at, user}` |
 | POST | `/v1/auth/login` | — | `{login, password}` (login = usuário ou e-mail) |
@@ -80,6 +81,9 @@ cd app && flutter test
 | POST | `/v1/me/activity/seen` | Bearer | Marca as novidades como vistas |
 | PUT | `/v1/me/cpf` | Bearer | `{cpf}`: contas antigas informam uma vez (`needs_cpf` em `/v1/me`). Uma conta por CPF; o servidor guarda só HMAC-SHA256 com `CPF_HMAC_KEY` |
 | PUT | `/v1/me/terms` | Bearer | `{version}`: aceita a versão vigente dos Termos/Privacidade (`needs_terms` em `/v1/me`). O cadastro exige `accept_terms` = versão vigente (inclui declarar 18+) |
+| GET | `/v1/me/history?kind=posts\|comments\|likes\|scraps\|testimonials&before=` | Bearer | Minha atividade (mais recente primeiro; cursor = data do último item) |
+| POST | `/v1/me/history/delete` | Bearer | `{kind, ids}` (até 100): apaga meus itens / descurte; ids de outros são ignorados |
+| POST | `/v1/me/export` | Bearer | Cria link de uso único (10 min) para baixar meus dados |
 | PUT | `/v1/me/password` | Bearer | `{current_password, new_password}`: encerra as outras sessões |
 | POST | `/v1/invites` | Bearer | Gera um convite (até 5 ativos) |
 | PATCH | `/v1/me/profile` | Bearer | `{display_name?, bio?, hometown?, city?, school?}` (`""` remove; cidade/escola até 80) |

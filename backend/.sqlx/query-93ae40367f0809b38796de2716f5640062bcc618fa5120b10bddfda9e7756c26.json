@@ -1,0 +1,78 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.id, c.post_id AS \"post_id?\", u.username AS \"other_username?\",\n                          c.body, c.created_at\n                   FROM comments c JOIN posts p ON p.id = c.post_id\n                   JOIN users u ON u.id = p.author_id\n                   WHERE c.author_id = $1 AND c.deleted_at IS NULL AND p.deleted_at IS NULL\n                     AND ($2::timestamptz IS NULL OR c.created_at < $2)\n                   ORDER BY c.created_at DESC LIMIT $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "comments",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "post_id?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "comments",
+            "name": "post_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "other_username?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "username"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "body",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "comments",
+            "name": "body"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "comments",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "93ae40367f0809b38796de2716f5640062bcc618fa5120b10bddfda9e7756c26"
+}
