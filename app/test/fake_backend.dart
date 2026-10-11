@@ -644,13 +644,13 @@ class FakeBackend {
           'page_slug': null,
           'created_at': '2026-10-11T12:00:00Z',
         };
-        return _json(201, collectiveRequest);
+        return _json(201, collectiveRequest!);
       case 'POST /v1/organizer-requests/verify':
         collectiveCode =
             (jsonDecode(request.body) as Map<String, dynamic>)['code'] as String;
         if (collectiveCode != '123456') return _json(422, {'error': 'invalid_code'});
         collectiveRequest = {...?collectiveRequest, 'email_verified': true};
-        return _json(200, collectiveRequest);
+        return _json(200, collectiveRequest!);
       case 'GET /v1/me/visits':
         return _json(200, _visits());
       case 'PUT /v1/me/visits':
