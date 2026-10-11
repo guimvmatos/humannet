@@ -1080,7 +1080,13 @@ void main() {
     await tester.tap(find.byKey(const Key('map_pin_bar-do-ze')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('map_place_sheet')), findsOneWidget);
-    expect(find.text('Samba de sexta'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('map_place_sheet')),
+        matching: find.text('Samba de sexta'),
+      ),
+      findsOneWidget,
+    );
     await tester.tap(find.byKey(const Key('map_event_e1')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('event_screen')), findsOneWidget);

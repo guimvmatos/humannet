@@ -211,15 +211,15 @@ class ThemeController extends ChangeNotifier {
   ThemeData _withFont(ThemeData t) {
     final f = _font;
     if (f.family == null) return t;
+    // O tema guarda só cores e pesos; os tamanhos vêm da tipografia padrão.
+    // Juntamos os dois para poder escalar fontes que parecem menores.
+    final sizes = Typography.material2021(platform: t.platform).englishLike;
+    TextTheme scaled(TextTheme base) => sizes
+        .merge(base)
+        .apply(fontFamily: f.family, fontSizeFactor: f.scale);
     return t.copyWith(
-      textTheme: t.textTheme.apply(
-        fontFamily: f.family,
-        fontSizeFactor: f.scale,
-      ),
-      primaryTextTheme: t.primaryTextTheme.apply(
-        fontFamily: f.family,
-        fontSizeFactor: f.scale,
-      ),
+      textTheme: scaled(t.textTheme),
+      primaryTextTheme: scaled(t.primaryTextTheme),
     );
   }
 

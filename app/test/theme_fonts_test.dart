@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:humannet/src/theme/theme_controller.dart';
 
@@ -9,7 +10,8 @@ void main() {
     expect(themes.light.textTheme.bodyMedium?.fontFamily, isNot('VT323'));
 
     final pixel = appFonts.firstWhere((f) => f.id == 'pixel');
-    final before = themes.light.textTheme.bodyMedium!.fontSize!;
+    final before =
+        Typography.material2021().englishLike.bodyMedium!.fontSize!;
     await themes.setFont(pixel);
     expect(themes.light.textTheme.bodyMedium?.fontFamily, 'VT323');
     expect(themes.dark.textTheme.titleLarge?.fontFamily, 'VT323');
