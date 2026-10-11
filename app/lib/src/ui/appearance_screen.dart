@@ -88,6 +88,39 @@ class AppearanceScreen extends StatelessWidget {
           const Divider(height: 32),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text('Fonte', style: Theme.of(context).textTheme.titleSmall),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final f in appFonts)
+                  ChoiceChip(
+                    key: Key('font_${f.id}'),
+                    selected: themes.font.id == f.id,
+                    onSelected: (_) => themes.setFont(f),
+                    label: Text(
+                      f.label,
+                      style: TextStyle(
+                        fontFamily: f.family,
+                        fontSize: 15 * f.scale,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 6, 16, 0),
+            child: Text(
+              'Muda a letra do app inteiro, só para você.',
+            ),
+          ),
+          const Divider(height: 32),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text('Fundo', style: Theme.of(context).textTheme.titleSmall),
           ),
           Padding(

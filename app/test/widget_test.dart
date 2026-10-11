@@ -1074,7 +1074,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     await tester.pumpAndSettle();
     expect(backend.calls, contains('GET /v1/events/map'));
-    expect(find.text('1 evento(s) nesta área'), findsOneWidget);
+    expect(find.textContaining('1 evento(s) nesta área'), findsOneWidget);
+    expect(find.byKey(const Key('map_cards')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('map_pin_bar-do-ze')));
     await tester.pumpAndSettle();

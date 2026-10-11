@@ -1,6 +1,6 @@
 # Política de Privacidade do HumanNet
 
-Versão 2 — 11 de outubro de 2026 (inclui "Quem visitou meu perfil" e "Baixar meus dados")
+Versão 2 — 11 de outubro de 2026 (inclui "Quem visitou meu perfil" e "Baixar meus dados"; lista de fornecedores do mapa atualizada no mesmo dia)
 
 Esta política explica quais dados o HumanNet trata, por quê, com quem compartilha e quais são os seus direitos pela Lei Geral de Proteção de Dados (LGPD, Lei 13.709/2018).
 
@@ -60,7 +60,8 @@ Usamos fornecedores (operadores) que processam dados em nosso nome, alguns **for
 - **Render** (EUA): servidor do app.
 - **Neon** (EUA, em infraestrutura da AWS): banco de dados e armazenamento de fotos.
 - **Google Firebase Cloud Messaging** (EUA): entrega das notificações.
-- **OpenStreetMap** (Reino Unido): imagens do mapa, buscadas pelo app (seu IP chega a eles), e conversão do endereço das páginas em ponto no mapa, feita pelo servidor.
+- **CARTO** (EUA): imagens do mapa de eventos, buscadas pelo app (seu IP chega a eles; sua posição não).
+- **OpenStreetMap** (Reino Unido): dados do mapa e conversão do endereço das páginas em ponto no mapa, feita pelo servidor.
 - **ViaCEP** (Brasil): preenchimento do endereço das páginas a partir do CEP.
 
 Além disso, só compartilhamos dados com autoridades quando houver ordem judicial ou obrigação legal.

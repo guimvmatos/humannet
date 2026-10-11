@@ -11,6 +11,7 @@ import '../auth/session_controller.dart';
 import 'error_messages.dart';
 import 'events_ui.dart';
 import 'places_ui.dart';
+import 'wide_layout.dart';
 
 /// Centro de Sorocaba: ponto inicial quando não há localização.
 const _defaultCenter = LatLng(-23.5015, -47.4526);
@@ -19,14 +20,22 @@ const _defaultCenter = LatLng(-23.5015, -47.4526);
 @visibleForTesting
 bool mapOfflineForTests = false;
 
-/// Camadas comuns: fundo do OpenStreetMap e o crédito que ele exige.
-List<Widget> _baseLayers() => [
-  if (!mapOfflineForTests)
+/// Camadas comuns: fundo do mapa (estilo claro ou escuro, conforme o tema).
+/// Dados do OpenStreetMap, desenho da CARTO (uso gratuito com crédito).
+List<Widget> _baseLayers(BuildContext context) {
+  if (mapOfflineForTests) return const [];
+  final dark = Theme.of(context).brightness == Brightness.dark;
+  return [
     TileLayer(
-      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      urlTemplate: dark
+          ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+          : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+      subdomains: const ['a', 'b', 'c', 'd'],
+      retinaMode: RetinaMode.isHighDensity(context),
       userAgentPackageName: 'social.humannet.humannet',
     ),
-];
+  ];
+}
 
 Widget _attribution() => RichAttributionWidget(
   attributions: [
@@ -37,12 +46,20 @@ Widget _attribution() => RichAttributionWidget(
         mode: LaunchMode.externalApplication,
       ),
     ),
+    TextSourceAttribution(
+      'CARTO',
+      onTap: () => launchUrl(
+        Uri.parse('https://carto.com/attributions'),
+        mode: LaunchMode.externalApplication,
+      ),
+    ),
   ],
 );
 
-/// Posição aproximada do aparelho, só para desenhar "você está aqui".
-/// Nunca é enviada ao servidor. `null` sem permissão ou sem GPS.
-Future<LatLng?> _whereAmI() async {
+/// Posição do aparelho, só para desenhar "você está aqui" (precisão alta:
+/// não sai do celular). Cai para a precisão baixa se o GPS demorar.
+/// `null` sem permissão ou sem GPS. Devolve também a margem de erro (m).
+Future<(LatLng, double)?> _whereAmI() async {
   if (mapOfflineForTests) return null;
   try {
     if (!await Geolocator.isLocationServiceEnabled()) return null;
@@ -54,15 +71,268 @@ Future<LatLng?> _whereAmI() async {
         perm == LocationPermission.deniedForever) {
       return null;
     }
-    final p = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.low,
-        timeLimit: Duration(seconds: 10),
-      ),
-    );
-    return LatLng(p.latitude, p.longitude);
+    Position p;
+    try {
+      p = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 12),
+        ),
+      );
+    } catch (_) {
+      p = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+          timeLimit: Duration(seconds: 8),
+        ),
+      );
+    }
+    return (LatLng(p.latitude, p.longitude), p.accuracy);
   } catch (_) {
     return null;
+  }
+}
+
+/// Quão perto está o evento: muda cor, destaque e animação do pino.
+enum _When { now, today, week, later }
+
+_When _whenOf(MapEvent e, DateTime now) {
+  final end = e.endsAt ?? e.startsAt.add(const Duration(hours: 4));
+  final start = e.startsAt.toLocal();
+  if (!e.startsAt.isAfter(now) && end.isAfter(now)) return _When.now;
+  final today = DateTime(now.year, now.month, now.day);
+  final day = DateTime(start.year, start.month, start.day);
+  final diff = day.difference(today).inDays;
+  if (diff <= 0) return _When.today;
+  if (diff < 7) return _When.week;
+  return _When.later;
+}
+
+const _weekdays = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
+
+/// "Agora", "Hoje 22h", "Sáb 20h", "12/11".
+String _shortWhen(MapEvent e, DateTime now) {
+  final s = e.startsAt.toLocal();
+  final hour = s.minute == 0
+      ? '${s.hour}h'
+      : '${s.hour}h${s.minute.toString().padLeft(2, '0')}';
+  return switch (_whenOf(e, now)) {
+    _When.now => 'Agora',
+    _When.today => 'Hoje $hour',
+    _When.week => '${_weekdays[s.weekday - 1]} $hour',
+    _When.later =>
+      '${s.day.toString().padLeft(2, '0')}/${s.month.toString().padLeft(2, '0')}',
+  };
+}
+
+Color _colorOf(_When w, ColorScheme scheme) => switch (w) {
+  _When.now => const Color(0xFFE91E63),
+  _When.today => const Color(0xFFFF6D00),
+  _When.week => scheme.primary,
+  _When.later => scheme.outline,
+};
+
+/// Pino de um lugar com eventos: logo num círculo colorido, etiqueta com o
+/// próximo horário e, se for agora ou hoje, um halo pulsando.
+class _EventPin extends StatefulWidget {
+  const _EventPin({required this.events, required this.onTap});
+
+  final List<MapEvent> events;
+  final VoidCallback onTap;
+
+  @override
+  State<_EventPin> createState() => _EventPinState();
+}
+
+class _EventPinState extends State<_EventPin>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(_EventPin old) {
+    super.didUpdateWidget(old);
+    _sync();
+  }
+
+  void _sync() {
+    final w = _whenOf(widget.events.first, DateTime.now());
+    final animate = (w == _When.now || w == _When.today) &&
+        !mapOfflineForTests &&
+        !MediaQuery.disableAnimationsOf(context);
+    if (animate && !_pulse.isAnimating) {
+      _pulse.repeat();
+    } else if (!animate && _pulse.isAnimating) {
+      _pulse.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final first = widget.events.first;
+    final w = _whenOf(first, now);
+    final scheme = Theme.of(context).colorScheme;
+    final color = _colorOf(w, scheme);
+    final size = w == _When.later ? 40.0 : 48.0;
+    return GestureDetector(
+      key: Key('map_pin_${first.pageSlug}'),
+      onTap: widget.onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 76,
+            height: 64,
+            child: Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                AnimatedBuilder(
+                  animation: _pulse,
+                  builder: (context, _) {
+                    final t = _pulse.value;
+                    return Container(
+                      width: size + 28 * t,
+                      height: size + 28 * t,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: color.withValues(
+                          alpha: _pulse.isAnimating ? 0.35 * (1 - t) : 0,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                Container(
+                  width: size,
+                  height: size,
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: PlaceLogo(
+                    name: first.pageName,
+                    url: first.pageLogoUrl,
+                    radius: size / 2 - 3,
+                  ),
+                ),
+                if (widget.events.length > 1)
+                  Positioned(
+                    right: 8,
+                    top: 0,
+                    child: Badge(label: Text('${widget.events.length}')),
+                  ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              _shortWhen(first, now),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Cartão de evento no carrossel de baixo.
+class _EventCard extends StatelessWidget {
+  const _EventCard({required this.event, required this.onTap});
+
+  final MapEvent event;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final w = _whenOf(event, now);
+    final theme = Theme.of(context);
+    final color = _colorOf(w, theme.colorScheme);
+    return Card(
+      key: Key('map_card_${event.id}'),
+      elevation: 4,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Row(
+          children: [
+            Container(width: 6, color: color),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: PlaceLogo(
+                name: event.pageName,
+                url: event.pageLogoUrl,
+                radius: 22,
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 10),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _shortWhen(event, now).toUpperCase(),
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      event.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall,
+                    ),
+                    Text(
+                      event.pageName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -81,6 +351,8 @@ class _EventsMapScreenState extends State<EventsMapScreen> {
   Timer? _debounce;
   List<MapEvent> _events = const [];
   LatLng? _me;
+  double _meAccuracy = 0;
+  final _cards = PageController(viewportFraction: 0.86);
   int _days = 7;
   bool _loading = false;
   bool _tooFar = false;
@@ -90,14 +362,19 @@ class _EventsMapScreenState extends State<EventsMapScreen> {
   void dispose() {
     _debounce?.cancel();
     _map.dispose();
+    _cards.dispose();
     super.dispose();
   }
 
   Future<void> _ready() async {
     unawaited(_load());
-    final me = await _whereAmI();
-    if (!mounted || me == null) return;
-    setState(() => _me = me);
+    final found = await _whereAmI();
+    if (!mounted || found == null) return;
+    final (me, accuracy) = found;
+    setState(() {
+      _me = me;
+      _meAccuracy = accuracy;
+    });
     _map.move(me, 14);
     unawaited(_load());
   }
@@ -133,6 +410,7 @@ class _EventsMapScreenState extends State<EventsMapScreen> {
         days: _days,
       );
       if (mounted) {
+        events.sort((a, b) => a.startsAt.compareTo(b.startsAt));
         setState(() {
           _events = events;
           _error = null;
@@ -224,11 +502,15 @@ class _EventsMapScreenState extends State<EventsMapScreen> {
       ),
       floatingActionButton: me == null
           ? null
-          : FloatingActionButton.small(
-              heroTag: 'map_me_fab',
-              tooltip: 'Onde estou',
-              onPressed: () => _map.move(me, 14),
-              child: const Icon(Icons.my_location),
+          : Padding(
+              // Fica acima do carrossel de eventos.
+              padding: EdgeInsets.only(bottom: _events.isEmpty ? 0 : 104),
+              child: FloatingActionButton.small(
+                heroTag: 'map_me_fab',
+                tooltip: 'Onde estou',
+                onPressed: () => _map.move(me, 15),
+                child: const Icon(Icons.my_location),
+              ),
             ),
       body: Stack(
         children: [
@@ -243,7 +525,20 @@ class _EventsMapScreenState extends State<EventsMapScreen> {
               onPositionChanged: (_, _) => _moved(),
             ),
             children: [
-              ..._baseLayers(),
+              ..._baseLayers(context),
+              if (me != null && _meAccuracy > 0)
+                CircleLayer(
+                  circles: [
+                    CircleMarker(
+                      point: me,
+                      radius: _meAccuracy,
+                      useRadiusInMeter: true,
+                      color: Colors.blue.withValues(alpha: 0.12),
+                      borderColor: Colors.blue.withValues(alpha: 0.4),
+                      borderStrokeWidth: 1,
+                    ),
+                  ],
+                ),
               MarkerLayer(
                 markers: [
                   if (me != null)
@@ -252,31 +547,27 @@ class _EventsMapScreenState extends State<EventsMapScreen> {
                       width: 22,
                       height: 22,
                       child: Container(
+                        key: const Key('map_me'),
                         decoration: BoxDecoration(
                           color: Colors.blue,
                           shape: BoxShape.circle,
                           border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black26, blurRadius: 4),
+                          ],
                         ),
                       ),
                     ),
                   for (final entry in _byPlace.entries)
                     Marker(
                       point: LatLng(entry.value.first.lat, entry.value.first.lng),
-                      width: 48,
-                      height: 48,
-                      alignment: Alignment.topCenter,
-                      child: GestureDetector(
-                        key: Key('map_pin_${entry.key}'),
+                      width: 76,
+                      height: 84,
+                      // A base do círculo fica sobre o ponto.
+                      alignment: const Alignment(0, -0.45),
+                      child: _EventPin(
+                        events: entry.value,
                         onTap: () => _openPlaceEvents(entry.value),
-                        child: Badge(
-                          isLabelVisible: entry.value.length > 1,
-                          label: Text('${entry.value.length}'),
-                          child: Icon(
-                            Icons.location_on,
-                            size: 44,
-                            color: scheme.primary,
-                          ),
-                        ),
                       ),
                     ),
                 ],
@@ -309,7 +600,8 @@ class _EventsMapScreenState extends State<EventsMapScreen> {
                                 ? 'Aproxime o mapa para ver os eventos.'
                                 : _events.isEmpty
                                 ? 'Nenhum evento nesta área. Mova o mapa.'
-                                : '${_events.length} evento(s) nesta área'),
+                                : '${_events.length} evento(s) nesta área · '
+                                      'sua localização fica só no seu celular'),
                         key: const Key('map_status'),
                         style: theme.textTheme.bodySmall,
                       ),
@@ -319,16 +611,32 @@ class _EventsMapScreenState extends State<EventsMapScreen> {
               ),
             ),
           ),
-          Positioned(
-            left: 12,
-            bottom: 28,
-            child: Text(
-              'Sua localização fica só no seu celular.',
-              style: theme.textTheme.labelSmall?.copyWith(
-                backgroundColor: scheme.surface.withValues(alpha: 0.8),
+          if (_events.isNotEmpty && !_tooFar)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 24,
+              height: 92,
+              child: PageView.builder(
+                key: const Key('map_cards'),
+                controller: _cards,
+                scrollBehavior: mouseDragScroll,
+                itemCount: _events.length,
+                onPageChanged: (i) {
+                  final e = _events[i];
+                  _map.move(LatLng(e.lat, e.lng), _map.camera.zoom);
+                },
+                itemBuilder: (context, i) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: _EventCard(
+                    event: _events[i],
+                    onTap: () => unawaited(
+                      openEvent(context, widget.session, _events[i].id),
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -413,7 +721,7 @@ class _PlacePinScreenState extends State<PlacePinScreen> {
               onTap: (_, p) => setState(() => _pin = p),
             ),
             children: [
-              ..._baseLayers(),
+              ..._baseLayers(context),
               MarkerLayer(
                 markers: [
                   if (pin != null)

@@ -101,6 +101,30 @@ const appPalettes = <AppPalette>[
   ),
 ];
 
+/// Fonte do app (como **eu** vejo o app). Arquivos em `assets/fonts`
+/// (licenças livres). `scale` compensa fontes que parecem menores.
+class AppFont {
+  const AppFont(this.id, this.label, this.family, [this.scale = 1.0]);
+
+  final String id;
+  final String label;
+
+  /// `null` = fonte padrão do sistema.
+  final String? family;
+  final double scale;
+}
+
+const appFonts = <AppFont>[
+  AppFont('padrao', 'Padrão', null),
+  AppFont('gibi', 'Gibi', 'ComicNeue'),
+  AppFont('caderno', 'Caderno', 'IndieFlower', 1.1),
+  AppFont('pixel', 'Pixel', 'VT323', 1.3),
+  AppFont('marcador', 'Marcador', 'PermanentMarker', 0.95),
+  AppFont('letreiro', 'Letreiro', 'Lobster'),
+  AppFont('maquina', 'Máquina de escrever', 'CourierPrime'),
+  AppFont('surf', 'Surf', 'Pacifico', 0.9),
+];
+
 /// Que fundo usar: o do tema, nenhum ou uma foto da galeria.
 enum BackgroundMode { theme, none, photo }
 
@@ -145,6 +169,7 @@ class ThemeController extends ChangeNotifier {
   static const _bgKey = 'theme_bg';
   static const _photoKey = 'theme_bg_photo';
   static const _strengthKey = 'theme_bg_strength';
+  static const _fontKey = 'theme_font';
 
   final PrefsStore _store;
   AppPalette _palette = appPalettes.first;
@@ -152,6 +177,9 @@ class ThemeController extends ChangeNotifier {
   BackgroundMode _bgMode = BackgroundMode.theme;
   String? _photoPath;
   double _strength = 0.35;
+  AppFont _font = appFonts.first;
+
+  AppFont get font => _font;
 
   BackgroundMode get backgroundMode => _bgMode;
 
@@ -175,8 +203,25 @@ class ThemeController extends ChangeNotifier {
             : ThemeMode.light);
   ThemeMode get chosenMode => _mode;
 
-  ThemeData get light => _withBackground(_palette.data(Brightness.light));
-  ThemeData get dark => _withBackground(_palette.data(Brightness.dark));
+  ThemeData get light =>
+      _withFont(_withBackground(_palette.data(Brightness.light)));
+  ThemeData get dark =>
+      _withFont(_withBackground(_palette.data(Brightness.dark)));
+
+  ThemeData _withFont(ThemeData t) {
+    final f = _font;
+    if (f.family == null) return t;
+    return t.copyWith(
+      textTheme: t.textTheme.apply(
+        fontFamily: f.family,
+        fontSizeFactor: f.scale,
+      ),
+      primaryTextTheme: t.primaryTextTheme.apply(
+        fontFamily: f.family,
+        fontSizeFactor: f.scale,
+      ),
+    );
+  }
 
   /// Telas abertas por cima ficam numa coluna central no notebook.
   static final _pages = widePageTransitions();
@@ -215,6 +260,11 @@ class ThemeController extends ChangeNotifier {
       }
       _strength = (double.tryParse(await _store.read(_strengthKey) ?? '') ?? 0.35)
           .clamp(0.15, 0.6);
+      final font = await _store.read(_fontKey);
+      _font = appFonts.firstWhere(
+        (f) => f.id == font,
+        orElse: () => appFonts.first,
+      );
       notifyListeners();
     } catch (_) {
       // Sem preferência salva: fica o padrão.
@@ -247,6 +297,12 @@ class ThemeController extends ChangeNotifier {
     notifyListeners();
     await _store.write(_photoKey, path);
     await _store.write(_bgKey, BackgroundMode.photo.name);
+  }
+
+  Future<void> setFont(AppFont f) async {
+    _font = f;
+    notifyListeners();
+    await _store.write(_fontKey, f.id);
   }
 
   Future<void> setStrength(double v) async {

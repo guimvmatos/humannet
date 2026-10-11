@@ -27,3 +27,32 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  # Fontes dos temas (Aparência → Fonte). Licenças: assets/fonts/LICENSES.txt
+  # (SIL OFL 1.1; Permanent Marker: Apache 2.0).
+  fonts:
+    - family: ComicNeue
+      fonts:
+        - asset: assets/fonts/ComicNeue-Regular.ttf
+        - asset: assets/fonts/ComicNeue-Bold.ttf
+          weight: 700
+    - family: IndieFlower
+      fonts:
+        - asset: assets/fonts/IndieFlower-Regular.ttf
+    - family: VT323
+      fonts:
+        - asset: assets/fonts/VT323-Regular.ttf
+    - family: PermanentMarker
+      fonts:
+        - asset: assets/fonts/PermanentMarker-Regular.ttf
+    - family: Lobster
+      fonts:
+        - asset: assets/fonts/Lobster-Regular.ttf
+    - family: CourierPrime
+      fonts:
+        - asset: assets/fonts/CourierPrime-Regular.ttf
+        - asset: assets/fonts/CourierPrime-Bold.ttf
+          weight: 700
+    - family: Pacifico
+      fonts:
+        - asset: assets/fonts/Pacifico-Regular.ttf
