@@ -23,6 +23,18 @@ SessionController _session(FakeBackend backend, TokenStore store) =>
       tokenStore: store,
     );
 
+/// Toca num item de lista (ex.: Configurações), rolando até ele se preciso.
+Future<void> _tapInList(WidgetTester tester, String key) async {
+  final f = find.byKey(Key(key));
+  await tester.scrollUntilVisible(
+    f,
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(f);
+}
+
 Future<void> _login(WidgetTester tester) async {
   await tester.enterText(
     find.byKey(const Key('login_field')),
@@ -292,7 +304,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('settings_button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('blocked_tile')));
+    await _tapInList(tester, 'blocked_tile');
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('blocked_bob')), findsOneWidget);
 
@@ -314,7 +326,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('settings_button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('delete_account_tile')));
+    await _tapInList(tester, 'delete_account_tile');
     await tester.pumpAndSettle();
 
     final button = find.byKey(const Key('delete_account_button'));
@@ -354,7 +366,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('settings_button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('change_password_tile')));
+    await _tapInList(tester, 'change_password_tile');
     await tester.pumpAndSettle();
 
     await tester.enterText(
@@ -454,7 +466,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('settings_button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('moderation_tile')));
+    await _tapInList(tester, 'moderation_tile');
     await tester.pumpAndSettle();
 
     expect(find.text('texto ofensivo'), findsOneWidget);
@@ -627,7 +639,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('settings_button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('appearance_tile')));
+    await _tapInList(tester, 'appearance_tile');
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('palette_rosa')));
