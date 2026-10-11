@@ -475,7 +475,6 @@ class _EventsMapScreenState extends State<EventsMapScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     final me = _me;
     return Scaffold(
       key: const Key('events_map_screen'),
