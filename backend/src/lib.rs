@@ -142,6 +142,18 @@ pub fn app(state: AppState) -> Router {
         .route("/me/history", get(routes::history::list))
         .route("/me/history/delete", post(routes::history::delete))
         .route("/me/export", post(routes::history::create_export))
+        .route("/me/tags/pending", get(routes::tags::pending))
+        .route(
+            "/me/mentions",
+            get(routes::tags::get_policy).put(routes::tags::set_policy),
+        )
+        .route("/mentions/suggest", get(routes::tags::suggest))
+        .route("/posts/{id}/tag/approve", post(routes::tags::approve))
+        .route("/posts/{id}/tags/{username}", delete(routes::tags::remove))
+        .route(
+            "/users/{username}/tagged",
+            get(routes::posts::tagged_by_user),
+        )
         .route(
             "/me/visits",
             get(routes::visits::list).put(routes::visits::set),

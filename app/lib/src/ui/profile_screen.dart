@@ -14,6 +14,7 @@ import 'post_list.dart';
 import 'report_dialog.dart';
 import 'scraps_screen.dart';
 import 'settings_screen.dart';
+import 'tags_ui.dart';
 import 'testimonials_screen.dart';
 import 'timeline_ui.dart';
 import 'visits_screen.dart';
@@ -495,6 +496,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
           builder: (_) => PlacesScreen(session: widget.session, adminOnly: true),
         ),
       ),
+      onTagged: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => TaggedPostsScreen(
+            session: widget.session,
+            username: widget.username,
+          ),
+        ),
+      ),
+      onPendingTags: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => PendingTagsScreen(session: widget.session),
+        ),
+      ),
       onVisits: () => Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => VisitsScreen(session: widget.session),
@@ -555,6 +569,8 @@ class _Header extends StatelessWidget {
     required this.onMessage,
     required this.onPlaces,
     required this.onVisits,
+    required this.onTagged,
+    required this.onPendingTags,
     required this.onTimeline,
     required this.onEdit,
     required this.onInvite,
@@ -573,6 +589,8 @@ class _Header extends StatelessWidget {
   final VoidCallback onMessage;
   final VoidCallback onPlaces;
   final VoidCallback onVisits;
+  final VoidCallback onTagged;
+  final VoidCallback onPendingTags;
   final VoidCallback onTimeline;
   final VoidCallback onEdit;
   final VoidCallback onInvite;
@@ -769,8 +787,28 @@ class _Header extends StatelessWidget {
                       icon: const Icon(Icons.visibility_outlined),
                       label: const Text('Quem visitou'),
                     ),
+                    OutlinedButton.icon(
+                      key: const Key('pending_tags_button'),
+                      onPressed: onPendingTags,
+                      icon: const Icon(Icons.sell_outlined),
+                      label: const Text('Marcações para aprovar'),
+                    ),
+                    OutlinedButton.icon(
+                      key: const Key('tagged_button'),
+                      onPressed: onTagged,
+                      icon: const Icon(Icons.photo_library_outlined),
+                      label: const Text('Marcado'),
+                    ),
                   ]
-                : _friendButtons(),
+                : [
+                    ..._friendButtons(),
+                    OutlinedButton.icon(
+                      key: const Key('tagged_button'),
+                      onPressed: onTagged,
+                      icon: const Icon(Icons.photo_library_outlined),
+                      label: const Text('Marcado'),
+                    ),
+                  ],
           ),
           if (profile.dailyPhoto case final d?) ...[
             const SizedBox(height: 12),

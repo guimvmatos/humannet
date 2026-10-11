@@ -194,8 +194,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
             ),
             NavigationDestination(
               key: const Key('nav_profile'),
-              icon: _badge(c.pendingTestimonials, Icons.person_outline),
-              selectedIcon: _badge(c.pendingTestimonials, Icons.person),
+              icon: _badge(c.pendingTestimonials + c.pendingTags, Icons.person_outline),
+              selectedIcon: _badge(c.pendingTestimonials + c.pendingTags, Icons.person),
               label: 'Perfil',
             ),
           ],
@@ -259,8 +259,8 @@ class _HomeShellState extends State<HomeShell> with WidgetsBindingObserver {
                   label: Text('Agenda'),
                 ),
                 NavigationRailDestination(
-                  icon: _badge(c.pendingTestimonials, Icons.person_outline),
-                  selectedIcon: _badge(c.pendingTestimonials, Icons.person),
+                  icon: _badge(c.pendingTestimonials + c.pendingTags, Icons.person_outline),
+                  selectedIcon: _badge(c.pendingTestimonials + c.pendingTags, Icons.person),
                   label: const Text('Perfil'),
                 ),
               ],

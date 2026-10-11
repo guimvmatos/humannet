@@ -8,6 +8,7 @@ import 'error_messages.dart';
 import 'post_list.dart';
 import 'report_dialog.dart';
 import 'photos.dart';
+import 'tags_ui.dart';
 
 /// Um post com os comentários (do mais antigo ao mais novo) e o campo de resposta.
 class PostScreen extends StatefulWidget {
@@ -155,7 +156,12 @@ class _PostScreenState extends State<PostScreen> {
                         '${c.author.label} · ${relativeTime(c.createdAt)}',
                         style: theme.textTheme.bodySmall,
                       ),
-                      subtitle: Text(c.body, style: theme.textTheme.bodyMedium),
+                      subtitle: MentionText(
+                        c.body,
+                        session: widget.session,
+                        style: theme.textTheme.bodyMedium,
+                        selectable: false,
+                      ),
                       trailing: c.canDelete
                           ? IconButton(
                               key: Key('delete_comment_${c.id}'),

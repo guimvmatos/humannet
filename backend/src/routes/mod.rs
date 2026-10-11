@@ -21,6 +21,7 @@ pub mod profiles;
 pub mod safety;
 pub mod scraps;
 pub mod suggestions;
+pub mod tags;
 pub mod testimonials;
 pub mod timeline;
 pub mod topics;

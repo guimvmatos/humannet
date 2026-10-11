@@ -11,6 +11,7 @@ import 'interests_screen.dart';
 import 'legal_screen.dart';
 import 'moderation_screen.dart';
 import 'rules_screen.dart';
+import 'tags_ui.dart';
 import 'visits_screen.dart';
 
 /// Configurações da conta: senha, bloqueados, excluir conta, sair.
@@ -59,6 +60,12 @@ class SettingsScreen extends StatelessWidget {
                 builder: (_) => HistoryScreen(session: session),
               ),
             ),
+          ),
+          ListTile(
+            key: const Key('mentions_tile'),
+            leading: const Icon(Icons.alternate_email),
+            title: const Text('Quem pode me mencionar'),
+            onTap: () => showMentionPolicyDialog(context, session),
           ),
           ListTile(
             key: const Key('visits_tile'),

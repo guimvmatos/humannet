@@ -12,6 +12,7 @@ import 'package:humannet/src/ui/compose_screen.dart';
 import 'package:humannet/src/ui/cpf.dart';
 import 'package:humannet/src/ui/events_map.dart';
 import 'package:humannet/src/ui/history_screen.dart';
+import 'package:humannet/src/ui/tags_ui.dart';
 import 'package:humannet/src/ui/visits_screen.dart';
 
 import 'fake_backend.dart';
@@ -1342,6 +1343,62 @@ void main() {
     expect(backend.visitsEnabled, isFalse);
     expect(find.byKey(const Key('visitor_bob')), findsNothing);
     expect(find.text('Visitas desligadas.'), findsOneWidget);
+  });
+
+  testWidgets('marcações: @menção sugerida, marcar amigo e aprovar', (
+    tester,
+  ) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    // Escrever com @menção (sugestão) e "com fulano".
+    await tester.tap(find.byKey(const Key('compose_button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('compose_field')), 'valeu @b');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mention_suggestions')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('mention_bruna')));
+    await tester.pump();
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('compose_field')))
+          .controller!
+          .text,
+      'valeu @bruna ',
+    );
+    await tester.tap(find.byKey(const Key('tag_friends_button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('tag_pick_bob')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('tag_pick_done')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('compose_tag_bob')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('publish_button')));
+    await tester.pumpAndSettle();
+    expect(backend.lastCreatedPost?['tags'], ['bob']);
+    expect(backend.lastCreatedPost?['body'], 'valeu @bruna ');
+    // No feed: menção destacada e marcação aguardando.
+    expect(find.textContaining('@bob (aguardando)'), findsOneWidget);
+
+    // Aprovar uma marcação recebida.
+    final nav = tester.state<NavigatorState>(find.byType(Navigator).first);
+    nav.push(
+      MaterialPageRoute<void>(
+        builder: (_) => PendingTagsScreen(session: session),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Bob marcou você'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const Key('tag_approve_01a10000-0000-7000-8000-000000000001')),
+    );
+    await tester.pumpAndSettle();
+    expect(backend.approvedTags, ['01a10000-0000-7000-8000-000000000001']);
+    expect(find.text('Nenhuma marcação esperando você.'), findsOneWidget);
   });
 }
 

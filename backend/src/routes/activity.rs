@@ -29,6 +29,8 @@ pub struct CountsDto {
     pub unread_activity: i64,
     /// Conversas com mensagem nova.
     pub unread_messages: i64,
+    /// Marcações ("com fulano") esperando minha aprovação.
+    pub pending_tags: i64,
 }
 
 /// GET /v1/me/counts
@@ -70,7 +72,20 @@ pub async fn counts(State(state): State<AppState>, user: AuthUser) -> AppResult<
               AND NOT EXISTS (SELECT 1 FROM blocks b
                 WHERE (b.blocker_id = $1 AND b.blocked_id = s.author_id)
                    OR (b.blocker_id = s.author_id AND b.blocked_id = $1)))
-          AS "unread_activity!"
+          +
+          (SELECT count(*) FROM mentions m JOIN posts p ON p.id = m.post_id
+            WHERE m.user_id = $1 AND p.deleted_at IS NULL
+              AND m.created_at > (SELECT t FROM seen)
+              AND NOT EXISTS (SELECT 1 FROM blocks b
+                WHERE (b.blocker_id = $1 AND b.blocked_id = m.actor_id)
+                   OR (b.blocker_id = m.actor_id AND b.blocked_id = $1)))
+          AS "unread_activity!",
+          (SELECT count(*) FROM post_tags t JOIN posts p ON p.id = t.post_id
+            WHERE t.user_id = $1 AND t.status = 'pending' AND p.deleted_at IS NULL
+              AND NOT EXISTS (SELECT 1 FROM blocks b
+                WHERE (b.blocker_id = $1 AND b.blocked_id = p.author_id)
+                   OR (b.blocker_id = p.author_id AND b.blocked_id = $1)))
+          AS "pending_tags!"
         "#,
         me
     )
@@ -82,12 +97,13 @@ pub async fn counts(State(state): State<AppState>, user: AuthUser) -> AppResult<
         community_requests: r.community_requests,
         unread_activity: r.unread_activity,
         unread_messages: crate::routes::messages::unread_conversations(&state, me).await?,
+        pending_tags: r.pending_tags,
     }))
 }
 
 #[derive(Debug, Serialize)]
 pub struct ActivityDto {
-    /// comment | reply | scrap
+    /// comment | reply | scrap | mention | tag
     pub kind: String,
     pub actor: AuthorDto,
     /// Post (comment), tópico (reply) ou recado (scrap).
@@ -115,6 +131,16 @@ pub async fn list(
           WHERE p.author_id = $1 AND c.author_id <> $1
             AND c.deleted_at IS NULL AND p.deleted_at IS NULL
             AND c.created_at > now() - make_interval(days => $2)
+          UNION ALL
+          SELECT 'mention', m.actor_id, m.post_id, '', coalesce(c.body, p.body), m.created_at
+          FROM mentions m JOIN posts p ON p.id = m.post_id AND p.deleted_at IS NULL
+          LEFT JOIN comments c ON c.id = m.comment_id
+          WHERE m.user_id = $1 AND m.created_at > now() - make_interval(days => $2)
+            AND (c.id IS NULL OR c.deleted_at IS NULL)
+          UNION ALL
+          SELECT 'tag', p.author_id, t.post_id, '', p.body, t.created_at
+          FROM post_tags t JOIN posts p ON p.id = t.post_id AND p.deleted_at IS NULL
+          WHERE t.user_id = $1 AND t.status = 'pending'
           UNION ALL
           SELECT 'scrap', s.author_id, s.id, '', s.body, s.created_at
           FROM scraps s

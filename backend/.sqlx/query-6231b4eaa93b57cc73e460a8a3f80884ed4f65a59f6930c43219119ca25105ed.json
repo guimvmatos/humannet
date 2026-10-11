@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT u.id, u.mention_policy,\n               EXISTS (SELECT 1 FROM friends f WHERE f.user_id = u.id AND f.friend_id = $2)\n                 AS \"friend!\"\n        FROM users u\n        WHERE u.username = ANY($1) AND u.id <> $2 AND u.suspended_at IS NULL\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "mention_policy",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "mention_policy"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "friend!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "6231b4eaa93b57cc73e460a8a3f80884ed4f65a59f6930c43219119ca25105ed"
+}

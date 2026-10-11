@@ -136,6 +136,9 @@ class _ActivityScreenState extends State<ActivityScreen> {
                       'reply' =>
                         '${a.actor.label} respondeu em "${a.targetTitle}"',
                       'scrap' => '${a.actor.label} deixou um recado',
+                      'mention' => '${a.actor.label} mencionou você',
+                      'tag' =>
+                        '${a.actor.label} marcou você num post (aprove ou recuse)',
                       _ => '${a.actor.label} comentou no seu post',
                     },
                     style: a.unread

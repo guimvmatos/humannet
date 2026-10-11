@@ -111,6 +111,7 @@ class Post {
     this.topics = const [],
     this.hashtags = const [],
     this.inNetwork = true,
+    this.tagged = const [],
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
@@ -134,6 +135,10 @@ class Post {
       hashtags: ((json['hashtags'] as List<dynamic>?) ?? const [])
           .cast<String>(),
       inNetwork: (json['in_network'] as bool?) ?? true,
+      tagged: [
+        for (final t in (json['tagged'] as List<dynamic>?) ?? const [])
+          TaggedUser.fromJson(t as Map<String, dynamic>),
+      ],
     );
   }
 
@@ -161,6 +166,46 @@ class Post {
   /// Só nos candidatos do "Para você": `false` = de alguém fora da sua rede,
   /// achado por tema/hashtag (só aparece se bater com um interesse).
   final bool inNetwork;
+
+  /// "Com fulano". Pendentes só aparecem para o autor e para a pessoa.
+  final List<TaggedUser> tagged;
+}
+
+class TaggedUser {
+  const TaggedUser({
+    required this.username,
+    this.displayName,
+    this.pending = false,
+  });
+
+  factory TaggedUser.fromJson(Map<String, dynamic> json) => TaggedUser(
+    username: json['username'] as String,
+    displayName: json['display_name'] as String?,
+    pending: (json['pending'] as bool?) ?? false,
+  );
+
+  final String username;
+  final String? displayName;
+  final bool pending;
+}
+
+/// Marcação esperando minha aprovação.
+class PendingTag {
+  const PendingTag({
+    required this.postId,
+    required this.author,
+    required this.excerpt,
+  });
+
+  factory PendingTag.fromJson(Map<String, dynamic> json) => PendingTag(
+    postId: json['post_id'] as String,
+    author: Author.fromJson(json['author'] as Map<String, dynamic>),
+    excerpt: json['excerpt'] as String,
+  );
+
+  final String postId;
+  final Author author;
+  final String excerpt;
 }
 
 /// Página que publicou um post.
@@ -722,6 +767,7 @@ class Counts {
     this.communityRequests = 0,
     this.unreadActivity = 0,
     this.unreadMessages = 0,
+    this.pendingTags = 0,
   });
 
   factory Counts.fromJson(Map<String, dynamic> json) => Counts(
@@ -730,6 +776,7 @@ class Counts {
     communityRequests: (json['community_requests'] as int?) ?? 0,
     unreadActivity: (json['unread_activity'] as int?) ?? 0,
     unreadMessages: (json['unread_messages'] as int?) ?? 0,
+    pendingTags: (json['pending_tags'] as int?) ?? 0,
   );
 
   final int friendRequests;
@@ -739,6 +786,9 @@ class Counts {
 
   /// Conversas com mensagem nova.
   final int unreadMessages;
+
+  /// Marcações ("com fulano") esperando minha aprovação.
+  final int pendingTags;
 }
 
 /// Novidade: comentário num post meu ou resposta num tópico em que participo.

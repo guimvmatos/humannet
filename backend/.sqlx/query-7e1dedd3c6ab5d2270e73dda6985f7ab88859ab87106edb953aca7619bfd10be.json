@@ -1,0 +1,60 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT t.post_id, u.username, u.display_name, (t.status = 'pending') AS \"pending!\"\n        FROM post_tags t JOIN users u ON u.id = t.user_id\n        JOIN posts p ON p.id = t.post_id\n        WHERE t.post_id = ANY($1)\n          AND (t.status = 'approved' OR p.author_id = $2 OR t.user_id = $2)\n          AND NOT EXISTS (SELECT 1 FROM blocks b\n                WHERE (b.blocker_id = $2 AND b.blocked_id = u.id)\n                   OR (b.blocker_id = u.id AND b.blocked_id = $2))\n        ORDER BY t.created_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "post_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "post_tags",
+            "name": "post_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "username",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "username"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "display_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "display_name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "pending!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "7e1dedd3c6ab5d2270e73dda6985f7ab88859ab87106edb953aca7619bfd10be"
+}

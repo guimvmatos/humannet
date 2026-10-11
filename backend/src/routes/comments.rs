@@ -68,6 +68,8 @@ pub async fn create(
         vec![post_author],
         crate::push::Kind::Comment { post: post_id },
     );
+    crate::routes::tags::record_mentions(&state, user.user_id, post_id, Some(r.id), &r.body)
+        .await?;
     Ok((
         StatusCode::CREATED,
         Json(CommentDto {

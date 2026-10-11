@@ -80,6 +80,12 @@ class FakeBackend {
   bool exportRequested = false;
   bool visitsEnabled = true;
 
+  /// Marcações.
+  String mentionPolicy = 'everyone';
+  final List<String> pendingTagPosts = ['01a10000-0000-7000-8000-000000000001'];
+  final List<String> approvedTags = [];
+  final List<String> removedTags = [];
+
   Map<String, Object?> _visits() => {
     'enabled': visitsEnabled,
     'visitors': visitsEnabled
@@ -204,6 +210,19 @@ class FakeBackend {
       });
     }
     if (!authed) return _json(401, {'error': 'unauthorized'});
+
+    final approve = RegExp(r'^POST /v1/posts/([^/]+)/tag/approve$').firstMatch(route);
+    if (approve != null) {
+      approvedTags.add(approve.group(1)!);
+      pendingTagPosts.remove(approve.group(1));
+      return http.Response('', 204);
+    }
+    final removeTag = RegExp(r'^DELETE /v1/posts/([^/]+)/tags/(.+)$').firstMatch(route);
+    if (removeTag != null) {
+      removedTags.add('${removeTag.group(1)}:${removeTag.group(2)}');
+      pendingTagPosts.remove(removeTag.group(1));
+      return http.Response('', 204);
+    }
 
     switch (route) {
       case 'GET /v1/me':
@@ -339,7 +358,13 @@ class FakeBackend {
         }
         lastCreatedPost = created;
         final id = '01a10000-0000-7000-8000-${(_seq++).toString().padLeft(12, '0')}';
-        final post = _post(id, text);
+        final post = {
+          ..._post(id, text),
+          'tagged': [
+            for (final t in (created['tags'] as List<dynamic>?) ?? const [])
+              {'username': t, 'display_name': null, 'pending': true},
+          ],
+        };
         posts.insert(0, post);
         if (created['lat'] != null) regionPosts.insert(0, post);
         return _json(201, post);
@@ -566,6 +591,33 @@ class FakeBackend {
         historyDeleted.add((r['kind'] as String, ids));
         myComments.removeWhere((c) => ids.contains(c['id']));
         return _json(200, {'deleted': ids.length});
+      case 'GET /v1/mentions/suggest':
+        final q = request.url.queryParameters['q'] ?? '';
+        return _json(200, {
+          'items': [
+            for (final u in ['bob', 'bruna'])
+              if (u.startsWith(q))
+                {'id': 'u-$u', 'username': u, 'display_name': null},
+          ],
+        });
+      case 'GET /v1/me/tags/pending':
+        return _json(200, {
+          'items': [
+            for (final p in pendingTagPosts)
+              {
+                'post_id': p,
+                'author': {'id': 'u-bob', 'username': 'bob', 'display_name': 'Bob'},
+                'excerpt': 'Rolê de ontem',
+                'created_at': '2026-10-10T12:00:00Z',
+              },
+          ],
+        });
+      case 'GET /v1/me/mentions':
+        return _json(200, {'policy': mentionPolicy});
+      case 'PUT /v1/me/mentions':
+        mentionPolicy =
+            (jsonDecode(request.body) as Map<String, dynamic>)['policy'] as String;
+        return _json(200, {'policy': mentionPolicy});
       case 'GET /v1/me/visits':
         return _json(200, _visits());
       case 'PUT /v1/me/visits':

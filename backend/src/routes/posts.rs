@@ -77,6 +77,9 @@ pub struct PostDto {
     /// Temas marcados pelo autor (lista fixa) e hashtags do texto.
     pub topics: Vec<String>,
     pub hashtags: Vec<String>,
+    /// "Com fulano": aprovadas para todos; pendentes só para o autor e a
+    /// própria pessoa.
+    pub tagged: Vec<crate::routes::tags::TagDto>,
     /// Só em `/v1/feed/candidates`: se é de amigo, meu ou de página que
     /// acompanho (`true`) ou de outra pessoa, achado por tema (`false`).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -129,6 +132,7 @@ impl From<PostRow> for PostDto {
             topics: r.topics,
             hashtags: r.hashtags,
             in_network: None,
+            tagged: Vec::new(),
             page: match (r.page_slug, r.page_name) {
                 (Some(slug), Some(name)) => Some(PageRef {
                     slug,
@@ -181,6 +185,11 @@ async fn enrich(state: &AppState, viewer: Uuid, posts: &mut [PostDto]) -> sqlx::
     let mut images = photos::for_posts(db, &state.media, &ids).await?;
     for p in posts.iter_mut() {
         p.images = images.remove(&p.id).unwrap_or_default();
+    }
+    for (post, tag) in crate::routes::tags::for_posts(state, viewer, &ids).await? {
+        if let Some(p) = posts.iter_mut().find(|p| p.id == post) {
+            p.tagged.push(tag);
+        }
     }
     Ok(())
 }
@@ -269,6 +278,10 @@ pub struct CreatePost {
     /// guardar: é o que põe o post no feed Regional de quem está perto.
     pub lat: Option<f64>,
     pub lng: Option<f64>,
+    /// "Com fulano": nomes de usuário de amigos (até 10). Ficam pendentes até
+    /// a pessoa aprovar. Não vale em post de página.
+    #[serde(default)]
+    pub tags: Vec<String>,
 }
 
 /// Fotos por post.
@@ -313,6 +326,11 @@ pub(crate) async fn insert(
         return Err(AppError::Validation("too_many_topics"));
     }
     let hashtags = crate::topics::hashtags(&body);
+    let tag_ids = match page_id {
+        None => crate::routes::tags::check_tags(state, author, &req.tags).await?,
+        Some(_) if req.tags.is_empty() => Vec::new(),
+        Some(_) => return Err(AppError::Validation("invalid_tags")),
+    };
     // Post de página não leva posição (a página tem a dela).
     let cell = match (page_id, req.lat, req.lng) {
         (None, Some(lat), Some(lng)) => Some(region::fuzzed_cell(lat, lng)?),
@@ -349,6 +367,8 @@ pub(crate) async fn insert(
         }
     }
     tx.commit().await?;
+    crate::routes::tags::add_tags(state, author, id, &tag_ids).await?;
+    crate::routes::tags::record_mentions(state, author, id, None, &body).await?;
     let row = fetch_row(state, id).await?.ok_or(AppError::NotFound)?;
     let mut items = [PostDto::from(row)];
     enrich(state, author, &mut items).await?;
@@ -454,6 +474,45 @@ pub async fn list_by_user(
         author,
         q.before,
         limit + 1
+    )
+    .fetch_all(&state.db)
+    .await?;
+    Ok(Json(page(&state, viewer.user_id, rows, limit).await?))
+}
+
+/// GET /v1/users/{username}/tagged — posts em que a pessoa aprovou a
+/// marcação ("Marcado" no perfil). Bloqueios valem nos dois sentidos.
+pub async fn tagged_by_user(
+    State(state): State<AppState>,
+    viewer: AuthUser,
+    Path(username): Path<String>,
+    Query(q): Query<PageQuery>,
+) -> AppResult<Json<Page<PostDto>>> {
+    let owner = visible_user_id(&state, viewer.user_id, &username).await?;
+    let limit = q.limit();
+    let rows = sqlx::query_as!(
+        PostRow,
+        r#"
+        SELECT p.id, p.body, p.created_at, p.edited_at,
+               u.id AS author_id, u.username AS author_username,
+               u.display_name AS author_display_name, p.topics, p.hashtags,
+               NULL::text AS "page_slug?", NULL::text AS "page_name?",
+               NULL::text AS "page_logo_key?"
+        FROM post_tags t JOIN posts p ON p.id = t.post_id
+        JOIN users u ON u.id = p.author_id
+        WHERE t.user_id = $1 AND t.status = 'approved'
+          AND p.deleted_at IS NULL AND u.suspended_at IS NULL
+          AND ($2::uuid IS NULL OR p.id < $2)
+          AND NOT EXISTS (SELECT 1 FROM blocks b
+                WHERE (b.blocker_id = $4 AND b.blocked_id = p.author_id)
+                   OR (b.blocker_id = p.author_id AND b.blocked_id = $4))
+        ORDER BY p.id DESC
+        LIMIT $3
+        "#,
+        owner,
+        q.before,
+        limit + 1,
+        viewer.user_id
     )
     .fetch_all(&state.db)
     .await?;

@@ -84,6 +84,12 @@ cd app && flutter test
 | GET | `/v1/me/history?kind=posts\|comments\|likes\|scraps\|testimonials&before=` | Bearer | Minha atividade (mais recente primeiro; cursor = data do último item) |
 | POST | `/v1/me/history/delete` | Bearer | `{kind, ids}` (até 100): apaga meus itens / descurte; ids de outros são ignorados |
 | POST | `/v1/me/export` | Bearer | Cria link de uso único (10 min) para baixar meus dados |
+| GET | `/v1/mentions/suggest?q=&friends_only=` | Bearer | Até 8 nomes para @menção/marcar (amigos primeiro; sem bloqueados) |
+| GET/PUT | `/v1/me/mentions` | Bearer | Quem pode me mencionar: `{policy: everyone\|friends\|nobody}` (padrão everyone) |
+| GET | `/v1/me/tags/pending` | Bearer | Marcações "com fulano" esperando minha aprovação (também em `pending_tags` de `/v1/me/counts`) |
+| POST | `/v1/posts/{id}/tag/approve` | Bearer | Aprovo aparecer no post |
+| DELETE | `/v1/posts/{id}/tags/{username}` | Bearer | Recusar/tirar a minha marcação, ou o autor tirar a de alguém |
+| GET | `/v1/users/{username}/tagged` | Bearer | Aba "Marcado": posts com marcação aprovada |
 | GET | `/v1/me/visits` | Bearer | Quem visitou meu perfil (30 dias, só o dia; recíproco, ligado por padrão) |
 | PUT | `/v1/me/visits` | Bearer | `{enabled}`: desligar apaga as visitas feitas e recebidas |
 | PUT | `/v1/me/password` | Bearer | `{current_password, new_password}`: encerra as outras sessões |
@@ -111,7 +117,7 @@ cd app && flutter test
 | PUT / DELETE | `/v1/posts/{id}/like` | Bearer | Curtir / descurtir. `like_count` só vem para o autor (R3) |
 | GET / POST | `/v1/posts/{id}/comments` | Bearer | Listar (mais antigo primeiro) / comentar `{body}` (1–2000) |
 | DELETE | `/v1/comments/{id}` | Bearer | Apagar comentário (autor do comentário ou do post) |
-| GET | `/v1/feed` | Bearer | Cronológico: amigos + você |
+| GET | `/v1/feed` | Bearer | Cronológico: amigos + você. `POST /v1/posts` aceita `tags` (amigos, até 10, pendentes) e grava @menções do texto |
 | GET | `/v1/feed/candidates` | Bearer | "Para você": rede (7 dias) + desconhecidos com tema/hashtag (48 h), com `in_network`; o app ordena e filtra no aparelho |
 | GET | `/v1/feed/region?lat&lng&radius_km` | Bearer | Posts num raio de 1 a 50 km (cronológico; posição de quem lê não é guardada; posts guardados com desvio de até 1,5 km) |
 | GET | `/v1/feed/region/candidates?lat&lng&radius_km` | Bearer | Idem, últimos 7 dias, para o "Para você" regional |

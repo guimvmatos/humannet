@@ -38,6 +38,12 @@ pub enum Kind {
     Comment {
         post: Uuid,
     },
+    Mention {
+        post: Uuid,
+    },
+    Tag {
+        post: Uuid,
+    },
     Message {
         conversation: Uuid,
         group: Option<String>,
@@ -52,6 +58,8 @@ impl Kind {
             Self::Testimonial => "testimonial",
             Self::Scrap => "scrap",
             Self::Comment { .. } => "comment",
+            Self::Mention { .. } => "mention",
+            Self::Tag { .. } => "tag",
             Self::Message { .. } => "message",
         }
     }
@@ -79,6 +87,14 @@ impl Kind {
                 "Novo comentário".into(),
                 format!("{name} comentou no seu post"),
             ),
+            Self::Mention { .. } => (
+                "Você foi mencionado".into(),
+                format!("{name} mencionou você"),
+            ),
+            Self::Tag { .. } => (
+                "Nova marcação".into(),
+                format!("{name} marcou você num post (aprove ou recuse)"),
+            ),
             Self::Message { group: None, .. } => (name.to_owned(), "Nova mensagem".into()),
             Self::Message {
                 group: Some(title), ..
@@ -89,7 +105,9 @@ impl Kind {
     /// Id que o app usa para abrir a tela certa.
     fn target(&self) -> String {
         match self {
-            Self::Comment { post } => post.to_string(),
+            Self::Comment { post } | Self::Mention { post } | Self::Tag { post } => {
+                post.to_string()
+            }
             Self::Message { conversation, .. } => conversation.to_string(),
             _ => String::new(),
         }
@@ -100,6 +118,8 @@ impl Kind {
         match self {
             Self::Message { conversation, .. } => format!("conv-{conversation}"),
             Self::Comment { post } => format!("post-{post}"),
+            Self::Mention { post } => format!("mention-{post}"),
+            Self::Tag { post } => format!("tag-{post}"),
             other => other.code().to_owned(),
         }
     }

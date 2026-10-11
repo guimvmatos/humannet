@@ -11,6 +11,7 @@ import 'places_ui.dart';
 import 'post_screen.dart';
 import 'profile_screen.dart';
 import 'report_dialog.dart';
+import 'tags_ui.dart';
 
 typedef PageLoader = Future<PostPage> Function(String? before);
 
@@ -325,13 +326,14 @@ class PostTile extends StatelessWidget {
             if (post.body.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(right: 12),
-                child: SelectableText(post.body),
+                child: MentionText(post.body, session: session),
               ),
             if (post.images.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.fromLTRB(0, 8, 12, 0),
                 child: PostImages(images: post.images),
               ),
+            TaggedLine(post: post, session: session),
             if (post.topics.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 6),

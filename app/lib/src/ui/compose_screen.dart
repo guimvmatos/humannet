@@ -7,6 +7,7 @@ import '../feed/interests.dart';
 import '../geo/location.dart';
 import 'error_messages.dart';
 import 'photos.dart';
+import 'tags_ui.dart';
 
 /// Escreve um post (texto e/ou até 4 fotos). Retorna o `Post` criado via
 /// Navigator.
@@ -39,6 +40,9 @@ class _ComposeScreenState extends State<ComposeScreen> {
   final _text = TextEditingController();
   final List<Uint8List> _photos = [];
   final List<String> _topics = [];
+
+  /// "Com fulano": amigos marcados (ficam pendentes até aprovarem).
+  List<String> _tags = [];
   bool _busy = false;
   String? _status;
   String? _error;
@@ -164,6 +168,7 @@ class _ComposeScreenState extends State<ComposeScreen> {
               mediaIds: ids,
               topics: _topics,
               at: await postLocation(),
+              tags: _tags,
             )
           : await api.postToPlace(
               token,
@@ -225,6 +230,26 @@ class _ComposeScreenState extends State<ComposeScreen> {
                 ),
               ),
             ),
+            MentionSuggestions(session: widget.session, controller: _text),
+            if (_tags.isNotEmpty)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Wrap(
+                  spacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    const Text('com'),
+                    for (final u in _tags)
+                      InputChip(
+                        key: Key('compose_tag_$u'),
+                        label: Text('@$u'),
+                        onDeleted: _busy
+                            ? null
+                            : () => setState(() => _tags.remove(u)),
+                      ),
+                  ],
+                ),
+              ),
             if (_topics.isNotEmpty)
               Align(
                 alignment: Alignment.centerLeft,
@@ -282,7 +307,8 @@ class _ComposeScreenState extends State<ComposeScreen> {
                   ],
                 ),
               ),
-            Row(
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 TextButton.icon(
                   key: const Key('topics_button'),
@@ -292,6 +318,24 @@ class _ComposeScreenState extends State<ComposeScreen> {
                     _topics.isEmpty ? 'Temas' : 'Temas (${_topics.length}/3)',
                   ),
                 ),
+                if (widget.placeSlug == null)
+                  TextButton.icon(
+                    key: const Key('tag_friends_button'),
+                    onPressed: _busy
+                        ? null
+                        : () async {
+                            final picked = await pickTaggedFriends(
+                              context,
+                              widget.session,
+                              _tags,
+                            );
+                            if (picked != null && mounted) {
+                              setState(() => _tags = picked);
+                            }
+                          },
+                    icon: const Icon(Icons.person_pin_outlined),
+                    label: Text(_tags.isEmpty ? 'Marcar' : 'Marcar (${_tags.length})'),
+                  ),
                 TextButton.icon(
                   key: const Key('add_photos_button'),
                   onPressed: _busy || _photos.length >= _maxPhotos
@@ -304,7 +348,6 @@ class _ComposeScreenState extends State<ComposeScreen> {
                         : 'Fotos (${_photos.length}/$_maxPhotos)',
                   ),
                 ),
-                const Spacer(),
                 if (_status != null)
                   Text(_status!, style: theme.textTheme.bodySmall),
               ],

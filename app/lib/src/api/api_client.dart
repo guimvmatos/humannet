@@ -308,6 +308,76 @@ class ApiClient {
     return (json?['deleted'] as int?) ?? 0;
   }
 
+  // ------------------------------------------------------------ marcações
+
+  /// Sugestões para @menção (ou só amigos, para "com fulano").
+  Future<List<Author>> suggestMentions(
+    String token,
+    String prefix, {
+    bool friendsOnly = false,
+  }) async {
+    final json = await _send(
+      'GET',
+      '/v1/mentions/suggest',
+      token: token,
+      query: {'q': prefix, if (friendsOnly) 'friends_only': 'true'},
+    );
+    return [
+      for (final u in json!['items'] as List<dynamic>)
+        Author.fromJson(u as Map<String, dynamic>),
+    ];
+  }
+
+  Future<List<PendingTag>> pendingTags(String token) async {
+    final json = await _send('GET', '/v1/me/tags/pending', token: token);
+    return [
+      for (final t in json!['items'] as List<dynamic>)
+        PendingTag.fromJson(t as Map<String, dynamic>),
+    ];
+  }
+
+  Future<void> approveTag(String token, String postId) async {
+    await _send('POST', '/v1/posts/$postId/tag/approve', token: token);
+  }
+
+  /// Recusar/tirar a minha marcação, ou (autor) tirar a de alguém.
+  Future<void> removeTag(String token, String postId, String username) async {
+    await _send(
+      'DELETE',
+      '/v1/posts/$postId/tags/${Uri.encodeComponent(username)}',
+      token: token,
+    );
+  }
+
+  Future<PostPage> taggedPosts(
+    String token,
+    String username, {
+    String? before,
+  }) async {
+    final json = await _send(
+      'GET',
+      '/v1/users/${Uri.encodeComponent(username)}/tagged',
+      token: token,
+      query: {'before': ?before},
+    );
+    return PostPage.fromJson(json!);
+  }
+
+  /// everyone | friends | nobody
+  Future<String> mentionPolicy(String token) async {
+    final json = await _send('GET', '/v1/me/mentions', token: token);
+    return json!['policy'] as String;
+  }
+
+  Future<void> setMentionPolicy(String token, String policy) async {
+    await _send(
+      'PUT',
+      '/v1/me/mentions',
+      token: token,
+      body: {'policy': policy},
+    );
+  }
+
   Future<VisitsInfo> visits(String token) async {
     final json = await _send('GET', '/v1/me/visits', token: token);
     return VisitsInfo.fromJson(json!);
@@ -395,6 +465,7 @@ class ApiClient {
     List<String> mediaIds = const [],
     List<String> topics = const [],
     (double, double)? at,
+    List<String> tags = const [],
   }) async {
     final json = await _send(
       'POST',
@@ -405,6 +476,7 @@ class ApiClient {
         if (mediaIds.isNotEmpty) 'media_ids': mediaIds,
         if (topics.isNotEmpty) 'topics': topics,
         if (at != null) ...{'lat': at.$1, 'lng': at.$2},
+        if (tags.isNotEmpty) 'tags': tags,
       },
     );
     return Post.fromJson(json!);
