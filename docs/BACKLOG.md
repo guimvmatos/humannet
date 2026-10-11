@@ -230,3 +230,26 @@ Conversar com outras redes abertas (Mastodon, Bluesky). Tensão com R1: contas d
 - Contato/encarregado: Gmail do Guilherme por enquanto. **Trocar** pelo e-mail do domínio quando houver (mudar o texto e subir a versão só se a mudança for importante).
 - **Pendente (jurídico):** revisão por advogado antes de abrir ao público geral.
 - **Pendente (Marco Civil, art. 15):** se o HumanNet virar atividade organizada com fins econômicos (ex.: com CNPJ), guardar registros de acesso (IP, data e hora) por 6 meses, em sigilo.
+
+## Decisão 2026-10-10: marcações, minha atividade, coletivos e visitas
+
+- **Marcações:**
+  - @menção no texto: o padrão é **todos** podem mencionar; cada pessoa pode restringir para só amigos ou ninguém.
+  - "Com fulano" (marcar no post ou foto): só aparece **depois da aprovação** de quem foi marcado, que pode remover quando quiser.
+  - Aba "Marcado" no perfil, só com marcações aprovadas. Bloqueio impede as duas formas.
+- **Minha atividade:**
+  - Abas com posts, comentários, curtidas, recados e depoimentos escritos.
+  - Apagar ou descurtir um item ou vários de uma vez, com filtro por período.
+  - Junto: "Baixar meus dados" (portabilidade, LGPD).
+- **Eventos de alunos (só no início):**
+  - Página do tipo **Coletivo**, sem CNPJ.
+  - Pedido aprovado pela administração e confirmação do e-mail institucional da UFSCar.
+  - Responsável visível e os 2 primeiros eventos revisados.
+  - Opção de endereço revelado só para quem marcou "vou".
+  - Limite semanal de eventos e suspensão por denúncia procedente.
+- **Quem visitou meu perfil:**
+  - Chave única recíproca ("ver e aparecer"), **ligada por padrão** (decisão do Guilherme).
+  - Só conta abrir o perfil; bloqueios ficam fora.
+  - Registro apagado em 30 dias; mostra só o dia da visita.
+  - Sem notificação nem contador (R6).
+  - Exige atualizar a Política de Privacidade (versão 2, novo aceite).
