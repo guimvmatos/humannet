@@ -181,6 +181,7 @@ Várias ideias dependem de **conversa 1:1 e em grupo** (status, chamar atenção
 
 - **Fase:** 5+
 - **Conflito com o manifesto:** segmentar por idade e região usa dado pessoal. Alternativa compatível: anúncios **contextuais** (por comunidade ou tema da página, sem perfil do usuário) e opt-in.
+- **Atualizado 2026-10-11:** detalhado na seção "Monetização" abaixo (M5–M9).
 
 ## Iniciativas sociais com curadoria comunitária
 
@@ -261,3 +262,31 @@ Conversar com outras redes abertas (Mastodon, Bluesky). Tensão com R1: contas d
 - 2 primeiros eventos de cada coletivo em revisão; no máximo 3 por semana; responsável visível; endereço opcionalmente só para quem marcou "vou" (no mapa, só a região ~1 km).
 - **Pendente:** suspensão do coletivo por denúncia procedente é manual (apagar a página / suspender a conta); falta um botão próprio.
 - **Pendente:** domínio próprio para enviar e-mail aos alunos (com `onboarding@resend.dev` a Resend só entrega para o dono da conta).
+
+## Monetização (proposta 2026-10-11)
+
+Documento completo (modelo de negócio, dados e LGPD, fases e riscos): Claude Doc "HumanNet — Modelo de negócio e monetização". **Nada aqui está decidido para implementar**; cada item precisa de pedido explícito.
+
+- **Receita principal:** anúncios de intenção (mapa patrocinado, comércio no Regional, comunidades por tema, classificados), sempre rotulados, com limite por sessão, nunca nas mensagens, segmentados por região e tema, não por histórico pessoal.
+- **Dados:** postura igual à das grandes plataformas, dentro da LGPD. Só agregados anonimizados (recorte mínimo de 100 pessoas) ou dado pessoal com consentimento específico (art. 7º §5º; autorização genérica é nula, art. 8º §4º). Nunca: CPF, localização individual, mensagens, dados sensíveis, perfil do "Para você".
+- **Fases e portões (metas sugeridas):** 1 Densidade, grátis → ~1 mil ativos/semana + Termos v3 + CNPJ/DPO → 2 Receita local → ~10 mil ativos e anunciantes renovando → 3 Assinaturas → ~100 mil ativos + parecer jurídico → 4 Plataforma.
+- **Conflito a resolver antes de faturar:** a Política v2 diz "não vendemos dados, não mostramos anúncios", e a SPEC (R5) também. Mudar exige ADR, Termos v3 e novo aceite.
+
+| Código | Fase | Item |
+|---|---|---|
+| M1 | Base | Métricas anônimas: ativos por dia/semana, retenção, uso do mapa e eventos |
+| M2 | Base | Termos e Política v3 (redação neutra sobre anúncios e parceiros) + novo aceite |
+| M3 | Base | Tela de consentimentos por finalidade, com histórico |
+| M4 | Base | CNPJ, encarregado (DPO), revisão jurídica |
+| M5 | 2 | Espaço de anúncio no mapa e no Regional, rótulo "Patrocinado", limite por sessão |
+| M6 | 2 | Gerenciador de anúncios para Páginas (região, tema, datas, orçamento, PIX) |
+| M7 | 2 | Página Pro: estatísticas, eventos recorrentes, mais administradores |
+| M8 | 2 | Classificados pagos (república, venda, serviços) |
+| M9 | 2 | Moderação de anúncios (aprovar, recusar, denunciar) |
+| M10 | 3 | Assinatura Apoiador (temas, fontes, selos), Google Play Billing e PIX |
+| M11 | 3 | Verificação reforçada (documento + selfie), ver ADR-0003 |
+| M12 | 3 | Carteira de credenciais de estudante, com parceiros de desconto e vagas |
+| M13 | 3 | Campus OS para universidades (agenda oficial, avisos, coletivos verificados) |
+| M14 | 4 | "Entrar com HumanNet": API de prova de pessoa real e 18+, consentimento a cada uso |
+| M15 | 4 | Relatórios de tendências agregados e anonimizados (mínimo 100 pessoas por recorte) |
+| M16 | 4 | Visita real: check-in no evento, anunciante paga por presença |
