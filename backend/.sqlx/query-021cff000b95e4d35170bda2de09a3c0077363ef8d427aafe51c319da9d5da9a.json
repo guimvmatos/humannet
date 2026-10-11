@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM profile_visits WHERE profile_id = $1 OR visitor_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "021cff000b95e4d35170bda2de09a3c0077363ef8d427aafe51c319da9d5da9a"
+}

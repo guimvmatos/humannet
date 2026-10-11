@@ -6,7 +6,7 @@ import 'error_messages.dart';
 
 /// Versão dos Termos/Privacidade que este app mostra e manda no aceite
 /// (igual a `TERMS_VERSION` do servidor).
-const termsVersion = 1;
+const termsVersion = 2;
 
 /// Link para abrir os Termos ou a Política (usado no cadastro e no aceite).
 class LegalLink extends StatelessWidget {

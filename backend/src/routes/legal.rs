@@ -16,7 +16,7 @@ use crate::{
 
 /// Versão vigente. Subir quando os textos mudarem de forma importante: o app
 /// pede novo aceite a quem aceitou uma versão anterior.
-pub const TERMS_VERSION: i16 = 1;
+pub const TERMS_VERSION: i16 = 2;
 
 pub const TERMS: &str = include_str!("../../legal/termos.md");
 pub const PRIVACY: &str = include_str!("../../legal/privacidade.md");

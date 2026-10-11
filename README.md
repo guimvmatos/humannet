@@ -84,6 +84,8 @@ cd app && flutter test
 | GET | `/v1/me/history?kind=posts\|comments\|likes\|scraps\|testimonials&before=` | Bearer | Minha atividade (mais recente primeiro; cursor = data do último item) |
 | POST | `/v1/me/history/delete` | Bearer | `{kind, ids}` (até 100): apaga meus itens / descurte; ids de outros são ignorados |
 | POST | `/v1/me/export` | Bearer | Cria link de uso único (10 min) para baixar meus dados |
+| GET | `/v1/me/visits` | Bearer | Quem visitou meu perfil (30 dias, só o dia; recíproco, ligado por padrão) |
+| PUT | `/v1/me/visits` | Bearer | `{enabled}`: desligar apaga as visitas feitas e recebidas |
 | PUT | `/v1/me/password` | Bearer | `{current_password, new_password}`: encerra as outras sessões |
 | POST | `/v1/invites` | Bearer | Gera um convite (até 5 ativos) |
 | PATCH | `/v1/me/profile` | Bearer | `{display_name?, bio?, hometown?, city?, school?}` (`""` remove; cidade/escola até 80) |

@@ -24,3 +24,4 @@ pub mod suggestions;
 pub mod testimonials;
 pub mod timeline;
 pub mod topics;
+pub mod visits;

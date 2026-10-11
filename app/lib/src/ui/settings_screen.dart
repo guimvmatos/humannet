@@ -11,6 +11,7 @@ import 'interests_screen.dart';
 import 'legal_screen.dart';
 import 'moderation_screen.dart';
 import 'rules_screen.dart';
+import 'visits_screen.dart';
 
 /// Configurações da conta: senha, bloqueados, excluir conta, sair.
 class SettingsScreen extends StatelessWidget {
@@ -56,6 +57,16 @@ class SettingsScreen extends StatelessWidget {
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => HistoryScreen(session: session),
+              ),
+            ),
+          ),
+          ListTile(
+            key: const Key('visits_tile'),
+            leading: const Icon(Icons.visibility_outlined),
+            title: const Text('Quem visitou meu perfil'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => VisitsScreen(session: session),
               ),
             ),
           ),

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM profile_visits\n         WHERE visited_at < now() - make_interval(days => $1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "291f4aa5d9def3f5bcd29b2ec7a2ba321279e7fe14ecf34215bec31e219d8eb8"
+}

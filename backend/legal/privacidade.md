@@ -1,6 +1,6 @@
 # Política de Privacidade do HumanNet
 
-Versão 1 — 10 de outubro de 2026
+Versão 2 — 11 de outubro de 2026 (inclui "Quem visitou meu perfil" e "Baixar meus dados")
 
 Esta política explica quais dados o HumanNet trata, por quê, com quem compartilha e quais são os seus direitos pela Lei Geral de Proteção de Dados (LGPD, Lei 13.709/2018).
 
@@ -26,6 +26,7 @@ Esta política explica quais dados o HumanNet trata, por quê, com quem comparti
 | Mensagens | Entregar as conversas | Execução do contrato |
 | Área aproximada dos posts | Mostrar o post no feed Regional de quem está perto | Execução do contrato |
 | Token de notificação do aparelho | Enviar avisos (sem conteúdo das mensagens) | Consentimento, dado na permissão do Android |
+| Visitas ao seu perfil (quem abriu e em que dia) | "Quem visitou meu perfil" | Legítimo interesse (art. 7º, IX), com opção de desligar a qualquer momento |
 | Denúncias e decisões de moderação | Segurança da comunidade | Legítimo interesse e cumprimento de obrigação legal (art. 7º, II e IX) |
 | Registros técnicos (endereço IP, data e hora) | Segurança, limite de tentativas de login e obrigações do Marco Civil | Cumprimento de obrigação legal e legítimo interesse |
 
@@ -39,6 +40,13 @@ Esta política explica quais dados o HumanNet trata, por quê, com quem comparti
 - **Feed Regional:** quando você lê, sua posição vai ao servidor só para aquela consulta, arredondada, e **não é guardada**.
 - **Mapa de eventos:** usa a posição do aparelho só para centralizar o mapa, no próprio celular.
 - **Páginas de lugares:** o endereço que o administrador informa é público e vira um ponto no mapa.
+
+## 4.1 Quem visitou meu perfil
+
+- Vem **ligado**. Quando você abre o perfil de alguém que também participa, essa pessoa vê que você visitou e em que **dia** (sem a hora). Abrir posts no feed não conta.
+- É **recíproco**: se você desligar (Configurações → Quem visitou meu perfil), deixa de ver quem te visitou **e** deixa de aparecer para os outros. Ao desligar, as visitas guardadas (feitas e recebidas) são apagadas.
+- Cada visita fica guardada por no máximo **30 dias**. Não há notificação nem contador.
+- Pessoas com bloqueio entre si nunca aparecem uma para a outra.
 
 ## 5. Dados sensíveis
 
@@ -68,7 +76,7 @@ Além disso, só compartilhamos dados com autoridades quando houver ordem judici
 
 ## 8. Seus direitos (art. 18)
 
-Você pode pedir: confirmação e acesso aos dados, correção, anonimização ou eliminação, portabilidade, informação sobre compartilhamento, e revogação de consentimento. Muitas coisas você mesmo faz no app (editar perfil, apagar posts, ajustar a linha do tempo, desligar a localização ou as notificações no Android, excluir a conta). Para o resto, escreva para guimvmatos@gmail.com. Você também pode reclamar à ANPD (gov.br/anpd).
+Você pode pedir: confirmação e acesso aos dados, correção, anonimização ou eliminação, portabilidade, informação sobre compartilhamento, e revogação de consentimento. Muitas coisas você mesmo faz no app: **Configurações → Minha atividade** mostra e apaga seus posts, comentários, curtidas, recados e depoimentos, e o botão **Baixar meus dados** gera um arquivo com tudo o que é seu (portabilidade). Também dá para editar o perfil, ajustar a linha do tempo, desligar a localização ou as notificações no Android e excluir a conta. Para o resto, escreva para guimvmatos@gmail.com. Você também pode reclamar à ANPD (gov.br/anpd).
 
 ## 9. Segurança
 

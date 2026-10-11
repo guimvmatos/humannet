@@ -25,7 +25,7 @@ async fn terms_are_public_and_required(db: PgPool) {
 
     // Cadastro sem aceite (ou com versão velha) é recusado.
     let invite = admin_invite(&db).await;
-    for accept in [json!(null), json!(0)] {
+    for accept in [json!(null), json!(1)] {
         let (s, b) = call(
             &app,
             Method::POST,
@@ -70,7 +70,7 @@ async fn terms_are_public_and_required(db: PgPool) {
         Method::PUT,
         "/v1/me/terms",
         Some(&alice),
-        Some(json!({"version": 1})),
+        Some(json!({"version": 2})),
     )
     .await;
     assert_eq!(s, StatusCode::NO_CONTENT);
@@ -81,7 +81,7 @@ async fn terms_are_public_and_required(db: PgPool) {
         Method::PUT,
         "/v1/me/terms",
         None,
-        Some(json!({"version": 1})),
+        Some(json!({"version": 2})),
     )
     .await;
     assert_eq!(s, StatusCode::UNAUTHORIZED);

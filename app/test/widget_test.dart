@@ -12,6 +12,7 @@ import 'package:humannet/src/ui/compose_screen.dart';
 import 'package:humannet/src/ui/cpf.dart';
 import 'package:humannet/src/ui/events_map.dart';
 import 'package:humannet/src/ui/history_screen.dart';
+import 'package:humannet/src/ui/visits_screen.dart';
 
 import 'fake_backend.dart';
 
@@ -820,7 +821,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('terms_gate_accept')));
     await tester.pumpAndSettle();
-    expect(backend.termsAccepted, 1);
+    expect(backend.termsAccepted, 2);
     expect(find.byKey(const Key('feed_screen')), findsOneWidget);
   });
 
@@ -1310,6 +1311,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(backend.exportRequested, isTrue);
     expect(opened.single.path, '/export/abc123');
+  });
+
+  test('visitas: só o dia', () {
+    final now = DateTime(2026, 10, 11, 9);
+    expect(visitDay('2026-10-11', now: now), 'hoje');
+    expect(visitDay('2026-10-10', now: now), 'ontem');
+    expect(visitDay('2026-10-01', now: now), '10 dias atrás');
+  });
+
+  testWidgets('quem visitou: lista e desligar (recíproco)', (tester) async {
+    final backend = FakeBackend();
+    final session = _session(backend, InMemoryTokenStore());
+    await session.restore();
+    await tester.pumpWidget(HumanNetApp(session: session));
+    await _login(tester);
+
+    final nav = tester.state<NavigatorState>(find.byType(Navigator).first);
+    nav.push(
+      MaterialPageRoute<void>(builder: (_) => VisitsScreen(session: session)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('visitor_bob')), findsOneWidget);
+    expect(find.textContaining('hoje'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('visits_switch')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('visits_off_confirm')));
+    await tester.pumpAndSettle();
+    expect(backend.visitsEnabled, isFalse);
+    expect(find.byKey(const Key('visitor_bob')), findsNothing);
+    expect(find.text('Visitas desligadas.'), findsOneWidget);
   });
 }
 

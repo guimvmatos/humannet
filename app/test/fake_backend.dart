@@ -78,6 +78,21 @@ class FakeBackend {
   ];
   final List<(String, List<String>)> historyDeleted = [];
   bool exportRequested = false;
+  bool visitsEnabled = true;
+
+  Map<String, Object?> _visits() => {
+    'enabled': visitsEnabled,
+    'visitors': visitsEnabled
+        ? [
+            {
+              'username': 'bob',
+              'display_name': 'Bob',
+              'avatar_url': null,
+              'day': DateTime.now().toIso8601String().substring(0, 10),
+            },
+          ]
+        : <Object>[],
+  };
   int? termsAccepted;
 
   /// Lugar "bar-do-ze" e um evento.
@@ -551,6 +566,12 @@ class FakeBackend {
         historyDeleted.add((r['kind'] as String, ids));
         myComments.removeWhere((c) => ids.contains(c['id']));
         return _json(200, {'deleted': ids.length});
+      case 'GET /v1/me/visits':
+        return _json(200, _visits());
+      case 'PUT /v1/me/visits':
+        visitsEnabled =
+            (jsonDecode(request.body) as Map<String, dynamic>)['enabled'] as bool;
+        return _json(200, _visits());
       case 'POST /v1/me/export':
         exportRequested = true;
         return _json(201, {

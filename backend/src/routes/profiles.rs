@@ -80,6 +80,8 @@ pub async fn get(
     Path(username): Path<String>,
 ) -> AppResult<Json<ProfileDto>> {
     let id = visible_user_id(&state, viewer.user_id, &username).await?;
+    // "Quem visitou": só se os dois participam (recíproco).
+    crate::routes::visits::record(&state, viewer.user_id, id).await?;
 
     let row = sqlx::query!(
         r#"

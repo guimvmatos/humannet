@@ -308,6 +308,21 @@ class ApiClient {
     return (json?['deleted'] as int?) ?? 0;
   }
 
+  Future<VisitsInfo> visits(String token) async {
+    final json = await _send('GET', '/v1/me/visits', token: token);
+    return VisitsInfo.fromJson(json!);
+  }
+
+  Future<VisitsInfo> setVisits(String token, {required bool enabled}) async {
+    final json = await _send(
+      'PUT',
+      '/v1/me/visits',
+      token: token,
+      body: {'enabled': enabled},
+    );
+    return VisitsInfo.fromJson(json!);
+  }
+
   /// Link de uso único (10 min) para baixar meus dados no navegador.
   Future<Uri> exportLink(String token) async {
     final json = await _send('POST', '/v1/me/export', token: token);

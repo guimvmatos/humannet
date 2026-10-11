@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO profile_visits (profile_id, visitor_id)\n        SELECT $1, $2\n        WHERE (SELECT visits_enabled FROM users WHERE id = $1)\n          AND (SELECT visits_enabled FROM users WHERE id = $2)\n        ON CONFLICT (profile_id, visitor_id) DO UPDATE SET visited_at = now()\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4297e9572f91bb99366f596dbcd87bb9cd6484853c33ddcd73d7af9d16139fe1"
+}

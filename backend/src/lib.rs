@@ -143,6 +143,10 @@ pub fn app(state: AppState) -> Router {
         .route("/me/history/delete", post(routes::history::delete))
         .route("/me/export", post(routes::history::create_export))
         .route(
+            "/me/visits",
+            get(routes::visits::list).put(routes::visits::set),
+        )
+        .route(
             "/admin/users/{username}/release-cpf",
             post(routes::admin::release_cpf),
         )

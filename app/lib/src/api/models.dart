@@ -1359,3 +1359,29 @@ class HistoryPage {
   final List<HistoryItem> items;
   final String? nextCursor;
 }
+
+/// Quem visitou meu perfil.
+class VisitsInfo {
+  const VisitsInfo({required this.enabled, required this.visitors});
+
+  factory VisitsInfo.fromJson(Map<String, dynamic> json) => VisitsInfo(
+    enabled: json['enabled'] as bool,
+    visitors: [
+      for (final v in (json['visitors'] as List<dynamic>))
+        (
+          author: Author(
+            id: (v as Map<String, dynamic>)['username'] as String,
+            username: v['username'] as String,
+            displayName: v['display_name'] as String?,
+            avatarUrl: v['avatar_url'] as String?,
+          ),
+          day: v['day'] as String,
+        ),
+    ],
+  );
+
+  final bool enabled;
+
+  /// `day` é só a data (AAAA-MM-DD).
+  final List<({Author author, String day})> visitors;
+}

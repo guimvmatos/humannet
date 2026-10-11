@@ -16,6 +16,7 @@ import 'scraps_screen.dart';
 import 'settings_screen.dart';
 import 'testimonials_screen.dart';
 import 'timeline_ui.dart';
+import 'visits_screen.dart';
 
 /// Perfil de um usuário. `asTab: true` = aba "Perfil" do próprio usuário
 /// (sem botão de voltar).
@@ -494,6 +495,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           builder: (_) => PlacesScreen(session: widget.session, adminOnly: true),
         ),
       ),
+      onVisits: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => VisitsScreen(session: widget.session),
+        ),
+      ),
       onEdit: _editProfile,
       onInvite: _createInvite,
       onTestimonials: _openTestimonials,
@@ -548,6 +554,7 @@ class _Header extends StatelessWidget {
     required this.onDecline,
     required this.onMessage,
     required this.onPlaces,
+    required this.onVisits,
     required this.onTimeline,
     required this.onEdit,
     required this.onInvite,
@@ -565,6 +572,7 @@ class _Header extends StatelessWidget {
   final VoidCallback onDecline;
   final VoidCallback onMessage;
   final VoidCallback onPlaces;
+  final VoidCallback onVisits;
   final VoidCallback onTimeline;
   final VoidCallback onEdit;
   final VoidCallback onInvite;
@@ -754,6 +762,12 @@ class _Header extends StatelessWidget {
                       onPressed: onPlaces,
                       icon: const Icon(Icons.storefront_outlined),
                       label: const Text('Minhas páginas'),
+                    ),
+                    OutlinedButton.icon(
+                      key: const Key('visits_button'),
+                      onPressed: onVisits,
+                      icon: const Icon(Icons.visibility_outlined),
+                      label: const Text('Quem visitou'),
                     ),
                   ]
                 : _friendButtons(),
