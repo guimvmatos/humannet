@@ -20,19 +20,28 @@ const _defaultCenter = LatLng(-23.5015, -47.4526);
 @visibleForTesting
 bool mapOfflineForTests = false;
 
-/// Camadas comuns: fundo do mapa (estilo claro ou escuro, conforme o tema).
-/// Dados do OpenStreetMap, desenho da CARTO (uso gratuito com crédito).
+/// Fundo claro: cores do OpenStreetMap mais suaves (menos saturadas), para os
+/// pinos dos eventos se destacarem.
+const _softTiles = ColorFilter.matrix([
+  0.78, 0.18, 0.04, 0, 12, //
+  0.08, 0.86, 0.06, 0, 12, //
+  0.08, 0.18, 0.74, 0, 16, //
+  0, 0, 0, 1, 0,
+]);
+
+Widget _softTileBuilder(BuildContext context, Widget tile, TileImage _) =>
+    ColorFiltered(colorFilter: _softTiles, child: tile);
+
+/// Camadas comuns: fundo do OpenStreetMap (gratuito, sem chave), com filtro
+/// suave no tema claro e versão noturna no tema escuro.
 List<Widget> _baseLayers(BuildContext context) {
   if (mapOfflineForTests) return const [];
   final dark = Theme.of(context).brightness == Brightness.dark;
   return [
     TileLayer(
-      urlTemplate: dark
-          ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-          : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-      subdomains: const ['a', 'b', 'c', 'd'],
-      retinaMode: RetinaMode.isHighDensity(context),
+      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       userAgentPackageName: 'social.humannet.humannet',
+      tileBuilder: dark ? darkModeTileBuilder : _softTileBuilder,
     ),
   ];
 }
@@ -43,13 +52,6 @@ Widget _attribution() => RichAttributionWidget(
       'OpenStreetMap contributors',
       onTap: () => launchUrl(
         Uri.parse('https://www.openstreetmap.org/copyright'),
-        mode: LaunchMode.externalApplication,
-      ),
-    ),
-    TextSourceAttribution(
-      'CARTO',
-      onTap: () => launchUrl(
-        Uri.parse('https://carto.com/attributions'),
         mode: LaunchMode.externalApplication,
       ),
     ),
@@ -503,7 +505,7 @@ class _EventsMapScreenState extends State<EventsMapScreen> {
           ? null
           : Padding(
               // Fica acima do carrossel de eventos.
-              padding: EdgeInsets.only(bottom: _events.isEmpty ? 0 : 104),
+              padding: EdgeInsets.only(bottom: _events.isEmpty ? 0 : 108),
               child: FloatingActionButton.small(
                 heroTag: 'map_me_fab',
                 tooltip: 'Onde estou',
@@ -614,7 +616,7 @@ class _EventsMapScreenState extends State<EventsMapScreen> {
             Positioned(
               left: 0,
               right: 0,
-              bottom: 24,
+              bottom: 24 + MediaQuery.paddingOf(context).bottom,
               height: 92,
               child: PageView.builder(
                 key: const Key('map_cards'),
