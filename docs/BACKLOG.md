@@ -138,7 +138,7 @@ Várias ideias dependem de **conversa 1:1 e em grupo** (status, chamar atenção
   - Combina com eventos e locais (pubs) e com o crescimento cidade a cidade.
 - **Desenho proposto:**
   - **Aba "Local" separada**, opt-in. Não substitui o feed principal (R2: nada oculto, o usuário escolhe).
-  - ~~"Regional" é uma **opção de público do post**: Seguidores ou Região.~~ Feito de outro jeito: posts globais com área desviada (ADR-0008).
+  - ~~"Regional" é uma **opção de público do post**: Seguidores ou Região.~~ Feito de outro jeito: posts globais com área aproximada (ADR-0008, ADR-0009).
   - **Nunca guardar coordenadas.** O app converte a posição numa **célula de grade** (geohash ou H3, na escala de um bairro ou cidade) e só a célula vai para o servidor (R5).
   - **Nunca exibir distância** ("a 1,2 km"). No máximo o nome do bairro ou da cidade.
   - O raio é escolhido entre opções fixas (bairro, cidade, região), não em metros.
@@ -221,7 +221,7 @@ Conversar com outras redes abertas (Mastodon, Bluesky). Tensão com R1: contas d
 ## Decisão 2026-10-10: posts globais (ADR-0008)
 
 - Quem escreve não escolhe público. Quem lê escolhe Cronológico, Para você ou Regional (este com ordem cronológica ou "Para você" e raio de 1 a 50 km).
-- Todo post pessoal leva a área aproximada, com desvio de até 1,5 km.
+- Todo post pessoal leva a área aproximada (célula de ~500 m). O desvio de até 1,5 km foi retirado em 2026-10-11 (ADR-0009).
 - **Pendente:** "Para você" com desconhecidos em escala. Hoje vêm os 300 posts mais recentes com tema/hashtag (48 h). Com volume, criar consulta por tema no servidor sem enviar o perfil de interesses.
 - **Pendente:** posts de menores sem posição, quando houver verificação de idade.
 
