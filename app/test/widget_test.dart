@@ -35,6 +35,14 @@ Future<void> _tapInList(WidgetTester tester, String key) async {
   await tester.tap(f);
 }
 
+/// Toca num widget já construído, rolando até ele antes (ex.: botões do perfil).
+Future<void> _tapVisible(WidgetTester tester, String key) async {
+  final f = find.byKey(Key(key));
+  await tester.ensureVisible(f);
+  await tester.pumpAndSettle();
+  await tester.tap(f);
+}
+
 Future<void> _login(WidgetTester tester) async {
   await tester.enterText(
     find.byKey(const Key('login_field')),
@@ -77,7 +85,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Só você vê esses números.'), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('logout_button')));
+    await _tapVisible(tester, 'logout_button');
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('login_button')), findsOneWidget);
@@ -195,7 +203,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('nav_profile')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('edit_profile_button')));
+    await _tapVisible(tester, 'edit_profile_button');
     await tester.pumpAndSettle();
 
     await tester.enterText(
@@ -583,7 +591,7 @@ void main() {
     await tester.tap(find.byKey(const Key('nav_profile')));
     await tester.pumpAndSettle();
     expect(find.text('Depoimentos (1 para aprovar)'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('testimonials_button')));
+    await _tapVisible(tester, 'testimonials_button');
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('pending_testimonial_d1')), findsOneWidget);
@@ -759,7 +767,7 @@ void main() {
     await tester.enterText(find.byKey(const Key('find_person_field')), 'bob');
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('scraps_button')));
+    await _tapVisible(tester, 'scraps_button');
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('no_scraps')), findsOneWidget);
     await tester.enterText(find.byKey(const Key('scrap_field')), 'Saudades!');
@@ -1116,7 +1124,7 @@ void main() {
     await tester.tap(find.byKey(const Key('nav_profile')));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const Key('timeline_button')));
-    await tester.tap(find.byKey(const Key('timeline_button')));
+    await _tapVisible(tester, 'timeline_button');
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('timeline_empty')), findsOneWidget);
 
