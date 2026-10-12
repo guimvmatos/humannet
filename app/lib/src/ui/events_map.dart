@@ -58,6 +58,9 @@ Widget _attribution() => RichAttributionWidget(
   ],
 );
 
+/// Já pediu "Precisa" nesta execução do app (não insistir).
+bool _askedPrecise = false;
+
 /// Posição do aparelho, só para desenhar "você está aqui" (precisão alta:
 /// não sai do celular). Cai para a precisão baixa se o GPS demorar.
 /// `null` sem permissão ou sem GPS. Devolve também a margem de erro (m).
@@ -72,6 +75,14 @@ Future<(LatLng, double)?> _whereAmI() async {
     if (perm == LocationPermission.denied ||
         perm == LocationPermission.deniedForever) {
       return null;
+    }
+    // Permissão só "Aproximada" (Android 12+): o ponto pode cair a 1-3 km.
+    // Pede uma vez para trocar por "Precisa"; se a pessoa recusar, segue.
+    if (!_askedPrecise &&
+        await Geolocator.getLocationAccuracy() ==
+            LocationAccuracyStatus.reduced) {
+      _askedPrecise = true;
+      await Geolocator.requestPermission();
     }
     Position p;
     try {

@@ -9,9 +9,10 @@ bool locationFakeForTests = false;
 @visibleForTesting
 (double, double)? locationForTests;
 
-/// Posição aproximada do aparelho (precisão baixa, só o necessário). Usada no
-/// feed regional e ao postar: o servidor arredonda o post para uma célula de
-/// ~500 m (ADR-0009), e não guarda a posição de quem lê.
+/// Posição do aparelho com precisão média (~100 m). Usada no feed regional e
+/// ao postar: o servidor arredonda o post para uma célula de ~500 m
+/// (ADR-0009) e não guarda a posição de quem lê. Precisão baixa erra 1-3 km,
+/// o que colocaria o post em outra célula.
 Future<(double, double)> approxLocation() async {
   if (locationFakeForTests) {
     final l = locationForTests;
@@ -32,7 +33,7 @@ Future<(double, double)> approxLocation() async {
     }
     final p = await Geolocator.getCurrentPosition(
       locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.low,
+        accuracy: LocationAccuracy.medium,
         timeLimit: Duration(seconds: 15),
       ),
     );

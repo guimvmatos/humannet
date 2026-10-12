@@ -89,14 +89,18 @@ if "android.permission.POST_NOTIFICATIONS" not in s:
                s, count=1)
     main.write_text(s)
 
-# 6) Mapa: localização aproximada, só para mostrar "você está aqui"
-#    (nunca enviada ao servidor).
-s = main.read_text()
-if "android.permission.ACCESS_COARSE_LOCATION" not in s:
-    s = re.sub(r"(<manifest[^>]*>)",
-               r'\1\n    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>',
-               s, count=1)
-    main.write_text(s)
+# 6) Localização. Só COARSE faz o Android devolver uma posição borrada em
+#    1-3 km, mesmo pedindo precisão alta: o "você está aqui" do mapa sai no
+#    lugar errado. FINE deixa a pessoa escolher "Precisa" ou "Aproximada"
+#    (Android 12+). A posição precisa não sai do celular: o servidor só
+#    recebe a do post, que vira uma célula de ~500 m (ADR-0009).
+for perm in ("ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"):
+    s = main.read_text()
+    if f"android.permission.{perm}" not in s:
+        s = re.sub(r"(<manifest[^>]*>)",
+                   rf'\1\n    <uses-permission android:name="android.permission.{perm}"/>',
+                   s, count=1)
+        main.write_text(s)
 
 # 7) Nome exibido no Android.
 main_manifest = app / "src/main/AndroidManifest.xml"
