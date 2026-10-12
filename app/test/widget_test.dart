@@ -13,6 +13,7 @@ import 'package:humannet/src/ui/compose_screen.dart';
 import 'package:humannet/src/ui/cpf.dart';
 import 'package:humannet/src/ui/events_map.dart';
 import 'package:humannet/src/ui/history_screen.dart';
+import 'package:humannet/src/ui/legal_screen.dart' show termsVersion;
 import 'package:humannet/src/ui/tags_ui.dart';
 import 'package:humannet/src/ui/visits_screen.dart';
 
@@ -843,7 +844,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('terms_gate_accept')));
     await tester.pumpAndSettle();
-    expect(backend.termsAccepted, 2);
+    expect(backend.termsAccepted, termsVersion);
     expect(find.byKey(const Key('feed_screen')), findsOneWidget);
   });
 
