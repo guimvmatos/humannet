@@ -43,10 +43,11 @@ pub async fn privacy() -> impl IntoResponse {
 
 /// Confere o aceite enviado no cadastro ou em `PUT /v1/me/terms`.
 pub fn check(version: Option<i16>) -> AppResult<()> {
-    if version == Some(TERMS_VERSION) {
-        Ok(())
-    } else {
-        Err(AppError::Validation("terms_required"))
+    match version {
+        Some(TERMS_VERSION) => Ok(()),
+        // App antigo aceitando o texto antigo: precisa atualizar o app.
+        Some(_) => Err(AppError::Validation("app_outdated")),
+        None => Err(AppError::Validation("terms_required")),
     }
 }
 

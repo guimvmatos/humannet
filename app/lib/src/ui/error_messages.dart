@@ -24,6 +24,9 @@ String errorMessage(Object error) {
     'invalid_code' => 'Código errado ou vencido. Peça outro.',
     'email_send_failed' => 'Não conseguimos mandar o e-mail agora. Tente de novo.',
     'event_week_limit' => 'Coletivos podem criar até 3 eventos por semana.',
+    'app_outdated' =>
+      'Este app está desatualizado. Instale a versão nova do APK para '
+          'aceitar os Termos atualizados.',
     'terms_required' =>
       'Para criar a conta, aceite os Termos e a Política de Privacidade.',
     'invalid_radius' => 'O raio vai de 1 a 50 km.',
