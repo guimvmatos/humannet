@@ -68,7 +68,7 @@ pub async fn register(
             "username": username,
             "email": email,
             "password": PASSWORD,
-            "accept_terms": 2,
+            "accept_terms": 3,
         })),
     )
     .await

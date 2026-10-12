@@ -1,6 +1,6 @@
 # Termos de Uso do HumanNet
 
-Versão 2 — 11 de outubro de 2026
+Versão 3 — 11 de outubro de 2026
 
 O HumanNet é uma rede social em fase de teste (beta), com entrada só por convite. Ao criar uma conta você concorda com estes Termos e com a Política de Privacidade.
 
@@ -47,7 +47,7 @@ O HumanNet é mantido por Guilherme Matos, pessoa física, no Brasil. Contato: g
 ## 7. O que o HumanNet não promete
 
 - O serviço está em **teste**: pode ter falhas, ficar fora do ar, mudar ou ser encerrado. Faremos o possível para avisar antes de encerrar.
-- Não vendemos seus dados nem mostramos anúncios.
+- Não vendemos seus dados pessoais. Hoje não há anúncios. Se houver, terão o rótulo "Patrocinado", serão escolhidos pelo contexto (região, tema) e seguem a Política de Privacidade.
 - O HumanNet não responde pelo que os usuários publicam, mas age sobre denúncias.
 
 ## 8. Mudanças nestes Termos

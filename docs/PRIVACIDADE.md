@@ -1,5 +1,7 @@
 # Política de Privacidade — HumanNet (beta fechado)
 
+> **Desatualizado.** Rascunho de 8/10/2026. O texto vigente é [`backend/legal/privacidade.md`](../backend/legal/privacidade.md), servido em `/legal/privacidade`.
+
 Última atualização: 8 de outubro de 2026
 
 A HumanNet é uma rede social em teste, só para convidados. Este texto explica,

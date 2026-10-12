@@ -1,6 +1,6 @@
 # Política de Privacidade do HumanNet
 
-Versão 2 — 11 de outubro de 2026 (inclui "Quem visitou meu perfil" e "Baixar meus dados")
+Versão 3 — 11 de outubro de 2026 (anúncios contextuais e parceiros; área dos posts sem desvio)
 
 Esta política explica quais dados o HumanNet trata, por quê, com quem compartilha e quais são os seus direitos pela Lei Geral de Proteção de Dados (LGPD, Lei 13.709/2018).
 
@@ -11,7 +11,8 @@ Esta política explica quais dados o HumanNet trata, por quê, com quem comparti
 
 ## 2. Princípio: o mínimo necessário
 
-- Não vendemos dados, não mostramos anúncios e não usamos tempo de tela para ordenar nada.
+- Não vendemos seus dados pessoais e não usamos tempo de tela para ordenar nada.
+- Hoje o HumanNet **não mostra anúncios**. No futuro poderá mostrar anúncios e conteúdo patrocinado (ver item 6A).
 - O perfil de interesses do "Para você" é calculado e guardado **só no seu celular**. O servidor não recebe.
 
 ## 3. Dados que tratamos
@@ -64,6 +65,18 @@ Usamos fornecedores (operadores) que processam dados em nosso nome, alguns **for
 - **ViaCEP** (Brasil): preenchimento do endereço das páginas a partir do CEP.
 
 Além disso, só compartilhamos dados com autoridades quando houver ordem judicial ou obrigação legal.
+
+## 6A. Anúncios e parceiros
+
+Quando houver anúncios:
+
+- Eles sempre terão o rótulo **"Patrocinado"**, com limite por uso, e nunca aparecem nas mensagens.
+- São escolhidos pelo **contexto**: a região que aparece na tela (mapa, Regional) ou o tema de uma comunidade ou evento. **Não** usam o seu histórico, as suas mensagens nem o seu perfil de interesses.
+- Anunciantes e parceiros recebem **só estatísticas agregadas e anonimizadas** (por exemplo, quantas pessoas viram um anúncio numa região). Cada número junta no mínimo 100 pessoas e não identifica ninguém.
+- Qualquer outro uso de dado pessoal para anúncios ou parceiros só acontece com o seu **consentimento específico**, pedido no app para aquela finalidade. Você pode recusar e retirar quando quiser, sem perder o acesso ao app.
+- **Nunca** usamos para anúncios nem entregamos a parceiros: CPF, sua localização individual, mensagens, dados sensíveis (saúde, religião, política etc.) e o perfil de interesses do "Para você" (que nem sai do celular).
+
+Se isso mudar de forma importante, publicamos nova versão e pedimos novo aceite.
 
 ## 7. Por quanto tempo guardamos
 

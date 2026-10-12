@@ -6,7 +6,7 @@ import 'error_messages.dart';
 
 /// Versão dos Termos/Privacidade que este app mostra e manda no aceite
 /// (igual a `TERMS_VERSION` do servidor).
-const termsVersion = 2;
+const termsVersion = 3;
 
 /// Link para abrir os Termos ou a Política (usado no cadastro e no aceite).
 class LegalLink extends StatelessWidget {
@@ -237,8 +237,10 @@ class _TermsGateScreenState extends State<TermsGateScreen> {
           const Text(
             'A HumanNet publicou os Termos de Uso e a Política de '
             'Privacidade. Resumo: posts são públicos; o post leva só uma '
-            'área aproximada (~500 m); não vendemos dados nem '
-            'mostramos anúncios; o beta é só para maiores de 18 anos.',
+            'área aproximada (~500 m); não vendemos dados pessoais; '
+            'hoje não há anúncios e, se houver, serão rotulados e '
+            'escolhidos pela região ou tema, nunca pelo seu histórico; '
+            'o beta é só para maiores de 18 anos.',
           ),
           const SizedBox(height: 8),
           Wrap(

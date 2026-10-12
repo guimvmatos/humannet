@@ -76,7 +76,7 @@ Ideias inspiradas no Orkut, no MSN e no Flogão. Algumas já estão na SPEC; as 
 | **Status de disponibilidade** (Disponível / Ocupado / Ausente / **Invisível**) | Novo | junto com Mensagens | Padrão: nunca mostrar "online agora" (anti-cobrança). Sem "visto por último". "Invisível" de verdade. |
 | **Subnick / música do momento** | Novo | 2 | Primeiro, texto livre curto (o "subnick") com validade (ex.: 24 h). Depois, integração opcional com streaming (ex.: "ouvindo agora" via API do Spotify/Deezer, com OAuth). Mostra só nome e artista, nunca toca o áudio (direitos autorais). |
 | **Chamar atenção** (vibrar o celular do amigo) | Novo | junto com Mensagens e notificações | Só entre **amigos**. Limite: 3 por dia no total e 1 por dia por amigo. O receptor pode silenciar ou bloquear. Depende de push notification. |
-| **Uma foto por dia** (Flogão) | Novo, **decisão pendente** | 1 (com imagens) | Opções: (a) toda foto é limitada a 1 por dia; (b) "Foto do dia" é um espaço especial no perfil, e os posts de texto continuam livres. Encaixa com "sem vício" (R6). |
+| **Uma foto por dia** (Flogão) | Feito | 1 | Decidido: "Foto do dia" é um espaço único no perfil; fotos em posts continuam livres. |
 | **Canais de chat de texto puro** (#cinema-sp, #programacao) | Novo | 3+ | Estilo IRC, só texto. Sobreposição com Comunidades: talvez cada comunidade tenha um canal. Moderação em tempo real é cara e precisa de moderadores voluntários. |
 
 ## Mensagens diretas (fundação que falta)
@@ -88,7 +88,7 @@ Várias ideias dependem de **conversa 1:1 e em grupo** (status, chamar atenção
   - só entre **amigos** (R9);
   - sem "visto por último" e sem confirmação de leitura por padrão;
   - bloqueio impede tudo.
-- **Decisão técnica pendente:** criptografia de ponta a ponta (protocolo MLS ou Signal) desde o início, ou mensagens legíveis pelo servidor no começo, o que é mais simples e permite moderação. Precisa de um ADR.
+- **Decidido (ADR-0011):** mensagens legíveis pelo servidor, sem ponta a ponta, para a moderação agir sobre denúncias.
 
 ## Linha do tempo pessoal e reencontros
 
@@ -195,13 +195,10 @@ Várias ideias dependem de **conversa 1:1 e em grupo** (status, chamar atenção
 
 ---
 
-## Em análise (Guilherme decide se entra)
+## Descartado (decisão 2026-10-11)
 
-### Marketplace com reputação
-Compra, venda e troca entre pessoas da rede (tipo OLX/Marketplace do Facebook), com reputação baseada em quem convidou e em avaliações de negócios anteriores. Riscos: fraude, pagamentos, Código de Defesa do Consumidor. Fase 5+ se entrar.
-
-### Federação (ActivityPub / AT Protocol)
-Conversar com outras redes abertas (Mastodon, Bluesky). Tensão com R1: contas de outros servidores não passam pela nossa verificação de "uma pessoa, uma conta".
+- **Marketplace com reputação:** não entra. (Classificados pagos de Páginas, M8, são outra coisa e seguem na monetização.)
+- **Federação (ActivityPub / AT Protocol):** não entra; plataforma fechada (ADR-0012).
 
 ## Depois (decidido que entra, sem data)
 
@@ -270,12 +267,12 @@ Documento completo (modelo de negócio, dados e LGPD, fases e riscos): Claude Do
 - **Receita principal:** anúncios de intenção (mapa patrocinado, comércio no Regional, comunidades por tema, classificados), sempre rotulados, com limite por sessão, nunca nas mensagens, segmentados por região e tema, não por histórico pessoal.
 - **Dados:** postura igual à das grandes plataformas, dentro da LGPD. Só agregados anonimizados (recorte mínimo de 100 pessoas) ou dado pessoal com consentimento específico (art. 7º §5º; autorização genérica é nula, art. 8º §4º). Nunca: CPF, localização individual, mensagens, dados sensíveis, perfil do "Para você".
 - **Fases e portões (metas sugeridas):** 1 Densidade, grátis → ~1 mil ativos/semana + Termos v3 + CNPJ/DPO → 2 Receita local → ~10 mil ativos e anunciantes renovando → 3 Assinaturas → ~100 mil ativos + parecer jurídico → 4 Plataforma.
-- **Conflito a resolver antes de faturar:** a Política v2 diz "não vendemos dados, não mostramos anúncios", e a SPEC (R5) também. Mudar exige ADR, Termos v3 e novo aceite.
+- **Conflito resolvido (ADR-0010, lote 32):** R5 mudou para "anúncios só contextuais, sem vender dado pessoal"; Termos e Política v3 com novo aceite.
 
 | Código | Fase | Item |
 |---|---|---|
 | M1 | Base | Métricas anônimas: ativos por dia/semana, retenção, uso do mapa e eventos |
-| M2 | Base | Termos e Política v3 (redação neutra sobre anúncios e parceiros) + novo aceite |
+| M2 | Base | ~~Termos e Política v3 + novo aceite~~ **Feito (lote 32)** |
 | M3 | Base | Tela de consentimentos por finalidade, com histórico |
 | M4 | Base | CNPJ, encarregado (DPO), revisão jurídica |
 | M5 | 2 | Espaço de anúncio no mapa e no Regional, rótulo "Patrocinado", limite por sessão |

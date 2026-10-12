@@ -35,7 +35,7 @@ Toda feature nova é validada contra estas regras:
 | **R2. Nada oculto** | Qualquer ordenação ou filtro do feed é visível, explicável ("por que estou vendo isto") e desligável. |
 | **R3. Métricas privadas** | Contagens de curtidas, visualizações e amigos são visíveis apenas ao dono. |
 | **R4. Sem amplificação em massa** | Não existe repost nem compartilhamento. O conteúdo circula por autoria, comentários e comunidades. |
-| **R5. Dados mínimos** | Coletar só o necessário. Preferir processamento no aparelho. Não usar dado pessoal para anúncios. |
+| **R5. Dados mínimos** | Coletar só o necessário. Preferir processamento no aparelho. Não vender dado pessoal. Anúncios só **contextuais** (região, tema) e rotulados; com terceiros, só agregados anonimizados (≥ 100 pessoas) ou consentimento específico. Ver [ADR-0010](adr/0010-anuncios-contextuais-e-dados.md). |
 | **R6. Sem métricas de vício** | Tempo de tela e dwell time nunca alimentam ranking. |
 | **R7. Segurança antes de alcance** | Toda feature que expõe localização ou presença física é opt-in, com padrão restritivo. **Exceção:** a área aproximada dos posts no feed Regional, arredondada para ~500 m e sem distância visível ([ADR-0008](adr/0008-posts-globais-e-posicao-com-desvio.md), [ADR-0009](adr/0009-posts-sem-desvio.md)). |
 | **R8. IA não se passa por humano** | Nenhuma IA posta, comenta ou interage com terceiros. A IA conversa só com o próprio usuário e é rotulada como IA. |
@@ -59,7 +59,7 @@ Toda feature nova é validada contra estas regras:
 | **1. MVP social** | Perfis, depoimentos, posts (texto + imagem), amizade (pedido/aceite), feed (2 modos), comunidades-fórum, curtir/comentar, denúncia, bloqueio, temas visuais | Grupo de ~12+ testadores usando o app por 14 dias (teste fechado do Play) |
 | **2. Eventos** | Contas de organização, eventos, presença (RSVP), calendário no app, exportação `.ics`/assinatura | Um local real publicando eventos |
 | **3. Presença física** | Check-in por QR rotativo, "quem está aqui" com controles de privacidade | Check-in validado num evento real |
-| **4+. Depois** | Verificação de identidade e idade, classificador de temas, assistente de bem-estar (IA), marketplace, anúncios éticos | Ver backlog |
+| **4+. Depois** | Verificação de identidade e idade, classificador de temas, assistente de bem-estar (IA), anúncios contextuais | Ver backlog |
 
 ---
 
@@ -251,8 +251,8 @@ checkins(event_id, user_id, visibility, created_at, expires_at)
 ## 7. Questões em aberto
 
 1. Nome definitivo e domínio.
-2. Plataforma fechada × protocolo aberto (ActivityPub / AT Protocol). Precisa de um ADR antes da Fase 2.
+2. ~~Plataforma fechada × protocolo aberto.~~ Decidido: fechada ([ADR-0012](adr/0012-plataforma-fechada.md)).
 3. Fornecedor e base legal para a verificação de identidade (Fase 4).
 4. Detecção de CSAM em imagens. Precisa estar resolvida antes do acesso público.
-5. Modelo de monetização ético (ver backlog).
+5. Modelo de monetização: anúncios contextuais ([ADR-0010](adr/0010-anuncios-contextuais-e-dados.md)); fases e metas no backlog.
 6. Hospedagem de produção e orçamento.

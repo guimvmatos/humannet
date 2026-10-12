@@ -70,7 +70,7 @@ async fn terms_are_public_and_required(db: PgPool) {
         Method::PUT,
         "/v1/me/terms",
         Some(&alice),
-        Some(json!({"version": 2})),
+        Some(json!({"version": 3})),
     )
     .await;
     assert_eq!(s, StatusCode::NO_CONTENT);
@@ -81,7 +81,7 @@ async fn terms_are_public_and_required(db: PgPool) {
         Method::PUT,
         "/v1/me/terms",
         None,
-        Some(json!({"version": 2})),
+        Some(json!({"version": 3})),
     )
     .await;
     assert_eq!(s, StatusCode::UNAUTHORIZED);
